@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  background-color: #f8fafc;
+}
+
+/* 小说阅读区域样式：全部左对齐 */
+.novel-content h1 {
+  @apply text-2xl font-bold my-6 text-gray-900 text-left;
+}
+.novel-content h2 {
+  @apply text-xl font-bold my-4 text-gray-800 text-left;
+}
+.novel-content h3 {
+  @apply text-lg font-bold my-3 text-gray-700 text-left;
+}
+.novel-content p {
+  @apply text-base leading-relaxed mb-4 text-gray-800;
+}
+.novel-content blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4;
+}
+
+/* 思考日志面板样式 */
+.thinking-log {
+  @apply bg-gray-950 text-gray-200 rounded-xl p-3 font-mono text-xs leading-relaxed;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.thinking-log .log-entry {
+  @apply block py-0.5;
+  opacity: 0;
+  animation: logFadeIn 0.2s ease forwards;
+}
+.thinking-log .log-time {
+  @apply text-gray-500 mr-2 select-none;
+}
+.thinking-log .log-info { @apply text-gray-300; }
+.thinking-log .log-success { @apply text-green-400; }
+.thinking-log .log-warn { @apply text-yellow-400; }
+.thinking-log .log-error { @apply text-red-400; }
+.thinking-log .log-chapter { @apply text-orange-300; }
+
+@keyframes logFadeIn {
+  to { opacity: 1; }
+}
