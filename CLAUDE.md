@@ -30,7 +30,7 @@ novel-generator/
 │   ├── stores/        # Zustand store
 │   └── services/      # API 调用 + Demo 模式
 ├── doc/               # 项目文档
-├── novel/             # 生成的小说文件（自动创建）
+├── doc/               # 生成的小说文件（自动创建）
 └── .github/workflows/ # GitHub Actions
 ```
 

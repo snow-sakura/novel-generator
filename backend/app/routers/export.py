@@ -1,4 +1,4 @@
-"""小说导出 API（整本 / 逐章 / 大纲）"""
+"""小说导出 API（整本 / 逐章 / 大纲 / 全量压缩包）"""
 import json
 import os
 import re
@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.novel import Novel
 from app.services.export import export_markdown, export_txt, export_pdf
+from app.services.xmind import generate_xmind
 
 router = APIRouter(prefix="/api/v1")
 
@@ -92,8 +93,8 @@ async def export_chapters_zip(novel_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/novels/{novel_id}/export/outline")
-async def export_outline(novel_id: int, db: Session = Depends(get_db)):
-    """导出创作大纲（思维导图格式）"""
+async def export_outline(novel_id: int, format: str = "markdown", db: Session = Depends(get_db)):
+    """导出创作大纲（支持 markdown / xmind 格式）"""
     novel = db.query(Novel).filter(Novel.id == novel_id).first()
     if not novel:
         raise HTTPException(status_code=404, detail="小说不存在")
@@ -108,6 +109,16 @@ async def export_outline(novel_id: int, db: Session = Depends(get_db)):
     elements = outline.get("elements", {})
     chapters = outline.get("chapters", [])
 
+    if format == "xmind":
+        xmind_bytes = generate_xmind(title, chapters)
+        safe_title = re.sub(r'[\\/:*?"<>|]', "", title).strip() or "未命名小说"
+        return StreamingResponse(
+            iter([xmind_bytes]),
+            media_type="application/x-xmind",
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(safe_title)}_大纲.xmind"},
+        )
+
+    # 默认 markdown
     lines = [
         f"# 《{title}》创作大纲\n",
         f"> {novel.gender} · {novel.genre} · {novel.style}\n\n",
@@ -129,3 +140,61 @@ async def export_outline(novel_id: int, db: Session = Depends(get_db)):
     text = "".join(lines)
     return PlainTextResponse(text, media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{_safe_filename(title, '大纲')}.md"})
+
+
+@router.get("/novels/{novel_id}/export/package")
+async def export_package(novel_id: int, db: Session = Depends(get_db)):
+    """导出全部内容为 ZIP 压缩包（MD + TXT + 章节 TXT + XMind 大纲）"""
+    novel = db.query(Novel).filter(Novel.id == novel_id).first()
+    if not novel:
+        raise HTTPException(status_code=404, detail="小说不存在")
+
+    title = novel.title or "未命名小说"
+    content = novel.content or ""
+    safe_title = re.sub(r'[\\/:*?"<>|]', "", title).strip() or "未命名小说"
+
+    outline_raw = novel.outline or "{}"
+    try:
+        outline = json.loads(outline_raw)
+    except json.JSONDecodeError:
+        outline = {}
+    chapters = outline.get("chapters", [])
+
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        # 1. 全文 Markdown
+        md_bytes = export_markdown(title, content).encode("utf-8")
+        zf.writestr(f"{safe_title}.md", md_bytes)
+
+        # 2. 全文 TXT
+        txt_bytes = export_txt(title, content).encode("utf-8")
+        zf.writestr(f"{safe_title}.txt", txt_bytes)
+
+        # 3. 逐章 TXT
+        chapter_blocks = re.split(r"\n(?=## )", content) if content else []
+        for i, ch in enumerate(chapters):
+            ch_title = ch.get("title", f"第{i+1}章")
+            ch_content = ""
+            for block in chapter_blocks:
+                if ch_title in block[:100]:
+                    ch_content = block.strip()
+                    break
+            if not ch_content:
+                ch_content = f"## {ch_title}\n\n（内容未找到）"
+            fn = f"第{i+1}章 {ch_title}.txt"
+            safe_fn = re.sub(r'[\\/:*?"<>|]', "", fn)
+            zf.writestr(f"章节/{safe_fn}", f"《{title}》\n{ch_title}\n\n{ch_content}\n".encode("utf-8"))
+
+        # 4. 大纲 XMind
+        try:
+            xmind_bytes = generate_xmind(title, chapters)
+            zf.writestr(f"{safe_title} 大纲.xmind", xmind_bytes)
+        except Exception:
+            pass
+
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        iter([zip_buffer.getvalue()]),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(safe_title)}.zip"},
+    )

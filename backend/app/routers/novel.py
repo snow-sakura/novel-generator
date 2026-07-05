@@ -1,19 +1,27 @@
 """小说 CRUD API"""
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.database import get_db
 from app.models.novel import Novel
+from app.models.generation_record import GenerationRecord
 
 router = APIRouter(prefix="/api/v1")
 
 
 @router.get("/novels")
-async def list_novels(page: int = 1, size: int = 10, db: Session = Depends(get_db)):
-    total = db.query(Novel).count()
-    items = db.query(Novel).order_by(desc(Novel.created_at)).offset((page - 1) * size).limit(size).all()
+async def list_novels(page: int = 1, size: int = 10,
+                       status: str = Query(None, description="筛选状态: completed/failed/all"),
+                       db: Session = Depends(get_db)):
+    query = db.query(Novel)
+    if status == "completed":
+        # 只显示有 completed 生成记录的小说
+        query = query.join(GenerationRecord, Novel.id == GenerationRecord.novel_id).filter(
+            GenerationRecord.status == "completed")
+    total = query.count()
+    items = query.order_by(desc(Novel.created_at)).offset((page - 1) * size).limit(size).all()
     return {
         "total": total, "page": page, "size": size,
         "items": [
@@ -33,6 +41,13 @@ async def get_novel(novel_id: int, db: Session = Depends(get_db)):
     novel = db.query(Novel).filter(Novel.id == novel_id).first()
     if not novel:
         raise HTTPException(status_code=404, detail="小说不存在")
+
+    # 查找最近的生成记录
+    from app.models.generation_record import GenerationRecord
+    latest_record = db.query(GenerationRecord).filter(
+        GenerationRecord.novel_id == novel_id
+    ).order_by(GenerationRecord.created_at.desc()).first()
+
     return {
         "id": novel.id, "title": novel.title, "seed_text": novel.seed_text,
         "gender": novel.gender, "genre": novel.genre, "style": novel.style,
@@ -45,6 +60,8 @@ async def get_novel(novel_id: int, db: Session = Depends(get_db)):
         "model_config": json.loads(novel.model_config) if novel.model_config else {},
         "time_cost": novel.time_cost,
         "created_at": novel.created_at.isoformat() if novel.created_at else "",
+        "generation_status": latest_record.status if latest_record else "unknown",
+        "latest_record_id": latest_record.id if latest_record else None,
     }
 
 

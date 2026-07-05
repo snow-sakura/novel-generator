@@ -6,13 +6,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.database import Base, engine
+from app.database import Base, engine, migrate_database
 from app.config import settings
 from app.routers import generate, novel, export
+from app.models import novel as _novel_model
+from app.models import generation_record as _gen_record_model
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    migrate_database()
     Base.metadata.create_all(bind=engine)
     yield
 

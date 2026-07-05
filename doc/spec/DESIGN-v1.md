@@ -727,7 +727,91 @@ API 下载：`GET /novels/{id}/export/chapters` (ZIP), `GET /novels/{id}/export/
 }
 ```
 
-### 13.8 完整 SSE 事件表
+---
+## 十四、V1.2 表单重设计
+
+### 14.1 动机
+
+V1.1 表单使用 flex-wrap 布局，题材/风格按钮拥挤，字数/章节/每章字数各自独立无联动，高级设置集中在单个展开面板，模型配置只有自定义链无默认推荐，提示词只有只读展示。需要全面提升布局、交互和可配置性。
+
+### 14.2 布局变更
+
+| 区域 | 原布局 | 新布局 |
+|------|--------|--------|
+| 题材 | `flex flex-wrap max-h-32 overflow-y-auto` | `grid grid-cols-3 max-h-64 overflow-y-auto` |
+| 风格 | `flex flex-wrap` | `grid grid-cols-2` |
+| 核心参数 | 字数滑杆独立 | 字数滑杆 + 章节数滑杆/输入 + 每章字数范围 三合一卡片 |
+| 高级设置 | 单面板展开 | 三区分离卡片（章节设置/模型配置/提示词） |
+
+### 14.3 反应式联动
+
+三个数字字段自动联动，避免用户需要手动保持一致性：
+
+```
+word_count = chapter_count × ((per_chapter_min + per_chapter_max) / 2)
+
+操作                      →  自动更新
+修改 word_count 滑杆      →  chapter_count 重算
+修改 chapter_count 输入   →  word_count 重算
+修改 per_chapter_min/max  →  chapter_count 重算
+```
+
+实现：`novelStore.js` 导出 `calcChapterCount` / `calcWordCount` 纯函数，NovelForm.jsx 的 onChange 处理器调用。
+
+### 14.4 高级设置三区卡片
+
+每个卡片独立 section，标题 + 图标 + 分隔线：
+
+1. **章节设置**：章节数（1-200）+ 每章字数范围（200-20000）
+2. **模型配置**：默认 OpenCode radio + 自定义模型 radio（详见 14.5）
+3. **提示词**：默认只读 Tab + 自定义编辑 Tab（详见 14.6）
+
+### 14.5 模型配置重设计
+
+- **默认模型**（`useDefault = true`）：
+  - OpenCode（deepseek-v4-flash-free）radio 高亮
+  - API KEY 输入框可见可编辑（`defaultApiKey` store）
+  - base_url 展示（https://opencode.ai/zen/v1）
+- **自定义模型**（`useDefault = false`）：
+  - 厂商选择 → 模型选择 → API Key → 应用按钮
+  - 已配置时显示绿色状态标签
+- 请求时构造 `llm_config`：`customModel || { provider, base_url, model, api_key }`
+
+### 14.6 提示词双 Tab
+
+- **Tab A — 默认提示词（只读）**：
+  - 原 PromptDisplay 内容，不变
+- **Tab B — 自定义提示词（可编辑）**：
+  - 4 个 Textarea（parse / outline / chapter / title）
+  - 留空 = 使用默认
+  - 编辑自动保存到 `customPrompts` store
+- 后端 `GenerateRequest.custom_prompts` 非空时覆盖 `prompts.py` 常量
+
+### 14.7 API 变更
+
+`POST /api/v1/generate` 新增：
+
+```json
+{
+  "chapter_count": 4,
+  "custom_prompts": {
+    "parse": "...",
+    "outline": "...",
+    "chapter": "...",
+    "title": "..."
+  }
+}
+```
+
+### 14.8 Demo 模式增强
+
+Demo 模式新增硬编码题材/风格数据，提供更好的预览体验：
+
+- 男频：10 类（科幻末世、都市脑洞、玄幻脑洞、修仙仙侠、神医赘婿、末日求生、游戏竞技、穿越历史、悬疑推理、无敌爽文）
+- 女频：8 类（古代言情、现代言情、幻想言情、重生逆袭、豪门总裁、宫斗宅斗、仙侠奇缘、甜宠恋爱）
+- 风格：8 种（轻松搞笑、热血燃系、悬疑烧脑、甜宠治愈、暗黑深沉、沙雕吐槽、文艺致郁、极简写实）
+
+### 14.9 完整 SSE 事件表
 
 | 事件 | 触发时机 | data 格式 |
 |------|----------|-----------|

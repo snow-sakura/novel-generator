@@ -43,11 +43,15 @@ export async function fetchGenres(gender = '男频') {
 
 // ─── 生成 ───
 
-export function generateNovel(params, onEvent, onComplete, onError) {
+export function generateNovel(params, onEvent, onComplete, onError, continueRecordId) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 600000)
 
-  fetch(`${API_BASE}/generate`, {
+  const url = continueRecordId
+    ? `${API_BASE}/generate/continue?record_id=${continueRecordId}`
+    : `${API_BASE}/generate`
+
+  fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -115,6 +119,13 @@ export async function fetchNovels(page = 1, size = 10) {
   return res.json()
 }
 
+export async function fetchCompletedNovels(page = 1, size = 10) {
+  if (isGitHubPages()) return { total: 1, page, size, items: [] }
+  const res = await fetch(`${API_BASE}/novels?page=${page}&size=${size}&status=completed`)
+  if (!res.ok) throw new Error('获取列表失败')
+  return res.json()
+}
+
 export async function fetchNovel(id) {
   if (isGitHubPages() || id === 0 || id === '0') return SAMPLE_NOVEL
   const res = await fetch(`${API_BASE}/novels/${id}`)
@@ -134,4 +145,28 @@ export function getExportUrl(id, format) {
 }
 
 export function getChapterExportUrl(id) { return `${API_BASE}/novels/${id}/export/chapters` }
-export function getOutlineExportUrl(id) { return `${API_BASE}/novels/${id}/export/outline` }
+export function getOutlineExportUrl(id) { return `${API_BASE}/novels/${id}/export/outline?format=markdown` }
+export function getOutlineXmindUrl(id) { return `${API_BASE}/novels/${id}/export/outline?format=xmind` }
+export function getPackageExportUrl(id) { return `${API_BASE}/novels/${id}/export/package` }
+
+// ─── 生成记录 ───
+
+export async function fetchRecords(page = 1, size = 20) {
+  if (isGitHubPages()) return { total: 0, page, size, items: [] }
+  const res = await fetch(`${API_BASE}/records?page=${page}&size=${size}`)
+  if (!res.ok) throw new Error('获取记录列表失败')
+  return res.json()
+}
+
+export async function fetchRecord(id) {
+  if (isGitHubPages() || id === 0) return null
+  const res = await fetch(`${API_BASE}/records/${id}`)
+  if (!res.ok) throw new Error('获取记录失败')
+  return res.json()
+}
+
+export async function deleteRecord(id) {
+  if (isGitHubPages() || id === 0) return
+  const res = await fetch(`${API_BASE}/records/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('删除失败')
+}

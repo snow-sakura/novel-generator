@@ -17,44 +17,51 @@ export default function StepProgress() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4">
       <h3 className="text-sm font-medium text-gray-700 mb-3">生成进度</h3>
-      <div className="space-y-2">
+      <div className="flex items-center justify-center gap-1">
         {STEP_CONFIG.map((step, i) => {
           const isActive = i === currentIdx
           const isPast = i < currentIdx || (currentStep === STEPS.DONE && i < STEP_CONFIG.length)
 
           return (
-            <div key={step.key} className="flex items-start gap-3">
-              {/* 状态图标 */}
-              <div
-                className={cn(
-                  'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 transition-all',
-                  isPast && 'bg-green-500 text-white',
-                  isActive && 'bg-orange-500 text-white ring-2 ring-orange-200',
-                  !isPast && !isActive && 'bg-gray-100 text-gray-400'
-                )}
-              >
-                {isPast ? '✓' : i + 1}
-              </div>
-
-              {/* 文字 */}
-              <div className="flex-1 min-w-0">
-                <p
+            <div key={step.key} className="flex items-center gap-1 flex-1">
+              <div className="flex items-center gap-1.5 flex-1 justify-center">
+                <div
                   className={cn(
-                    'text-sm font-medium transition-colors',
-                    isActive && 'text-orange-700',
-                    isPast && 'text-green-700',
-                    !isPast && !isActive && 'text-gray-400'
+                    'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all',
+                    isPast && 'bg-green-500 text-white',
+                    isActive && 'bg-orange-500 text-white ring-2 ring-orange-200',
+                    !isPast && !isActive && 'bg-gray-100 text-gray-400'
                   )}
                 >
-                  {step.label}
-                  {isActive && currentStep !== STEPS.DONE && (
-                    <span className="inline-block ml-1.5 w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
-                  )}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {isActive ? (isWriting && chapters.length > 0 ? `已完成 ${chapters.length} 章` : step.desc) : step.desc}
-                </p>
+                  {isPast ? '✓' : i + 1}
+                </div>
+                <div className="flex flex-col items-center min-w-0">
+                  <span
+                    className={cn(
+                      'text-xs font-medium transition-colors whitespace-nowrap',
+                      isActive && 'text-orange-700',
+                      isPast && 'text-green-700',
+                      !isPast && !isActive && 'text-gray-400'
+                    )}
+                  >
+                    {step.label}
+                    {isActive && currentStep !== STEPS.DONE && (
+                      <span className="inline-block ml-1 w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse align-middle" />
+                    )}
+                  </span>
+                  <span className="text-[10px] text-gray-400 leading-tight">
+                    {isActive ? (isWriting && chapters.length > 0 ? `已完成 ${chapters.length} 章` : step.desc) : step.desc}
+                  </span>
+                </div>
               </div>
+              {i < STEP_CONFIG.length - 1 && (
+                <div className={cn(
+                  'h-px flex-1 mx-1',
+                  i < currentIdx || (currentStep === STEPS.DONE && i < STEP_CONFIG.length)
+                    ? 'bg-green-400'
+                    : 'bg-gray-200'
+                )} />
+              )}
             </div>
           )
         })}

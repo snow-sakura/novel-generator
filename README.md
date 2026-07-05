@@ -50,7 +50,8 @@ novel-generator/
 │       ├── pages/      # 创作/阅读/历史页面
 │       ├── components/ # UI 组件
 │       └── services/   # API 调用 + Demo 模式
-├── doc/                # 设计文档
+├── doc/                # 设计文档 + 生成的小说文件
+│   ├── novel/          # 生成的小说文件（自动创建）
 │   ├── prd/            # PRD 文档（V1-V3）
 │   └── spec/           # 技术设计 + API + 数据库文档
 └── .github/workflows/  # GitHub Pages 自动部署
