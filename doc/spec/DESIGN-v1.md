@@ -647,9 +647,99 @@ App.jsx (BrowserRouter)
 │   ├── ErrorBanner              # ← 新增：内联错误横幅
 │   ├── NovelForm.jsx           # 增强：表单预检 + 配置警告
 │   ├── StepProgress.jsx        # ← 新增：步骤进度
-│   └── NovelReader.jsx         # 增强：加载状态细化
+│   ├── ThinkingLog.jsx         # ← 新增：思考日志
+│   ├── ModelConfig.jsx         # 1.1 新增：自定义模型配置
+│   └── PromptDisplay.jsx       # 1.1 新增：默认提示词展示
 ├── /novel/:id → NovelPage
 │   ├── NovelReader.jsx
 │   └── ExportBar.jsx
 └── /history → HistoryPage
     └── NovelCard.jsx × N
+
+---
+
+## 十三、V1.1 增强功能
+
+### 13.1 番茄小说分类体系
+
+数据定义在 `app/data.py` 中，实时同步番茄小说官网分类。
+
+**男频 19 类：** 西方奇幻、东方仙侠、科幻末世、都市日常、都市修真、都市高武、历史古代、战神赘婿、都市种田、传统玄幻、历史脑洞、悬疑脑洞、都市脑洞、玄幻脑洞、悬疑灵异、抗战谍战、游戏体育、动漫衍生、男频衍生
+
+**女频 18 类：** 古风世情、科幻末世、游戏体育、女频衍生、玄幻言情、种田、年代、现言脑洞、宫斗宅斗、悬疑脑洞、古言脑洞、快穿、青春甜宠、星光璀璨、女频悬疑、职场婚恋、豪门总裁、民国言情
+
+**风格 15 种：** 轻松搞笑、热血激昂、甜宠温馨、悬疑烧脑、暗黑压抑、写实厚重、文艺唯美、快节奏爽文、慢热细腻、沙雕欢乐、治愈温暖、史诗宏大、脑洞大开、硬核技术流、古风典雅
+
+### 13.2 大纲实时思考
+
+新增 SSE 事件 `outline_thinking`，格式 `{ index, title, summary }`。后端逐章 `_log()` 打印，前端 ThinkingLog 实时展示。
+
+### 13.3 逐章文件导出
+
+生成完成自动在 `novel/{小说名}/` 下创建：
+
+| 文件 | 格式 | 说明 |
+|------|------|------|
+| `第x章 {标题}.txt` | TXT | 每章独立文本文件 |
+| `{小说名}.txt` | TXT | 全文合集 |
+| `创作大纲.mm.md` | Markdown | 大纲思维导图 |
+
+API 下载：`GET /novels/{id}/export/chapters` (ZIP), `GET /novels/{id}/export/outline` (大纲)
+
+### 13.4 自定义国产模型
+
+新增 `CustomProvider`，通过 OpenAI 兼容接口动态调用。支持的厂商：DeepSeek、通义千问、智谱GLM、Kimi、豆包、文心、MiniMax、百川、腾讯混元、零一万物、硅基流动
+
+### 13.5 新增前端组件
+
+| 组件 | 用途 |
+|------|------|
+| ModelConfig.jsx | 自定义模型选择面板 |
+| PromptDisplay.jsx | 默认提示词 Tab 展示 |
+
+### 13.6 数据库新增字段
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| gender | String(10) | 男频 | 频道归类 |
+| per_chapter_min | Integer | 800 | 每章最小字数 |
+| per_chapter_max | Integer | 2500 | 每章最大字数 |
+| outline | Text | '' | 大纲 JSON |
+| model_config | Text | '{}' | 模型配置 JSON |
+
+### 13.7 完整生成请求体
+
+```json
+{
+  "seed_text": "一个少年在废弃图书馆发现了一本会发光的书",
+  "gender": "男频",
+  "genre": "玄幻脑洞",
+  "style": "轻松搞笑",
+  "word_count": 3000,
+  "per_chapter_min": 800,
+  "per_chapter_max": 2500,
+  "llm_config": {
+    "provider": "deepseek",
+    "base_url": "https://api.deepseek.com/v1",
+    "model": "deepseek-chat",
+    "api_key": "sk-xxx"
+  }
+}
+```
+
+### 13.8 完整 SSE 事件表
+
+| 事件 | 触发时机 | data 格式 |
+|------|----------|-----------|
+| parse | 开始解析 | "string" |
+| parse_done | 解析完成 | `{ character, time, place, cause, process, result }` |
+| outline | 开始大纲 | "string" |
+| outline_thinking | 单章大纲 | `{ index, title, summary }` |
+| outline_done | 大纲完成 | `[{ title, summary }]` |
+| chapter_start | 开始章节 | `{ title, index }` |
+| content | 内容块 | "string" |
+| chapter_end | 章节完成 | `{ title, word_count }` |
+| title | 生成标题 | "string" |
+| log | 思考日志 | "string" |
+| complete | 全部完成 | `{ novel_id, title, total_words, time_cost }` |
+| error | 出错 | `{ message }` |

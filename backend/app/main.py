@@ -1,10 +1,10 @@
 """FastAPI 应用入口"""
-import sys
+import uvicorn
 from contextlib import asynccontextmanager
 
-import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
 from app.config import settings
@@ -13,17 +13,16 @@ from app.routers import generate, novel, export
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    """启动时创建数据库表，关闭时清理"""
     Base.metadata.create_all(bind=engine)
     yield
 
 
-app = FastAPI(title="番茄小说生成智能体", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="番茄小说生成智能体", version="1.1.0", lifespan=lifespan)
 
-# CORS 允许前端跨域访问
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,7 +36,7 @@ app.include_router(export.router)
 
 @app.get("/")
 async def root():
-    return {"message": "番茄小说生成智能体 API v1", "status": "running"}
+    return {"message": "番茄小说生成智能体 API v1.1", "status": "running"}
 
 
 @app.get("/health")

@@ -11,20 +11,9 @@ import ThinkingLog from '../components/ThinkingLog'
 export default function CreatePage() {
   const navigate = useNavigate()
   const {
-    params,
-    generating,
-    currentContent,
-    demoMode,
-    startGeneration,
-    setStep,
-    appendContent,
-    addChapter,
-    setTitle,
-    addEvent,
-    addThinkingLog,
-    setError,
-    finishGeneration,
-    reset,
+    params, generating, currentContent, demoMode, customModel,
+    startGeneration, setStep, appendContent, addChapter, setTitle,
+    addEvent, addThinkingLog, addOutlineThinking, setError, finishGeneration, reset,
   } = useNovelStore()
 
   function handleGenerate() {
@@ -34,29 +23,20 @@ export default function CreatePage() {
       addEvent(event)
 
       switch (event) {
-        case 'parse':
-          setStep('parsing')
-          break
-        case 'parse_done':
-          break
-        case 'outline':
-          setStep('outlining')
+        case 'parse': setStep('parsing'); break
+        case 'parse_done': break
+        case 'outline': setStep('outlining'); break
+        case 'outline_thinking':
+          addOutlineThinking(data)
           break
         case 'outline_done':
           setStep('writing')
           break
-        case 'chapter_start':
-          addChapter(data)
-          break
-        case 'content':
-          appendContent(data)
-          break
-        case 'title':
-          setStep('titling')
-          break
+        case 'chapter_start': addChapter(data); break
+        case 'content': appendContent(data); break
+        case 'title': setStep('titling'); break
         case 'complete':
-          setTitle(data.title)
-          finishGeneration()
+          setTitle(data.title); finishGeneration()
           navigate(`/novel/${data.novel_id}`)
           break
         case 'log': {
@@ -65,28 +45,27 @@ export default function CreatePage() {
           if (msg.startsWith('✅') || msg.startsWith('🎉')) type = 'success'
           else if (msg.startsWith('❌')) type = 'error'
           else if (msg.startsWith('⚠️')) type = 'warn'
-          else if (msg.startsWith('📖')) type = 'chapter'
-          addThinkingLog({
-            time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-            type,
-            text: msg,
-          })
+          else if (msg.startsWith('📖') || msg.startsWith('📋')) type = 'chapter'
+          addThinkingLog({ time: new Date().toLocaleTimeString('zh-CN', { hour12: false }), type, text: msg })
           break
         }
-        case 'error':
-          setError(data.message)
-          break
+        case 'error': setError(data.message); break
       }
     }
 
     const onComplete = () => {}
     const onError = (msg) => setError(msg)
 
-    if (demoMode) {
-      generateNovelDemo(params, onEvent, onComplete, onError)
-    } else {
-      generateNovel(params, onEvent, onComplete, onError)
+    // 构造请求参数
+    const requestParams = {
+      seed_text: params.seed_text, gender: params.gender, genre: params.genre,
+      style: params.style, word_count: params.word_count,
+      per_chapter_min: params.per_chapter_min, per_chapter_max: params.per_chapter_max,
+      llm_config: customModel,
     }
+
+    if (demoMode) { generateNovelDemo(requestParams, onEvent, onComplete, onError) }
+    else { generateNovel(requestParams, onEvent, onComplete, onError) }
   }
 
   const showProgress = generating
@@ -94,55 +73,36 @@ export default function CreatePage() {
 
   return (
     <div className="space-y-5">
-      {/* 顶部标题栏 + 配置状态 */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">创作新小说</h1>
           <p className="text-gray-500 mt-1 text-sm">
-            {demoMode ? '🎯 Demo 模式 — 输入任意文本，点击生成体验完整流程' : '输入一句话，AI 为你自动生成完整故事'}
+            {demoMode ? '🎯 Demo 模式 — 输入任意文本，点击生成体验完整流程' : '输入一句话，AI 自动生成完整故事'}
           </p>
         </div>
         <ConfigStatus />
       </div>
 
-      {/* 错误信息横幅 */}
       {useNovelStore.getState().currentStep === 'error' && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
           <div className="flex-1">
             <p className="text-sm font-medium text-red-800">生成失败</p>
             <p className="text-sm text-red-600 mt-1">{useNovelStore.getState().errorMessage}</p>
           </div>
-          <button
-            onClick={reset}
-            className="text-sm text-red-500 hover:text-red-700 underline flex-shrink-0"
-          >
-            重新开始
-          </button>
+          <button onClick={reset} className="text-sm text-red-500 hover:text-red-700 underline flex-shrink-0">重新开始</button>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* 左侧：表单 */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5 sticky top-20">
             <NovelForm onGenerate={handleGenerate} />
           </div>
         </div>
-
-        {/* 右侧：进度 + 思考日志 + 阅读器 */}
         <div className="lg:col-span-3 space-y-4">
-          {/* 步骤进度条 */}
-          {(showProgress || useNovelStore.getState().currentStep === 'error') && (
-            <StepProgress />
-          )}
-
-          {/* 思考日志 */}
+          {(showProgress || useNovelStore.getState().currentStep === 'error') && <StepProgress />}
           {generating && <ThinkingLog />}
-
-          {/* 阅读器 / 空状态 */}
-          {showReader ? (
-            <NovelReader />
-          ) : (
+          {showReader ? <NovelReader /> : (
             <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[360px] flex flex-col items-center justify-center">
               <div className="text-5xl mb-4">✍️</div>
               <p className="text-gray-400">填写左侧表单，点击「开始生成」</p>
