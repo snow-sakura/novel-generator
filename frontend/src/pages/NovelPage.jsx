@@ -146,6 +146,29 @@ export default function NovelPage() {
         </div>
       </div>
 
+      {/* 生成日志（移到此位置：章节导航上方） */}
+      {thinkingLogs.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <button onClick={() => setShowLogs(!showLogs)}
+            className="flex items-center gap-1.5 w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+            <RefreshCw className="w-4 h-4 text-orange-500" />
+            生成日志
+            <span className="text-xs text-gray-400 font-normal">（{thinkingLogs.length} 条）</span>
+            {showLogs ? <ChevronUp className="w-3.5 h-3.5 ml-auto" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto" />}
+          </button>
+          {showLogs && (
+            <div className="thinking-log mt-3 max-h-80 overflow-y-auto">
+              {thinkingLogs.map((log, i) => (
+                <span key={i} className="log-entry">
+                  <span className="log-time">{log.time}</span>
+                  <span className={`log-${log.type || 'info'}`}>{log.text}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 章节跳转条 */}
       {chapters.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -187,33 +210,11 @@ export default function NovelPage() {
       {/* 小说内容 */}
       <ChapterContent content={novel.content} chapters={chapters} />
 
-      {/* 生成日志 */}
-      {thinkingLogs.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <button onClick={() => setShowLogs(!showLogs)}
-            className="flex items-center gap-1.5 w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
-            <RefreshCw className="w-4 h-4 text-orange-500" />
-            生成日志
-            <span className="text-xs text-gray-400 font-normal">（{thinkingLogs.length} 条）</span>
-            {showLogs ? <ChevronUp className="w-3.5 h-3.5 ml-auto" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto" />}
-          </button>
-          {showLogs && (
-            <div className="thinking-log mt-3 max-h-80 overflow-y-auto">
-              {thinkingLogs.map((log, i) => (
-                <span key={i} className="log-entry">
-                  <span className="log-time">{log.time}</span>
-                  <span className={`log-${log.type || 'info'}`}>{log.text}</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 回到顶部按钮 */}
+      {/* 回到顶部按钮 — 对齐内容区域右边缘 */}
       {showScrollTop && (
         <button onClick={scrollToTop}
-          className="fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-rose-400 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center">
+          className="fixed bottom-8 z-50 w-11 h-11 rounded-full bg-gradient-to-br from-orange-400 to-rose-400 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+          style={{ right: 'max(1rem, calc((100vw - 1024px) / 2 + 1rem))' }}>
           <ArrowUp className="w-5 h-5" />
         </button>
       )}

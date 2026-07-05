@@ -16,6 +16,7 @@ class GenerationRecord(Base):
     content_sofar = Column(Text, default="")       # 已生成的内容
     error_message = Column(Text, default="")       # 失败原因
     thinking_logs = Column(Text, default="[]")     # 生成日志列表 JSON
+    chapter_states = Column(Text, default="[]")    # 每章生成状态 JSON [{index, title, status, start_time, end_time}]
     seed_text = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

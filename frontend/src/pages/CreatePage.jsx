@@ -34,7 +34,6 @@ function ChapterModal({ chapterIndex, chapter, content, onClose }) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
 
-  // 生成内容时自动滚动到底部
   useEffect(() => {
     if (contentRef.current) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight
@@ -70,11 +69,6 @@ function ChapterModal({ chapterIndex, chapter, content, onClose }) {
   )
 }
 
-// ─── 工具：延迟 Promise ───
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 export default function CreatePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -84,16 +78,18 @@ export default function CreatePage() {
   const {
     params, generating, currentContent, demoMode, customModel,
     defaultApiKey, customPrompts, continueRecordId: storeContinueId,
-    chapters, currentStep, thinkingLogs,
-    startGeneration, setStep, appendContent, addChapter, setTitle,
+    chapters, chapterTexts, currentStep, thinkingLogs,
+    startGeneration, setStep, appendChapterText, addChapter, setTitle,
     addEvent, addThinkingLog, addOutlineThinking, setError, finishGeneration, reset,
     setCurrentRecordId, setContinueRecordId, setParams,
   } = useNovelStore()
 
-  // 弹窗状态：-1 = 关闭
   const [openChapter, setOpenChapter] = useState(-1)
   const timersRef = useRef([])
-  const generatingRef = useRef(false) // 追踪生成是否还在进行（用于判断是否继续安排下一章）
+  const generatingRef = useRef(false)
+  const currentChapterIdxRef = useRef(-1)
+  // 标记 outline_done 是否已开过弹窗（防止 chapter_start 重复开）
+  const outlineOpenedRef = useRef(false)
 
   useEffect(() => {
     if (isContinue && continueRecordId) {
@@ -101,21 +97,18 @@ export default function CreatePage() {
       setContinueRecordId(id)
       fetchRecord(id).then(rec => {
         if (!rec) return
-        // 加载上次的生成日志
         if (rec.thinking_logs && rec.thinking_logs.length > 0) {
           rec.thinking_logs.forEach(log => addThinkingLog(log))
         }
-        // 回显已有内容（让用户看到之前生成了多少）
         if (rec.content_sofar && !useNovelStore.getState().currentContent) {
-          appendContent(rec.content_sofar)
-          // 从内容逐章解析标题
           const blocks = rec.content_sofar.split(/(?=## )/).filter(Boolean)
           blocks.forEach((block, i) => {
             const t = block.match(/^## (.+)/)
-            addChapter({ title: t ? t[1].trim() : `第${i+1}章`, index: i })
+            const title = t ? t[1].trim() : `第${i+1}章`
+            useNovelStore.getState().addChapter({ title, index: i })
+            useNovelStore.getState().appendChapterText(block)
           })
         }
-        // 回显表单参数
         if (rec.params) {
           const p = rec.params
           setParams({
@@ -133,25 +126,20 @@ export default function CreatePage() {
     }
   }, [isContinue, continueRecordId])
 
-  // 清理定时器
   useEffect(() => {
     return () => timersRef.current.forEach(clearTimeout)
   }, [])
 
-  // 解析 currentContent
-  const chapterContents = useMemo(() => {
-    if (!currentContent) return []
-    const blocks = currentContent.split(/(?=## )/).filter(Boolean)
-    return blocks.map((block, i) => ({
-      index: i,
-      title: chapters[i]?.title || `第${i + 1}章`,
-      content: block.replace(/^## .+\n+/, '').trim(),
-      hasContent: block.replace(/^## .+\n+/, '').trim().length > 50,
-    }))
-  }, [currentContent, chapters])
-
-  // 是否仍在生成中
   generatingRef.current = generating
+
+  const chapterContentList = useMemo(() => {
+    return chapters.map((ch, i) => ({
+      index: i,
+      title: ch.title || `第${i+1}章`,
+      content: chapterTexts[i] || '',
+      hasContent: (chapterTexts[i] || '').trim().length > 50,
+    }))
+  }, [chapters, chapterTexts])
 
   function safeTimeout(fn, ms) {
     const id = setTimeout(fn, ms)
@@ -160,16 +148,13 @@ export default function CreatePage() {
   }
 
   async function handleGenerate() {
-    // 继续生成时保留已加载的历史日志
     const prevLogs = useNovelStore.getState().thinkingLogs
     startGeneration()
-    // 恢复历史日志（继续生成场景）
     if (prevLogs.length > 0) {
       prevLogs.forEach(log => addThinkingLog(log))
     }
 
-    let currentChapterIdx = -1
-    const totalChapters = params.chapter_count || 2
+    outlineOpenedRef.current = false
 
     const onEvent = (event, data) => {
       addEvent(event)
@@ -183,30 +168,30 @@ export default function CreatePage() {
           break
         case 'outline_done':
           setStep('writing')
-          currentChapterIdx = 0
-          // 大纲完成 → 延迟 1.5s 弹出第一章
-          safeTimeout(() => {
-            if (generatingRef.current) setOpenChapter(0)
-          }, 1500 + Math.random() * 500)
+          // 大纲完成 → 打开第一章弹窗（等待内容流入）
+          outlineOpenedRef.current = true
+          setOpenChapter(0)
           break
         case 'chapter_start':
           addChapter(data)
-          // 记录当前章节索引（从第2章开始由 chapter_end 的定时器安排弹窗）
-          currentChapterIdx = chapters.length
+          currentChapterIdxRef.current = chapterTexts.length
+          // 如果第一章还没打开（outline_done 可能未触发），或这是后续章节 → 打开弹窗
+          // 第一章已在 outline_done 打开，chapter_start 无需重复打开
+          if (outlineOpenedRef.current && currentChapterIdxRef.current > 0) {
+            // 后续章节：后端真实 gap 已过，立即打开
+            setOpenChapter(currentChapterIdxRef.current)
+          } else if (!outlineOpenedRef.current) {
+            // 没有 outline_done（继续模式），直接用 chapter_start 打开
+            setOpenChapter(currentChapterIdxRef.current)
+          }
           break
         case 'content':
-          appendContent(data)
+          appendChapterText(data)
           break
         case 'chapter_end':
-          // 当前章完成 → 延迟 1.5s 关闭弹窗，然后安排下一章
-          safeTimeout(async () => {
-            setOpenChapter(-1)
-            await delay(1500 + Math.random() * 500)
-            const nextIdx = currentChapterIdx + 1
-            if (nextIdx < totalChapters && generatingRef.current) {
-              setOpenChapter(nextIdx)
-            }
-          }, 1500 + Math.random() * 500)
+          // 当前章完成 → 立即关闭弹窗
+          // 弹窗会在后端处理下一章的真实 gap 期间保持关闭
+          setOpenChapter(-1)
           break
         case 'title': setStep('titling'); break
         case 'record_id':
@@ -214,7 +199,6 @@ export default function CreatePage() {
           break
         case 'continue_from': break
         case 'complete':
-          // 最后一章完成 → 关闭弹窗 → 导航
           setOpenChapter(-1)
           safeTimeout(() => {
             setTitle(data.title)
@@ -268,13 +252,13 @@ export default function CreatePage() {
     }
   }
 
+  const generatingIndex = generating && chapterTexts.length > 0
+    ? chapterTexts.findIndex(t => !t || t.trim().length <= 50)
+    : -1
   const showContent = generating || currentContent.length > 0 || chapters.length > 0
-  // 当前正在生成的章节索引
-  const generatingIndex = generating && chapters.length > 0 ? chapterContents.length : -1
 
   return (
     <div className="space-y-5">
-      {/* 错误提示 */}
       {currentStep === 'error' && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
           <div className="flex-1">
@@ -299,13 +283,11 @@ export default function CreatePage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-5 items-stretch">
-        {/* 左侧表单 */}
         <div className="w-full lg:w-2/5 xl:w-2/5 flex-shrink-0">
           <div className="bg-white rounded-xl border border-gray-200 p-5 sticky top-20 max-h-[calc(100vh-8rem)] overflow-y-auto">
             <NovelForm onGenerate={handleGenerate} />
           </div>
         </div>
-        {/* 右侧区域 */}
         <div className="flex-1 min-w-0 space-y-4 flex flex-col">
           {(generating || currentStep === 'error') && <StepProgress />}
           {(generating || thinkingLogs.length > 0) && <ThinkingLog />}
@@ -317,7 +299,7 @@ export default function CreatePage() {
                   <BookOpen className="w-4 h-4 text-orange-500" />
                   章节目录
                   <span className="text-xs text-gray-400 font-normal">
-                    （{chapterContents.length}/{chapters.length} 章）
+                    （{chapterContentList.filter(c => c.hasContent).length}/{chapters.length} 章）
                   </span>
                 </h3>
                 {generating && (
@@ -329,12 +311,11 @@ export default function CreatePage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {chapters.map((ch, i) => {
-                  const done = chapterContents[i]?.hasContent
+                  const done = chapterContentList[i]?.hasContent
                   const isActive = i === generatingIndex && !done
 
                   return (
-                    <div
-                      key={i}
+                    <div key={i}
                       className={cn(
                         'flex items-start gap-2 p-3 rounded-lg border transition-all',
                         done && 'border-green-200 bg-green-50/50',
@@ -356,7 +337,7 @@ export default function CreatePage() {
                           {ch.title || `第${i + 1}章`}
                         </p>
                         <p className="text-[10px] text-gray-400 mt-0.5">
-                          {done ? `${chapterContents[i]?.content.length || 0} 字` : isActive ? '生成中...' : '等待生成'}
+                          {done ? `${chapterContentList[i]?.content.length || 0} 字` : isActive ? '生成中...' : '等待生成'}
                         </p>
                       </div>
                       {openChapter === i && (
@@ -377,12 +358,11 @@ export default function CreatePage() {
         </div>
       </div>
 
-      {/* 章节弹窗 — 自动弹出/关闭 */}
       {openChapter >= 0 && chapters[openChapter] && (
         <ChapterModal
           chapterIndex={openChapter}
           chapter={chapters[openChapter]}
-          content={chapterContents[openChapter]?.content || ''}
+          content={chapterTexts[openChapter] || ''}
           onClose={() => setOpenChapter(-1)}
         />
       )}

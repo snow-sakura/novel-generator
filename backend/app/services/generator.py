@@ -164,6 +164,8 @@ class GeneratorService:
             self._save_outline_mindmap(novel_folder, f"{'生成中' if start_from_chapter == 0 else '继续生成'}",
                                        chapters, story_elements, gender, genre, style)
 
+            chapter_states = []  # 每章状态跟踪
+
             for i, chapter in enumerate(chapters):
                 # 跳过已完成的章节
                 if i < start_from_chapter:
@@ -172,9 +174,18 @@ class GeneratorService:
                 title = chapter.get("title", f"第{i+1}章")
                 summary = chapter.get("summary", "")
 
+                # 记录当前章节"生成中"状态
+                now_ts = datetime.now().isoformat()
+                chapter_states.append({
+                    "index": i,
+                    "title": title,
+                    "status": "generating",
+                    "start_time": now_ts,
+                })
+
                 _log(f"  生成第{i+1}/{len(chapters)}章: 《{title}》 | 目标字数:{per_chapter_target}")
                 yield {"event": "log", "data": f"  📖 第{i+1}章《{title}》开始生成..."}
-                yield {"event": "chapter_start", "data": {"title": title, "index": i}}
+                yield {"event": "chapter_start", "data": {"title": title, "index": i, "start_time": now_ts}}
 
                 chapter_prompt = chapter_prompt_tpl.format(
                     gender=gender, genre=genre, style=style,
@@ -193,9 +204,15 @@ class GeneratorService:
                 previous_summary = f"上一章《{title}》概要：{chapter_content[:200]}..."
 
                 actual_words = len(chapter_content)
+                # 记录当前章节"已完成"状态
+                end_ts = datetime.now().isoformat()
+                if chapter_states:
+                    chapter_states[-1]["status"] = "completed"
+                    chapter_states[-1]["end_time"] = end_ts
+
                 _log(f"  第{i+1}章完成: 《{title}》 | 实际字数:{actual_words}")
                 yield {"event": "log", "data": f"  ✅ 第{i+1}章完成（{actual_words}字）"}
-                yield {"event": "chapter_end", "data": {"title": title, "word_count": actual_words}}
+                yield {"event": "chapter_end", "data": {"title": title, "word_count": actual_words, "end_time": end_ts}}
 
                 # === 逐章持久化 ===
                 full_so_far = "\n\n".join(full_content_parts)
@@ -204,9 +221,10 @@ class GeneratorService:
                 self._update_novel_content(novel_id, full_so_far, chapters)
                 # 2. 保存章节 TXT 文件
                 self._save_single_chapter_file(novel_folder, title, i, chapter_content, chapters)
-                # 3. 更新生成记录
+                # 3. 更新生成记录（含每章状态）
                 if record_id:
-                    self._update_record_progress(record_id, i + 1, len(chapters), full_so_far)
+                    self._update_record_progress(record_id, i + 1, len(chapters), full_so_far,
+                                                 chapter_states=chapter_states)
 
             # ---- 合并全文 ----
             full_content = "\n\n".join(full_content_parts)
@@ -255,13 +273,14 @@ class GeneratorService:
                 },
             }
             if record_id:
-                self._update_record_complete(record_id, novel_id)
+                self._update_record_complete(record_id, novel_id, chapter_states=chapter_states)
 
         except Exception as e:
             _log(f"❌ 生成失败: {str(e)}")
             yield {"event": "error", "data": {"message": str(e)}}
             if record_id:
-                self._update_record_error(record_id, str(e))
+                cs = locals().get('chapter_states')
+                self._update_record_error(record_id, str(e), chapter_states=cs)
             # 即使失败，novel 已存在于 DB（带部分内容）
             if novel_id:
                 self._mark_novel_failed(novel_id, str(e))
@@ -408,7 +427,7 @@ class GeneratorService:
             db.close()
 
     def _update_record_progress(self, record_id: int, completed: int, total: int, content: str,
-                                 thinking_logs: list = None):
+                                 thinking_logs: list = None, chapter_states: list = None):
         db = SessionLocal()
         try:
             rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
@@ -418,12 +437,15 @@ class GeneratorService:
                 rec.content_sofar = content[-50000:]
                 if thinking_logs:
                     rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                if chapter_states:
+                    rec.chapter_states = json.dumps(chapter_states, ensure_ascii=False)
                 rec.updated_at = datetime.now()
                 db.commit()
         finally:
             db.close()
 
-    def _update_record_error(self, record_id: int, error: str, thinking_logs: list = None):
+    def _update_record_error(self, record_id: int, error: str, thinking_logs: list = None,
+                              chapter_states: list = None):
         db = SessionLocal()
         try:
             rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
@@ -432,18 +454,22 @@ class GeneratorService:
                 rec.error_message = error
                 if thinking_logs:
                     rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                if chapter_states:
+                    rec.chapter_states = json.dumps(chapter_states, ensure_ascii=False)
                 rec.updated_at = datetime.now()
                 db.commit()
         finally:
             db.close()
 
-    def _update_record_complete(self, record_id: int, novel_id: int, thinking_logs: list = None):
+    def _update_record_complete(self, record_id: int, novel_id: int, thinking_logs: list = None,
+                                 chapter_states: list = None):
         db = SessionLocal()
         try:
             rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
             if rec:
                 rec.status = "completed"
                 rec.novel_id = novel_id
+                rec.chapter_states = json.dumps(chapter_states, ensure_ascii=False) if chapter_states else rec.chapter_states
                 if thinking_logs:
                     rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
                 rec.updated_at = datetime.now()

@@ -303,6 +303,7 @@ async def get_record(record_id: int, db: Session = Depends(get_db)):
     if not r:
         raise HTTPException(status_code=404, detail="记录不存在")
     logs = json.loads(r.thinking_logs) if r.thinking_logs else []
+    cs = json.loads(r.chapter_states) if r.chapter_states else []
     return {
         "id": r.id,
         "novel_id": r.novel_id,
@@ -314,6 +315,7 @@ async def get_record(record_id: int, db: Session = Depends(get_db)):
         "error_message": r.error_message,
         "seed_text": r.seed_text,
         "thinking_logs": logs,
+        "chapter_states": cs,
         "created_at": r.created_at.isoformat() if r.created_at else "",
         "updated_at": r.updated_at.isoformat() if r.updated_at else "",
     }

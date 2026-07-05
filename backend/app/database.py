@@ -63,6 +63,9 @@ def migrate_database():
             if "thinking_logs" not in rec_columns:
                 db.execute(text("ALTER TABLE generation_records ADD COLUMN thinking_logs TEXT DEFAULT '[]'"))
                 rec_added.append("thinking_logs")
+            if "chapter_states" not in rec_columns:
+                db.execute(text("ALTER TABLE generation_records ADD COLUMN chapter_states TEXT DEFAULT '[]'"))
+                rec_added.append("chapter_states")
             if rec_added:
                 db.commit()
                 print(f"[DB迁移] generation_records 表新增列: {', '.join(rec_added)}", flush=True)

@@ -108,6 +108,12 @@ async def export_outline(novel_id: int, format: str = "markdown", db: Session = 
 
     elements = outline.get("elements", {})
     chapters = outline.get("chapters", [])
+    if not chapters and novel.chapters:
+        # 如果 outline 中没有章节列表，回退到 novel.chapters 字段
+        try:
+            chapters = json.loads(novel.chapters)
+        except json.JSONDecodeError:
+            pass
 
     if format == "xmind":
         xmind_bytes = generate_xmind(title, chapters)
@@ -159,6 +165,11 @@ async def export_package(novel_id: int, db: Session = Depends(get_db)):
     except json.JSONDecodeError:
         outline = {}
     chapters = outline.get("chapters", [])
+    if not chapters and novel.chapters:
+        try:
+            chapters = json.loads(novel.chapters)
+        except json.JSONDecodeError:
+            pass
 
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:

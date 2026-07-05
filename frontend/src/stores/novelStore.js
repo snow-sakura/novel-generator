@@ -43,6 +43,7 @@ export const useNovelStore = create((set) => ({
   currentContent: '',
   currentTitle: '',
   chapters: [],
+  chapterTexts: [],          // 每章独立内容，索引与 chapters 对齐
   eventLog: [],
   thinkingLogs: [],
   outlineThinking: [],
@@ -86,7 +87,8 @@ export const useNovelStore = create((set) => ({
   startGeneration: () =>
     set({
       generating: true, currentStep: STEPS.PARSING, currentContent: '',
-      currentTitle: '', chapters: [], eventLog: [], thinkingLogs: [],
+      currentTitle: '', chapters: [], chapterTexts: [],
+      eventLog: [], thinkingLogs: [],
       outlineThinking: [], errorMessage: '',
     }),
 
@@ -94,7 +96,17 @@ export const useNovelStore = create((set) => ({
   appendContent: (text) =>
     set((state) => ({ currentContent: state.currentContent + text })),
   addChapter: (chapter) =>
-    set((state) => ({ chapters: [...state.chapters, chapter] })),
+    set((state) => ({
+      chapters: [...state.chapters, chapter],
+      chapterTexts: [...state.chapterTexts, ''],
+    })),
+  appendChapterText: (text) =>
+    set((state) => {
+      if (state.chapterTexts.length === 0) return {}
+      const texts = [...state.chapterTexts]
+      texts[texts.length - 1] += text
+      return { chapterTexts: texts, currentContent: state.currentContent + text }
+    }),
   setTitle: (title) => set({ currentTitle: title }),
   addEvent: (event) =>
     set((state) => ({ eventLog: [...state.eventLog, event] })),
@@ -118,7 +130,8 @@ export const useNovelStore = create((set) => ({
   reset: () =>
     set({
       generating: false, currentStep: STEPS.IDLE, currentContent: '',
-      currentTitle: '', chapters: [], eventLog: [], thinkingLogs: [],
+      currentTitle: '', chapters: [], chapterTexts: [],
+      eventLog: [], thinkingLogs: [],
       outlineThinking: [], errorMessage: '',
       currentRecordId: null, continueRecordId: null,
     }),
