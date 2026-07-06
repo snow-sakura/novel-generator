@@ -25,9 +25,19 @@
   - 已有小说从 `doc/` 根目录迁移至 `doc/novel/`
 - **Demo 模式默认页面**：默认渲染「创作」CreatePage，不再展示空白页
 
+### 修正（v1.3.0 fix）
+
+- **每章状态跟踪**：`GenerationRecord` 新增 `chapter_states` 字段，记录每章生成状态（`generating`/`completed`）、起止时间
+- **大纲导出回退**：`export_outline` 和 `export_package` 在 `outline.chapters` 为空时回退到 `novel.chapters`
+- **每章独立文本管理**：Store 新增 `chapterTexts` 数组 + `appendChapterText`，每章内容独立存储而非拼接后切分
+- **CreatePage 弹窗逻辑重构**：移除 `delay()` 工具函数，弹窗由 `chapter_start` 立即打开、`chapter_end` 立即关闭，中间保持关闭
+- **NovelPage 日志位置调整**：生成日志面板移到章节导航上方，回到顶部按钮右边缘与内容区对齐
+- **继续生成内容回显修复**：使用 `appendChapterText` 替代 `appendContent`，正确填充每章独立的 `chapterTexts`
+
 ### API 变更
 
 - `GET /api/v1/records/{id}` 新增返回 `thinking_logs` JSON 数组
+- `GET /api/v1/records/{id}` 新增返回 `chapter_states` JSON 数组
 
 ### 文档
 

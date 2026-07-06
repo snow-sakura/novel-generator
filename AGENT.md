@@ -79,13 +79,21 @@ parse / parse_done / outline / outline_thinking / outline_done / chapter_start /
 - **存储迁移**: 小说文件从 `doc/` → `doc/novel/`，删除 `backend/novel/`
 - **Demo 模式**: 默认直接渲染 CreatePage，移除配置检测空白等待
 
+### 关键变更（v1.3.0 fix — 每章状态 + 独立文本管理）
+
+- **每章状态跟踪**: `GenerationRecord.chapter_states` 列存储每章生成状态（`generating`/`completed`/`failed`）+ 起止时间
+- **大纲导出回退**: `outline.chapters` 为空时自动回退到 `novel.chapters` 字段
+- **Store 独立章节文本**: `chapterTexts` 数组与 `chapters` 对齐，新增 `appendChapterText` action；生成时内容写入 `chapterTexts[last]` 而非拼接 `currentContent`
+- **CreatePage 弹窗重构**: `chapter_start` 立即打开弹窗，`chapter_end` 立即关闭，无延迟；移除 `delay()` 工具函数
+- **继续生成回显修复**: 使用 `appendChapterText` + `addChapter` 重建章节内容，确保 `chapterTexts` 正确填充
+
 ### 新增/变更 API
 
 | 端点 | 说明 |
 |------|------|
 | POST `/api/v1/generate/continue?record_id=X` | 从失败记录继续生成 |
 | GET `/api/v1/records` | 生成记录列表（分页） |
-| GET `/api/v1/records/{id}` | 单条记录详情（含 `thinking_logs`） |
+| GET `/api/v1/records/{id}` | 单条记录详情（含 `thinking_logs` + `chapter_states`） |
 | DELETE `/api/v1/records/{id}` | 删除记录 |
 | GET `/novels/{id}/export/outline?format=xmind` | 大纲 XMind 导出 |
 
@@ -97,9 +105,19 @@ parse / parse_done / outline / outline_thinking / outline_done / chapter_start /
 | `completed` | 已完成 | 查看小说 |
 | `failed` | 失败 | 继续生成 |
 
+### Store 核心字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `chapters` | `Array<{title, index}>` | 章节元信息列表 |
+| `chapterTexts` | `string[]` | 每章独立文本，索引与 `chapters` 对齐 |
+| `currentContent` | `string` | 全文拼接（由 `appendChapterText` 自动追加） |
+| `thinkingLogs` | `Array<{time, text, type}>` | 生成日志 |
+
 ## 开发规范
 
 1. **新增字段**需同步修改: model → router → store → api → 组件
 2. **SSE 事件**新增需同步: generator yield → store event → CreatePage switch
-3. **文档**更新: TODO.md(版本记录) + DESIGN/API/DB 规格文档
-4. **Demo 模式**: sampleNovel.js 需维护 mock 数据
+3. **每章文本**: 新增内容使用 `appendChapterText`，不要手动拼接 `currentContent`
+4. **文档**更新: TODO.md(版本记录) + DESIGN/API/DB 规格文档
+5. **Demo 模式**: sampleNovel.js 需维护 mock 数据
