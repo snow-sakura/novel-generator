@@ -25,3 +25,6 @@ frontend/dist/
 
 # Logs
 *.log
+
+# Generated data (user content)
+novels_index.json

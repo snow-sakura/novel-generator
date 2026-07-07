@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Clock, BookOpen, Monitor, RefreshCw, CheckCircle, XCircle, Loader2, AlertTriangle, ExternalLink, Trash2, Download } from 'lucide-react'
-import { fetchCompletedNovels, fetchRecords, deleteRecord, isGitHubPages } from '../services/api'
+import { Clock, BookOpen, Monitor, RefreshCw, CheckCircle, XCircle, Loader2, AlertTriangle, ExternalLink, Trash2, Download, StopCircle } from 'lucide-react'
+import { fetchCompletedNovels, fetchRecords, fetchRecordStatus, deleteRecord, cleanupData, isGitHubPages } from '../services/api'
 import NovelCard from '../components/NovelCard'
 import { cn } from '../lib/utils'
 
@@ -9,7 +9,6 @@ export default function HistoryPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // 从 URL 参数恢复状态
   const initialTab = searchParams.get('tab') || 'novels'
   const initialPage = parseInt(searchParams.get('page') || '1', 10)
 
@@ -23,12 +22,35 @@ export default function HistoryPage() {
   const demoMode = isGitHubPages()
   const pageSize = 12
 
-  // 同步状态到 URL
+  // 轮询 in_progress 记录
+  const pollingRef = useRef(null)
+  const [pollingRecords, setPollingRecords] = useState({})
+
   const syncUrl = useCallback((t, p) => {
     setSearchParams({ tab: t, page: String(p) }, { replace: true })
   }, [setSearchParams])
 
   useEffect(() => { loadData() }, [page, tab])
+
+  useEffect(() => {
+    // 开始轮询 in_progress 记录
+    const inProgressIds = records.filter(r => r.status === 'in_progress').map(r => r.id)
+    if (inProgressIds.length > 0) {
+      pollingRef.current = setInterval(async () => {
+        for (const id of inProgressIds) {
+          const status = await fetchRecordStatus(id)
+          if (status) {
+            setPollingRecords(prev => ({ ...prev, [id]: status }))
+            // 如果状态变为非 in_progress，刷新列表
+            if (status.status !== 'in_progress') {
+              loadData()
+            }
+          }
+        }
+      }, 3000)
+    }
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
+  }, [records])
 
   const handleTabChange = (t) => {
     setTab(t)
@@ -39,7 +61,6 @@ export default function HistoryPage() {
   async function loadData() {
     setLoading(true)
     try {
-      // 始终同时加载两个计数，确保 tab 切换时另一个计数不归零
       if (tab === 'novels') {
         const [data, recData] = await Promise.all([
           fetchCompletedNovels(page, pageSize),
@@ -80,13 +101,50 @@ export default function HistoryPage() {
     }
   }
 
+  async function handleCleanup() {
+    if (!window.confirm('将清理孤立的生成记录和无效数据，是否继续？')) return
+    try {
+      const result = await cleanupData()
+      if (result) {
+        alert(`清理完成：${result.cleaned.orphaned_records} 条孤立记录、${result.cleaned.orphaned_novels} 部无效小说已清理`)
+        loadData()
+      }
+    } catch (err) {
+      alert('清理失败: ' + err.message)
+    }
+  }
+
   const novelTotalPages = Math.ceil(novelTotal / pageSize)
   const recordTotalPages = Math.ceil(recordTotal / 20)
 
-  const statusIcons = {
-    in_progress: { icon: Loader2, color: 'text-blue-500', bg: 'bg-blue-50', label: '生成中' },
-    completed: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50', label: '已完成' },
-    failed: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: '失败' },
+  const STATUS_CONFIG = {
+    in_progress: { icon: Loader2, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', label: '生成中' },
+    completed: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', label: '已完成' },
+    failed: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', label: '已失败' },
+    cancelled: { icon: StopCircle, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', label: '已停止' },
+  }
+
+  function getStatusConfig(r) {
+    return STATUS_CONFIG[r.status] || STATUS_CONFIG.failed
+  }
+
+  function getFailureStep(errorMessage) {
+    if (!errorMessage) return ''
+    const match = errorMessage.match(/^\[(\w+)\]/)
+    if (match) {
+      const stepMap = { parsing: '要素分析', outlining: '大纲规划', writing: '逐章生成', titling: '生成标题' }
+      return stepMap[match[1]] || match[1]
+    }
+    return ''
+  }
+
+  // 将 polling 状态合并到 records
+  function getMergedRecord(r) {
+    const polled = pollingRecords[r.id]
+    if (polled) {
+      return { ...r, completed_chapters: polled.completed_chapters, total_chapters: polled.total_chapters, status: polled.status }
+    }
+    return r
   }
 
   return (
@@ -102,10 +160,19 @@ export default function HistoryPage() {
             )}
           </p>
         </div>
-        <button onClick={() => navigate('/')}
-          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm transition-colors">
-          创作新小说
-        </button>
+        <div className="flex gap-2">
+          {!demoMode && (
+            <button onClick={handleCleanup}
+              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm transition-colors flex items-center gap-1.5">
+              <RefreshCw className="w-4 h-4" />
+              清理无效数据
+            </button>
+          )}
+          <button onClick={() => navigate('/')}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm transition-colors">
+            创作新小说
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 border-b border-gray-200">
@@ -156,48 +223,72 @@ export default function HistoryPage() {
         ) : (
           <div className="space-y-3">
             {records.map(r => {
-              const st = statusIcons[r.status] || statusIcons.failed
-              const Icon = st.icon
+              const merged = getMergedRecord(r)
+              const sc = getStatusConfig(merged)
+              const Icon = sc.icon
+              const isInProgress = merged.status === 'in_progress'
+              const failureStep = getFailureStep(merged.error_message)
+              const progressPct = merged.total_chapters > 0
+                ? Math.round((merged.completed_chapters / merged.total_chapters) * 100)
+                : 0
+
               return (
-                <div key={r.id} className={cn('bg-white rounded-xl border p-4 transition-all hover:shadow-sm', st.bg + '/30')}>
+                <div key={r.id} className={cn('bg-white rounded-xl border p-4 transition-all hover:shadow-sm', sc.border)}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', st.bg, st.color)}>
-                          <Icon className={cn('w-3 h-3', r.status === 'in_progress' && 'animate-spin')} />
-                          {st.label}
+                      {/* 状态徽章 */}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium', sc.bg, sc.color)}>
+                          <Icon className={cn('w-3 h-3', isInProgress && 'animate-spin')} />
+                          {sc.label}
                         </span>
-                        {r.completed_chapters > 0 && (
+                        {merged.completed_chapters > 0 && (
                           <span className="text-xs text-gray-500">
-                            进度 {r.completed_chapters}/{r.total_chapters} 章
+                            {merged.completed_chapters}/{merged.total_chapters} 章
+                          </span>
+                        )}
+                        {failureStep && (
+                          <span className="text-[10px] text-red-400 bg-red-50 px-1.5 py-0.5 rounded">
+                            {failureStep}阶段失败
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-700 truncate">{r.seed_text || '未知种子'}</p>
+
+                      {/* 进度条（in_progress） */}
+                      {isInProgress && merged.total_chapters > 0 && (
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full mb-2 overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all duration-500"
+                            style={{ width: `${progressPct}%` }} />
+                        </div>
+                      )}
+
+                      <p className="text-sm text-gray-700 truncate">{merged.seed_text || '未知种子'}</p>
                       <p className="text-xs text-gray-400 mt-1">
-                        {new Date(r.created_at).toLocaleString('zh-CN')}
+                        {new Date(merged.created_at).toLocaleString('zh-CN')}
                       </p>
-                      {r.error_message && (
-                        <p className="text-xs text-red-500 mt-1 truncate">{r.error_message}</p>
+                      {merged.error_message && (
+                        <p className="text-xs text-red-500 mt-1 truncate">{merged.error_message.replace(/^\[\w+\]\s*/, '')}</p>
                       )}
                     </div>
+
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {r.status === 'completed' && r.novel_id && (
-                        <button onClick={() => navigate(`/novel/${r.novel_id}`)}
+                      {merged.status === 'completed' && merged.novel_id && (
+                        <button onClick={() => navigate(`/novel/${merged.novel_id}`)}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
                           <ExternalLink className="w-3 h-3" /> 查看
                         </button>
                       )}
-                      {r.status === 'failed' && (
-                        <button onClick={() => navigate(`/?continue=true&record_id=${r.id}`)}
+                      {(merged.status === 'failed' || merged.status === 'cancelled') && (
+                        <button onClick={() => navigate(`/?continue=true&record_id=${merged.id}`)}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors">
-                          <RefreshCw className="w-3 h-3" /> 继续生成
+                          <RefreshCw className="w-3 h-3" /> 继续
                         </button>
                       )}
-                      {r.status === 'in_progress' && (
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Loader2 className="w-3 h-3 animate-spin" /> 生成中...
-                        </span>
+                      {isInProgress && (
+                        <button onClick={() => navigate(`/?continue=true&record_id=${merged.id}`)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                          <ExternalLink className="w-3 h-3" /> 查看进度
+                        </button>
                       )}
                       <button onClick={() => handleDeleteRecord(r.id)}
                         className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">

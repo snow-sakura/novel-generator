@@ -21,7 +21,6 @@ export async function checkConfig() {
   }
 }
 
-/** 获取国产模型列表 */
 export async function fetchModels() {
   if (isGitHubPages()) return { models: [] }
   try {
@@ -31,7 +30,6 @@ export async function fetchModels() {
   } catch { return { models: [] } }
 }
 
-/** 获取题材列表（按频道） */
 export async function fetchGenres(gender = '男频') {
   if (isGitHubPages()) return { gender, genres: [], styles: [] }
   try {
@@ -51,6 +49,7 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
     ? `${API_BASE}/generate/continue?record_id=${continueRecordId}`
     : `${API_BASE}/generate`
 
+  console.log('[SSE] 开始请求:', url, params)
   fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -59,6 +58,70 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
   })
     .then(async (response) => {
       clearTimeout(timeoutId)
+      console.log('[SSE] 连接成功, status:', response.status)
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || `请求失败 (${response.status})`)
+      }
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+        while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        let currentEvent = ''
+        for (const line of lines) {
+          if (line.startsWith('event: ')) currentEvent = line.slice(7).trim()
+          else if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6).trim()
+            try {
+              const parsed = JSON.parse(dataStr)
+              console.log('[SSE]', currentEvent, parsed)
+              onEvent(currentEvent, parsed)
+            } catch {
+              console.log('[SSE]', currentEvent, dataStr)
+              onEvent(currentEvent, dataStr)
+            }
+          }
+        }
+      }
+      onComplete()
+    })
+    .catch((err) => {
+      clearTimeout(timeoutId)
+      console.log('[SSE] 请求失败:', err.message)
+      if (err.name === 'AbortError') onError('已停止')
+      else onError(err.message || '网络错误')
+    })
+  return { controller }
+}
+
+// ─── 生成记录轮询 ───
+
+export async function fetchRecordStatus(recordId) {
+  if (isGitHubPages() || !recordId) return null
+  try {
+    const res = await fetch(`${API_BASE}/records/${recordId}/status`)
+    if (!res.ok) return null
+    return res.json()
+  } catch { return null }
+}
+
+// ─── 对话式生成 ───
+
+export function chatGenerate(message, onEvent, onComplete, onError) {
+  const controller = new AbortController()
+
+  fetch(`${API_BASE}/chat/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+    signal: controller.signal,
+  })
+    .then(async (response) => {
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
         throw new Error(err.error || `请求失败 (${response.status})`)
@@ -77,19 +140,25 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
           if (line.startsWith('event: ')) currentEvent = line.slice(7).trim()
           else if (line.startsWith('data: ')) {
             const dataStr = line.slice(6).trim()
-            try { onEvent(currentEvent, JSON.parse(dataStr)) }
-            catch { onEvent(currentEvent, dataStr) }
+            try {
+              const parsed = JSON.parse(dataStr)
+              console.log('[SSE]', currentEvent, parsed)
+              onEvent(currentEvent, parsed)
+            } catch {
+              console.log('[SSE]', currentEvent, dataStr)
+              onEvent(currentEvent, dataStr)
+            }
           }
         }
       }
       onComplete()
     })
     .catch((err) => {
-      clearTimeout(timeoutId)
-      if (err.name === 'AbortError') onError('生成超时')
+      console.log('[SSE] 对话请求失败:', err.message)
+      if (err.name === 'AbortError') onError('已停止')
       else onError(err.message || '网络错误')
     })
-  return controller
+  return { controller }
 }
 
 // ─── Demo 模式 ───
@@ -101,6 +170,7 @@ export async function generateNovelDemo(params, onEvent, onComplete, onError) {
     }
     onComplete()
   } catch (err) { onError(err.message || 'Demo 生成失败') }
+  return { controller: null }
 }
 
 // ─── CRUD ───
@@ -149,6 +219,28 @@ export function getOutlineExportUrl(id) { return `${API_BASE}/novels/${id}/expor
 export function getOutlineXmindUrl(id) { return `${API_BASE}/novels/${id}/export/outline?format=xmind` }
 export function getPackageExportUrl(id) { return `${API_BASE}/novels/${id}/export/package` }
 
+// ─── 模型配置持久化 ───
+
+export async function fetchModelConfig() {
+  if (isGitHubPages()) return null
+  try {
+    const res = await fetch(`${API_BASE}/model-config`)
+    if (!res.ok) return null
+    return res.json()
+  } catch { return null }
+}
+
+export async function saveModelConfig(config) {
+  if (isGitHubPages()) return
+  try {
+    await fetch(`${API_BASE}/model-config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    })
+  } catch {}
+}
+
 // ─── 生成记录 ───
 
 export async function fetchRecords(page = 1, size = 20) {
@@ -169,4 +261,18 @@ export async function deleteRecord(id) {
   if (isGitHubPages() || id === 0) return
   const res = await fetch(`${API_BASE}/records/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('删除失败')
+}
+
+export async function cancelRecord(id) {
+  if (isGitHubPages() || !id) return
+  try {
+    await fetch(`${API_BASE}/records/${id}/cancel`, { method: 'POST' })
+  } catch {}
+}
+
+export async function cleanupData() {
+  if (isGitHubPages()) return null
+  const res = await fetch(`${API_BASE}/cleanup`, { method: 'POST' })
+  if (!res.ok) throw new Error('清理失败')
+  return res.json()
 }

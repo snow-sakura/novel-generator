@@ -8,116 +8,96 @@
 
 ```
 用户输入种子句
-  → 选择频道(男频/女频) → 题材 → 风格 → 字数
-  → 后端三步生成(要素解析 → 大纲 → 逐章)
+  → 选择(频道/题材/风格[多选]/字数)
+  → 后端 CrewAI 四智能体管线(要素解析→大纲→逐章→标题)
   → SSE 流式推送前端
-  → 自动存储到 doc/novel/ 文件夹 + DB
+  → 自动存储到 doc/novel/ + DB
 ```
 
 ## 技术要点
 
 ### 后端
-- **FastAPI** + **SSE**: `StreamingResponse(text/event-stream)`
+- **FastAPI + SSE**: `StreamingResponse(text/event-stream)`
+- **CrewAI**: 四角色智能体（`agents.py`），仅用作角色/目标/背景容器，**不含 llm 参数**
+- **CrewAI 初始化**: 需要 `OPENAI_API_KEY` 环境变量，`main.py` 启动时设置 `sk-crewai-placeholder`
 - **Provider 工厂**: `app/llm/provider.py` 支持动态创建任意 OpenAI 兼容模型
-- **生成管线**: `app/services/generator.py` 三步 yield 事件
-- **文件存储**: 自动创建 `doc/novel/{title}/` 文件夹，存储逐章 TXT + 大纲思维导图 + 全文 TXT
-- **番茄数据**: `app/data.py` 硬编码男频19类/女频18类/15种风格
+- **默认模型**: MiMo-V2.5 (mimo-v2.5-free) 通过 OpenCode Zen 接口
+- **生成管线**: `app/services/generator.py` CrewAI 集成 + 流式逐章生成
+- **LLM 超时三层**: `_call_llm(timeout=120)` + `_timeout_iterate(agen, timeout=120)` + 启动 `validate()`
+- **题材隔离**: prompts.py 含类型隔离规则，generator.py 每章注入题材约束
+- **文件存储**: `doc/novel/{title}/` — 逐章 TXT + 大纲 Markdown + 大纲 XMind + 全文 TXT
+- **对话生成**: `app/services/chat_service.py` — 对话式生成包装器（包装 generator.py）
+- **大纲六层**: `prompts.py` JSON schema: strategy/characters/world/plot_structure/rhythm/style_tone
+- **XMind 多级树**: `xmind.py` 递归 `_value_to_topics()` + FIELD_LABELS 中文映射
+- **数据清理**: `POST /cleanup` 清理孤立记录和无效小说
 
 ### 前端
-- **状态管理**: Zustand store (`novelStore.js`) 管理所有生成状态
+- **状态管理**: Zustand store (`novelStore.js` + `chatStore.js`)
+- **日志展示**: `MultiStepLog.jsx` — 4 步骤分卡片展示实时日志，按 `step` 字段过滤
+- **停止生成**: 先 `POST /records/{id}/cancel` 标记 `cancelled`，再 `abortController.abort()`
+- **TOC 条件**: 仅在 `currentStep >= WRITING` 时显示章节目录
+- **生成中切 tab**: HistoryPage 每 3s 轮询 `GET /records/{id}/status`，支持回显
+- **对话页面**: 左侧对话流 + 右侧状态看板（`ChatPage.jsx`）
 - **Demo 模式**: 自动检测 `github.io`，切换 mock 数据流
-- **章节锚点**: 每个 `<section id="ch-N">` 支持 `scrollIntoView`
-- **TOC**: 侧栏目录面板控制 `showToc` 状态
 
 ### 关键路由
 
 | 端点 | 说明 |
 |------|------|
 | POST `/api/v1/generate` | SSE 流式生成 |
-| POST `/api/v1/generate/continue?record_id=X` | 从失败继续生成 |
-| GET `/api/v1/records` | 生成记录列表 |
-| GET `/api/v1/records/{id}` | 单条记录详情 |
+| POST `/api/v1/generate/continue?record_id=X` | 从失败/取消继续 |
+| POST `/api/v1/chat/generate` | AI 对话式生成 SSE |
+| POST `/api/v1/records/{id}/cancel` | 标记记录为 cancelled |
+| POST `/api/v1/records/{id}/reset` | 重置卡住的 in_progress 为 failed |
+| GET `/api/v1/records/{id}/status` | 轻量状态轮询 |
+| POST `/api/v1/cleanup` | 清理孤立数据（无主记录 + 无效小说） |
+| GET `/api/v1/novels/{id}/export` | 全文导出 |
 | GET `/api/v1/models/list` | 国产模型列表 |
-| GET `/api/v1/genres/list?gender=` | 题材列表（按频道） |
-| GET `/api/v1/novels/{id}/export` | 全文导出 (md/txt/pdf) |
-| GET `/api/v1/novels/{id}/export/chapters` | 逐章 ZIP |
-| GET `/api/v1/novels/{id}/export/outline?format=markdown` | 大纲 Markdown |
-| GET `/api/v1/novels/{id}/export/outline?format=xmind` | 大纲 XMind |
+| GET `/api/v1/genres/list?gender=` | 题材列表 |
+| GET/PUT `/api/v1/model-config` | 模型配置持久化 |
 
-### SSE 事件类型
+### SSE 事件
 
-parse / parse_done / outline / outline_thinking / outline_done / chapter_start / content / chapter_end / title / log / complete / error / record_id / continue_from
+`parse` / `parse_done` / `outline` / `outline_thinking` / `outline_done` / `chapter_start` / `content` / `chapter_end` / `title` / `log` / `complete` / `error` / `record_id` / `continue_from`
 
-### 新增字段（v1.2 — 表单重设计）
+- `log` data 含 `step`（parsing/outlining/writing/titling）用于前端分卡片
+- `outline_done` data: `{chapters, outline}`
+- `complete` 触发 CompleteDialog 而非自动跳转
 
-- `chapter_count`: 前端计算传入的章节数（后端优先使用）
-- `custom_prompts`: `{ parse, outline, chapter, title }` 覆盖默认 Prompt
-- `defaultApiKey`: 前端 store 中 OpenCode 默认模型的 API Key
-- `customPrompts`: 前端 store 中自定义提示词编辑内容
+### 数据便携机制
 
-### 关键变更（v1.2.1 — 继续生成 + XMind + 章节重设计）
-
-- **数据库迁移**: `migrate_database()` 自动检测缺失列并 ALTER TABLE
-- **题材/风格可折叠**: `showGenres` / `showStyles` state 控制展示（NovelForm）
-- **大纲自动导出 XMind**: `_save_outline_mindmap()` 调用 `generate_xmind()` 生成 xmind 文件
-- **生成记录表**: `GenerationRecord` SQLAlchemy 模型 + `/api/v1/records` CRUD
-- **继续生成**: `POST /api/v1/generate/continue?record_id=X` 重建参数重新生成
-- **章节阅读优化**: IntersectionObserver 跟踪当前章节 + 高亮 + 大号标题 + 64宽度 TOC 全展示
-
-### SSE 新增事件
-
-- `record_id`: 生成起始时返回 `data: id`（前端记录绑定）
-- `continue_from`: 继续生成时返回 `data: { original_record_id }`
-
-### 关键变更（v1.3.0 — 日志持久化 + 内容回显 + 存储迁移）
-
-- **生成日志持久化**: `GenerationRecord.thinking_logs` 列存储 JSON；`event_stream` 自动收集 `log` 事件并保存
-- **继续生成回显**: CreatePage 加载 `content_sofar` / `params` / `thinking_logs` 完整回显
-- **ThinkingLog 常驻**: 有日志时始终显示（不限于生成中），位于 StepProgress 下方
-- **NovelPage 日志面板**: 底部可折叠「生成日志」区域，自动加载最新记录
-- **回到顶部按钮**: 固定底部右下方，渐变色悬浮按钮，>400px 滚动时显示
-- **存储迁移**: 小说文件从 `doc/` → `doc/novel/`，删除 `backend/novel/`
-- **Demo 模式**: 默认直接渲染 CreatePage，移除配置检测空白等待
-
-### 关键变更（v1.3.0 fix — 每章状态 + 独立文本管理）
-
-- **每章状态跟踪**: `GenerationRecord.chapter_states` 列存储每章生成状态（`generating`/`completed`/`failed`）+ 起止时间
-- **大纲导出回退**: `outline.chapters` 为空时自动回退到 `novel.chapters` 字段
-- **Store 独立章节文本**: `chapterTexts` 数组与 `chapters` 对齐，新增 `appendChapterText` action；生成时内容写入 `chapterTexts[last]` 而非拼接 `currentContent`
-- **CreatePage 弹窗重构**: `chapter_start` 立即打开弹窗，`chapter_end` 立即关闭，无延迟；移除 `delay()` 工具函数
-- **继续生成回显修复**: 使用 `appendChapterText` + `addChapter` 重建章节内容，确保 `chapterTexts` 正确填充
-
-### 新增/变更 API
-
-| 端点 | 说明 |
-|------|------|
-| POST `/api/v1/generate/continue?record_id=X` | 从失败记录继续生成 |
-| GET `/api/v1/records` | 生成记录列表（分页） |
-| GET `/api/v1/records/{id}` | 单条记录详情（含 `thinking_logs` + `chapter_states`） |
-| DELETE `/api/v1/records/{id}` | 删除记录 |
-| GET `/novels/{id}/export/outline?format=xmind` | 大纲 XMind 导出 |
-
-### 生成记录状态
-
-| 状态 | 含义 | 前端操作 |
-|------|------|----------|
-| `in_progress` | 生成中 | 不可操作 |
-| `completed` | 已完成 | 查看小说 |
-| `failed` | 失败 | 继续生成 |
-
-### Store 核心字段
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `chapters` | `Array<{title, index}>` | 章节元信息列表 |
-| `chapterTexts` | `string[]` | 每章独立文本，索引与 `chapters` 对齐 |
-| `currentContent` | `string` | 全文拼接（由 `appendChapterText` 自动追加） |
-| `thinkingLogs` | `Array<{time, text, type}>` | 生成日志 |
+`novels_index.json`（项目根目录，git 跟踪）实现跨设备 DB 同步。
 
 ## 开发规范
 
-1. **新增字段**需同步修改: model → router → store → api → 组件
-2. **SSE 事件**新增需同步: generator yield → store event → CreatePage switch
-3. **每章文本**: 新增内容使用 `appendChapterText`，不要手动拼接 `currentContent`
-4. **文档**更新: TODO.md(版本记录) + DESIGN/API/DB 规格文档
-5. **Demo 模式**: sampleNovel.js 需维护 mock 数据
+1. **新增字段**: model → router → store → api → 组件同步修改
+2. **SSE 事件**: generator yield → store event → CreatePage/ChatPage switch
+3. **每章文本**: 使用 `appendChapterText`，不要手动拼接 `currentContent`
+4. **新增智能体**: `agents.py` 添加 Agent → `generator.py` 引用 → `chat_service.py` 引用
+5. **对话页面**: 确保 `chat_service.py` 包装 `generator.py` 的核心管线，事件透传
+6. **停止生成**: 先 `POST /records/{id}/cancel`，再 `abortController.abort()`（保证 DB 记录被标记）
+7. **CrewAI Agent**: 永远不加 `llm` 参数，否则 Pydantic 报 `Unknown or missing llm_type`；仅作角色/目标/背景容器
+8. **LLM 超时**: 新增收集型调用用 `_call_llm(timeout=120)`，流式用 `_timeout_iterate(agen, timeout=120)`
+
+## Store 核心字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `generating` | `boolean` | 是否正在生成 |
+| `currentStep` | `string` | idle/parsing/outlining/writing/titling/done/error |
+| `abortController` | `AbortController|null` | 用于停止生成的流控制 |
+| `currentRecordId` | `number|null` | 当前生成的记录 ID |
+| `thinkingLogs` | `Array<{time, text, type, step}>` | 含 step 标记的日志 |
+| `chapters` | `Array<{title, index}>` | 章节元信息 |
+| `chapterTexts` | `string[]` | 每章独立文本 |
+| `selectedStyles` | `string[]` | 多选风格数组 |
+
+### chatStore 核心字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `messages` | `Array<{role, content, streaming?}>` | 对话消息列表 |
+| `novelData` | `Object` | 当前生成状态（step/chapters/chapterTexts/outline/totalWords） |
+| `generating` | `boolean` | 是否正在生成 |
+| `currentRecordId` | `number|null` | 当前生成的记录 ID |
+| `abortController` | `AbortController|null` | 用于停止生成的流控制 |

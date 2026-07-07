@@ -4,6 +4,45 @@
 
 ---
 
+## v1.3.1 (2026-07-07)
+
+### Bug 修复
+
+- **题材隔离防护**：修复不同小说之间角色/设定/世界观互相污染的问题
+  - 大纲 L5 Prompt 增加 `【⚠️ 类型一致性要求】`
+  - 章节 Prompt 增加 `【⚠️ 类型隔离规则 — 必须严格遵守】`
+  - 每章生成时注入 `【题材约束】` 提醒，不仅限前3章
+- **CrewAI 初始化崩溃**：修复 CrewAI Agent 初始化时因缺少 `OPENAI_API_KEY` 而报错的问题
+  - `main.py` 启动时设置占位值 `sk-crewai-placeholder`
+
+### 新增功能
+
+- **MiMo V2.5 模型支持**：新增小米 MiMo V2.5 模型配置（限免）
+  - Provider: `opencode-mimo`
+  - 模型 ID: `mimo-v2.5-free`
+  - 配置方式：`OPENCODE_MODEL=mimo-v2.5-free`
+- **数据清理 API**：
+  - `POST /api/v1/cleanup` — 一键清理孤立记录和无效小说
+  - `POST /api/v1/records/{id}/reset` — 重置卡住的 in_progress 记录
+- **前端清理按钮**：HistoryPage 新增「清理无效数据」按钮
+
+### 数据清理
+
+- 删除了 3 部孤立的"生成中..."小说（ID 7/8/9）
+- 清理了无主的生成记录
+- 清理了 `novels_index.json` 和 `doc/novel/` 下的无效文件
+
+### 文档
+
+- AGENTS.md 更新 API 路由表、新增题材隔离和数据清理章节
+- CLAUDE.md 更新技术栈和关键约定
+- README.md 更新模型配置说明
+- doc/spec/API-v1.md 新增清理和重置 API 文档
+- doc/spec/DB-v1.md 新增清理 API 和常见问题
+- doc/spec/DESIGN-v1.md 新增 Section 15（题材隔离与数据清理）
+
+---
+
 ## v1.3.0 (2026-07-05)
 
 ### 新增功能

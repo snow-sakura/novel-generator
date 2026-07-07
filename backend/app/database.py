@@ -114,5 +114,23 @@ def migrate_database():
                     db.add(record)
                 db.commit()
                 print(f"[DB迁移] 成功回溯 {novel_count} 条生成记录", flush=True)
+
+        # model_configs 表迁移
+        if "model_configs" not in tables:
+            db.execute(text("""
+                CREATE TABLE IF NOT EXISTS model_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider VARCHAR(50) NOT NULL DEFAULT 'opencode',
+                    label VARCHAR(100) DEFAULT '',
+                    base_url VARCHAR(500) DEFAULT '',
+                    model_id VARCHAR(100) DEFAULT '',
+                    api_key TEXT DEFAULT '',
+                    is_default BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.commit()
+            print("[DB迁移] 创建 model_configs 表", flush=True)
     finally:
         db.close()

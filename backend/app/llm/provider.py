@@ -17,16 +17,49 @@ class LLMProvider(ABC):
         ...
 
 
+class _LazyLLM:
+    """延迟初始化 LangChain LLM，避免 __init__ 时因 API Key 无效而崩溃。"""
+
+    def __init__(self, factory, validate_before: str = None):
+        self._factory = factory
+        self._validate_before = validate_before
+        self._llm = None
+        self._error = None
+
+    def _ensure(self):
+        if self._llm is not None:
+            return self._llm
+        if self._error:
+            raise RuntimeError(self._error)
+        if self._validate_before and not getattr(settings, self._validate_before, None):
+            self._error = f"环境变量未配置: {self._validate_before}"
+            raise RuntimeError(self._error)
+        try:
+            self._llm = self._factory()
+            return self._llm
+        except Exception as e:
+            self._error = str(e)
+            raise RuntimeError(self._error)
+
+    def __call__(self):
+        return self._ensure()
+
+
 class OpenAIProvider(LLMProvider):
     def __init__(self):
         from langchain_openai import ChatOpenAI
         self.model_name = settings.openai_model
-        self.llm = ChatOpenAI(api_key=settings.openai_api_key, model=self.model_name, streaming=True, temperature=0.8)
+        self._llm = _LazyLLM(
+            lambda: ChatOpenAI(api_key=settings.openai_api_key, model=self.model_name, streaming=True, temperature=0.8),
+            validate_before="openai_api_key",
+        )
 
     def validate(self) -> Optional[str]:
-        if not settings.openai_api_key or settings.openai_api_key == "sk-your-key-here":
-            return "未配置正确的 OpenAI API Key"
-        return None
+        try:
+            self._llm()
+            return None
+        except RuntimeError as e:
+            return str(e)
 
     async def generate_stream(self, prompt: str, system_prompt: str = "") -> AsyncGenerator[str, None]:
         from langchain.schema import HumanMessage, SystemMessage
@@ -34,7 +67,7 @@ class OpenAIProvider(LLMProvider):
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=prompt))
-        async for chunk in self.llm.astream(messages):
+        async for chunk in self._llm().astream(messages):
             if chunk.content:
                 yield chunk.content
 
@@ -43,31 +76,46 @@ class AnthropicProvider(LLMProvider):
     def __init__(self):
         from langchain_anthropic import ChatAnthropic
         self.model_name = settings.anthropic_model
-        self.llm = ChatAnthropic(api_key=settings.anthropic_api_key, model=self.model_name, streaming=True, temperature=0.8)
+        self._llm = _LazyLLM(
+            lambda: ChatAnthropic(api_key=settings.anthropic_api_key, model=self.model_name, streaming=True, temperature=0.8),
+            validate_before="anthropic_api_key",
+        )
 
     def validate(self) -> Optional[str]:
-        if not settings.anthropic_api_key:
-            return "未配置 Anthropic API Key"
-        return None
+        try:
+            self._llm()
+            return None
+        except RuntimeError as e:
+            return str(e)
 
     async def generate_stream(self, prompt: str, system_prompt: str = "") -> AsyncGenerator[str, None]:
         from langchain.schema import HumanMessage
         messages = [HumanMessage(content=prompt)]
-        async for chunk in self.llm.astream(messages, system=system_prompt if system_prompt else None):
+        async for chunk in self._llm().astream(messages, system=system_prompt if system_prompt else None):
             if chunk.content:
                 yield chunk.content
 
 
 class OllamaProvider(LLMProvider):
     def __init__(self):
-        from langchain_ollama import ChatOllama
         self.model_name = settings.ollama_model
-        self.llm = ChatOllama(base_url=settings.ollama_base_url, model=self.model_name, temperature=0.8)
+        self._llm = _LazyLLM(
+            lambda: self._create_ollama(),
+        )
+
+    def _create_ollama(self):
+        try:
+            from langchain_ollama import ChatOllama
+        except ImportError:
+            raise RuntimeError("langchain-ollama 未安装，无法使用 Ollama Provider")
+        return ChatOllama(base_url=settings.ollama_base_url, model=self.model_name, temperature=0.8)
 
     def validate(self) -> Optional[str]:
-        if not settings.ollama_base_url:
-            return "未配置 Ollama 地址"
-        return None
+        try:
+            self._llm()
+            return None
+        except RuntimeError as e:
+            return str(e)
 
     async def generate_stream(self, prompt: str, system_prompt: str = "") -> AsyncGenerator[str, None]:
         from langchain.schema import HumanMessage, SystemMessage
@@ -75,7 +123,7 @@ class OllamaProvider(LLMProvider):
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=prompt))
-        async for chunk in self.llm.astream(messages):
+        async for chunk in self._llm().astream(messages):
             if chunk.content:
                 yield chunk.content
 
@@ -84,12 +132,17 @@ class OpenCodeProvider(LLMProvider):
     def __init__(self):
         from langchain_openai import ChatOpenAI
         self.model_name = settings.opencode_model
-        self.llm = ChatOpenAI(api_key=settings.opencode_api_key, model=self.model_name, base_url=settings.opencode_base_url, streaming=True, temperature=0.8)
+        self._llm = _LazyLLM(
+            lambda: ChatOpenAI(api_key=settings.opencode_api_key, model=self.model_name, base_url=settings.opencode_base_url, streaming=True, temperature=0.8),
+            validate_before="opencode_api_key",
+        )
 
     def validate(self) -> Optional[str]:
-        if not settings.opencode_api_key:
-            return "未配置 OpenCode API Key"
-        return None
+        try:
+            self._llm()
+            return None
+        except RuntimeError as e:
+            return str(e)
 
     async def generate_stream(self, prompt: str, system_prompt: str = "") -> AsyncGenerator[str, None]:
         from langchain.schema import HumanMessage, SystemMessage
@@ -97,7 +150,7 @@ class OpenCodeProvider(LLMProvider):
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=prompt))
-        async for chunk in self.llm.astream(messages):
+        async for chunk in self._llm().astream(messages):
             if chunk.content:
                 yield chunk.content
 
@@ -144,10 +197,17 @@ def get_llm_provider(model_config: dict = None) -> LLMProvider:
     if model_config and model_config.get("provider"):
         provider_name = model_config["provider"]
         if provider_name in ("openai", "anthropic", "ollama", "opencode"):
-            # 使用内置 Provider（忽略 custom 配置）
+            # 使用内置 Provider（忽略 custom 配置，opencode 从 .env 读取）
             pass
+        elif provider_name == "opencode-mimo":
+            # MiMo 模型通过 OpenCode Zen 接口访问
+            return CustomProvider(
+                base_url=model_config.get("base_url", "https://opencode.ai/zen/v1"),
+                model=model_config.get("model", "mimo-v2.5-free"),
+                api_key=model_config.get("api_key", settings.opencode_api_key),
+            )
         else:
-            # 自定义国产模型
+            # 自定义模型（国产模型）
             return CustomProvider(
                 base_url=model_config.get("base_url", ""),
                 model=model_config.get("model", ""),

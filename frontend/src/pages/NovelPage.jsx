@@ -1,8 +1,39 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2, Clock, BookOpen, Type, Cpu, Download, FileText, Brain, Map, RefreshCw, List, ChevronDown, ChevronUp, ArrowUp } from 'lucide-react'
+import { ArrowLeft, Trash2, Clock, BookOpen, Type, Cpu, Download, FileText, Brain, Map, RefreshCw, List, ChevronDown, ChevronUp, ArrowUp, Layers, Users, Globe, Layout, Zap, PenTool, ListChecks } from 'lucide-react'
 import { fetchNovel, deleteNovel, isGitHubPages, getChapterExportUrl, getOutlineExportUrl, getOutlineXmindUrl, getPackageExportUrl, fetchRecord } from '../services/api'
 import { cn } from '../lib/utils'
+
+const OUTLINE_LABELS = {
+  strategy: { icon: Layers, label: '1. 战略层', color: 'text-purple-600', bg: 'bg-purple-50' },
+  characters: { icon: Users, label: '2. 人物层', color: 'text-blue-600', bg: 'bg-blue-50' },
+  world: { icon: Globe, label: '3. 设定层', color: 'text-teal-600', bg: 'bg-teal-50' },
+  plot_structure: { icon: Layout, label: '4. 结构层', color: 'text-orange-600', bg: 'bg-orange-50' },
+  rhythm: { icon: Zap, label: '5. 节奏层', color: 'text-pink-600', bg: 'bg-pink-50' },
+  style_tone: { icon: PenTool, label: '6. 风格层', color: 'text-indigo-600', bg: 'bg-indigo-50' },
+  chapters: { icon: ListChecks, label: '7. 章节细纲', color: 'text-rose-600', bg: 'bg-rose-50' },
+}
+
+const FIELD_LABELS = {
+  core_idea: '核心立意', high_concept: '高概念设定', unique_selling_point: '独特卖点',
+  theme: '思想主题', core_question: '核心问题', values: '价值观',
+  ending: '结局预判', type: '结局类型', final_scene: '最终场景',
+  protagonist: '主角', name: '姓名', age: '年龄', identity: '身份',
+  desire: '核心欲望', flaw: '核心缺陷', traits: '性格特质', arc: '成长弧线',
+  supporting: '配角', antagonist: '反派', motive: '动机', threat: '压迫感',
+  value_opposition: '价值对立', relationships: '人物关系',
+  time_space: '时空背景', era: '时代', locations: '场景',
+  rules: '规则体系', world_rules: '世界规则', power_system: '力量体系',
+  social_structure: '社会结构', factions: '势力格局', description: '描述',
+  alignment: '立场', three_acts: '三幕式', act1: '第一幕·建置',
+  act2: '第二幕·对抗', act3: '第三幕·结局',
+  beat_sheet: '节拍表', beat: '节拍', chapter_range: '章节范围',
+  golden_three: '黄金三章', hook: '钩子', function: '功能定位',
+  satisfaction_points: '爽点布局', emotional_peaks: '泪点/痛点', pace_curve: '节奏曲线',
+  perspective: '叙事视角', language: '语言风格', atmosphere: '氛围基调',
+  summary: '概要', cliffhanger: '悬念', word_count_estimate: '字数预估',
+  role: '作用',
+}
 
 export default function NovelPage() {
   const { id } = useParams()
@@ -13,11 +44,11 @@ export default function NovelPage() {
   const [thinkingLogs, setThinkingLogs] = useState([])
   const [showLogs, setShowLogs] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [openOutlineSections, setOpenOutlineSections] = useState({})
   const demoMode = isGitHubPages() || id === '0'
 
   useEffect(() => { loadNovel() }, [id])
 
-  // 监听滚动，显示/隐藏回到顶部按钮
   useEffect(() => {
     function onScroll() { setShowScrollTop(window.scrollY > 400) }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -29,7 +60,6 @@ export default function NovelPage() {
     try {
       const data = await fetchNovel(id)
       setNovel(data)
-      // 加载最近记录的生成日志
       if (data.latest_record_id) {
         try {
           const rec = await fetchRecord(data.latest_record_id)
@@ -58,6 +88,73 @@ export default function NovelPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  function toggleOutlineSection(key) {
+    setOpenOutlineSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  function renderOutlineValue(value, depth = 0) {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'string' && value.trim()) {
+      return <p className={cn('text-xs', depth > 1 ? 'text-gray-500 ml-3' : 'text-gray-700')}>{value}</p>
+    }
+    if (typeof value === 'number') {
+      return <p className="text-xs text-gray-500 ml-3">{value.toLocaleString()}</p>
+    }
+    if (Array.isArray(value)) {
+      return (
+        <div className="space-y-1">
+          {value.map((item, i) => {
+            if (typeof item === 'string') {
+              return <p key={i} className="text-xs text-gray-600 ml-3">• {item}</p>
+            }
+            if (typeof item === 'object') {
+              const itemTitle = item.title || item.name || item.beat || `#${i + 1}`
+              return (
+                <div key={i} className="ml-3 p-2 bg-gray-50 rounded-lg">
+                  {itemTitle && <p className="text-xs font-medium text-gray-800 mb-1">{itemTitle}</p>}
+                  {Object.entries(item).filter(([k]) => !['title', 'name', 'beat'].includes(k)).map(([k, v]) => (
+                    <div key={k} className="flex gap-1">
+                      <span className="text-[11px] text-gray-400 w-14 flex-shrink-0">{FIELD_LABELS[k] || k}</span>
+                      <span className="text-[11px] text-gray-600">{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+            return null
+          })}
+        </div>
+      )
+    }
+    if (typeof value === 'object') {
+      return (
+        <div className="space-y-1.5 ml-2">
+          {Object.entries(value).map(([k, v]) => {
+            const label = FIELD_LABELS[k] || k
+            if (typeof v === 'object' && v !== null) {
+              return (
+                <div key={k}>
+                  <p className="text-xs font-medium text-gray-700 mt-1">{label}</p>
+                  {renderOutlineValue(v, depth + 1)}
+                </div>
+              )
+            }
+            if (typeof v === 'string' && v.trim()) {
+              return (
+                <div key={k} className="flex gap-1">
+                  <span className="text-[11px] text-gray-400 w-16 flex-shrink-0">{label}</span>
+                  <span className="text-xs text-gray-600">{v}</span>
+                </div>
+              )
+            }
+            return null
+          })}
+        </div>
+      )
+    }
+    return null
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
 
   if (error) return <div className="text-center py-16"><p className="text-red-500">{error}</p><button onClick={() => navigate(-1)} className="mt-4 text-orange-500 hover:underline">返回</button></div>
@@ -65,6 +162,7 @@ export default function NovelPage() {
   if (!novel) return null
 
   const chapters = Array.isArray(novel.chapters) ? novel.chapters : []
+  const outline = novel.outline || {}
 
   return (
     <div className="space-y-6">
@@ -146,7 +244,7 @@ export default function NovelPage() {
         </div>
       </div>
 
-      {/* 生成日志（移到此位置：章节导航上方） */}
+      {/* 生成日志 */}
       {thinkingLogs.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <button onClick={() => setShowLogs(!showLogs)}
@@ -157,19 +255,58 @@ export default function NovelPage() {
             {showLogs ? <ChevronUp className="w-3.5 h-3.5 ml-auto" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto" />}
           </button>
           {showLogs && (
-            <div className="thinking-log mt-3 max-h-80 overflow-y-auto">
+            <div className="mt-3 max-h-80 overflow-y-auto space-y-0.5 bg-gray-50 rounded-lg p-3">
               {thinkingLogs.map((log, i) => (
-                <span key={i} className="log-entry">
-                  <span className="log-time">{log.time}</span>
-                  <span className={`log-${log.type || 'info'}`}>{log.text}</span>
-                </span>
+                <div key={i} className="flex items-start gap-2 py-0.5 text-sm leading-relaxed">
+                  <span className="text-[11px] text-gray-400 font-mono flex-shrink-0 mt-0.5 select-none">{log.time}</span>
+                  <span className={cn(
+                    'flex-1',
+                    log.type === 'success' && 'text-green-700',
+                    log.type === 'error' && 'text-red-600',
+                    log.type === 'warn' && 'text-amber-700',
+                    log.type === 'chapter' && 'text-orange-700',
+                    (!log.type || log.type === 'info') && 'text-gray-700',
+                  )}>{log.text}</span>
+                </div>
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* 章节跳转条 */}
+      {/* 创作大纲 — 全层次可折叠展示 */}
+      {outline && Object.keys(OUTLINE_LABELS).some(k => outline[k] || outline.elements?.[k]) && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 className="text-sm font-medium text-gray-800 mb-3 flex items-center gap-1.5">
+            <Brain className="w-4 h-4 text-orange-500" />
+            创作大纲
+          </h3>
+          <div className="space-y-2">
+            {Object.entries(OUTLINE_LABELS).map(([key, meta]) => {
+              const data = outline[key] || outline.elements?.[key]
+              if (!data) return null
+              const isOpen = openOutlineSections[key]
+              return (
+                <div key={key} className={cn('border rounded-xl overflow-hidden transition-all', meta.bg)}>
+                  <button onClick={() => toggleOutlineSection(key)}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2.5 hover:opacity-80 transition-opacity">
+                    <meta.icon className={cn('w-4 h-4', meta.color)} />
+                    <span className={cn('text-sm font-medium', meta.color)}>{meta.label}</span>
+                    {isOpen ? <ChevronUp className="w-3.5 h-3.5 ml-auto text-gray-400" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto text-gray-400" />}
+                  </button>
+                  {isOpen && (
+                    <div className="px-3 pb-3">
+                      {renderOutlineValue(data)}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 章节导航 */}
       {chapters.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-1.5 mb-2 text-sm font-medium text-gray-700">
@@ -191,26 +328,10 @@ export default function NovelPage() {
         </div>
       )}
 
-      {/* 大纲预览 */}
-      {novel.outline && novel.outline.chapters && novel.outline.chapters.length > 0 && (
-        <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-xl border border-orange-100 p-4">
-          <h3 className="text-sm font-medium text-orange-800 mb-2 flex items-center gap-1.5"><Brain className="w-4 h-4" />创作大纲</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {novel.outline.chapters.map((ch, i) => (
-              <button key={i} onClick={() => scrollToChapter(i)}
-                className="bg-white/80 rounded-lg p-3 border border-orange-100/50 text-left hover:bg-white hover:border-orange-300 transition-all">
-                <p className="text-xs font-medium text-orange-700">第{i+1}章 {ch.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{ch.summary}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* 小说内容 */}
       <ChapterContent content={novel.content} chapters={chapters} />
 
-      {/* 回到顶部按钮 — 对齐内容区域右边缘 */}
+      {/* 回到顶部按钮 */}
       {showScrollTop && (
         <button onClick={scrollToTop}
           className="fixed bottom-8 z-50 w-11 h-11 rounded-full bg-gradient-to-br from-orange-400 to-rose-400 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center"

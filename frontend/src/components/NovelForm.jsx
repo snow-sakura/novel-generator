@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertTriangle, ChevronDown, ChevronUp, ChevronRight, Settings, BookOpen, Cpu, Tags } from 'lucide-react'
-import { useNovelStore, calcChapterCount, calcWordCount } from '../stores/novelStore'
+import { Sparkles, AlertTriangle, ChevronDown, ChevronUp, ChevronRight, Tags, X, BookOpen } from 'lucide-react'
+import { useNovelStore } from '../stores/novelStore'
 import { cn } from '../lib/utils'
-import { fetchGenres, fetchModels } from '../services/api'
-import ModelConfig from './ModelConfig'
-import PromptDisplay from './PromptDisplay'
+import { fetchGenres } from '../services/api'
 
 /* Demo 模式硬编码的题材列表 */
 const DEMO_GENRES_MALE = ['科幻末世', '都市脑洞', '玄幻脑洞', '修仙仙侠', '神医赘婿', '末日求生', '游戏竞技', '穿越历史', '悬疑推理', '无敌爽文']
@@ -16,10 +14,7 @@ export default function NovelForm({ onGenerate }) {
   const [error, setError] = useState('')
   const [genres, setGenres] = useState([])
   const [styles, setStyles] = useState([])
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const [showGenres, setShowGenres] = useState(false)
-  const [showStyles, setShowStyles] = useState(false)
-  const [models, setModels] = useState([])
+  const [expandedSection, setExpandedSection] = useState(null) // null | 'genres' | 'styles'
 
   /* 加载题材列表 */
   useEffect(() => {
@@ -27,12 +22,6 @@ export default function NovelForm({ onGenerate }) {
       fetchGenres(params.gender).then(data => { setGenres(data.genres || []); setStyles(data.styles || []) })
     }
   }, [params.gender, demoMode])
-
-  useEffect(() => {
-    if (!demoMode) {
-      fetchModels().then(data => setModels(data.models || []))
-    }
-  }, [demoMode])
 
   /* 切换频道时自动重置题材 */
   function handleGenderChange(gender) {
@@ -47,48 +36,66 @@ export default function NovelForm({ onGenerate }) {
     }
   }
 
+  function toggleSection(section) {
+    setExpandedSection(prev => prev === section ? null : section)
+  }
+
+  function toggleStyle(style) {
+    const current = params.selectedStyles || ['轻松搞笑']
+    const idx = current.indexOf(style)
+    let next
+    if (idx >= 0) {
+      next = current.filter(s => s !== style)
+      if (next.length === 0) next = [style] // 至少选一个
+    } else {
+      next = [...current, style]
+    }
+    setParams({ selectedStyles: next, style: next.join('+') })
+  }
+
   function handleSubmit(e) {
     e.preventDefault(); setError('')
     if (!params.seed_text.trim()) { setError('请输入一句话作为种子'); return }
     if (params.seed_text.trim().length < 4) { setError('种子句至少4个字'); return }
     if (configChecked && !configOk && !demoMode && !useNovelStore.getState().customModel) { setError('模型未配置'); return }
     if (params.per_chapter_min > params.per_chapter_max) { setError('每章最小字数不能大于最大字数'); return }
+    // 提交时确保 style 字段
+    if (params.selectedStyles && params.selectedStyles.length > 0) {
+      setParams({ style: params.selectedStyles.join('+') })
+    }
     onGenerate()
   }
 
   /* ---- 反应式数字更新 ---- */
-  function handleWordCountChange(wc) {
-    setParams({ word_count: wc, chapter_count: calcChapterCount({ word_count: wc, per_chapter_min: params.per_chapter_min, per_chapter_max: params.per_chapter_max }) })
-  }
-
   function handleChapterCountChange(cc) {
     const safe = Math.max(1, Math.min(200, cc || 1))
-    setParams({ chapter_count: safe, word_count: calcWordCount({ chapter_count: safe, per_chapter_min: params.per_chapter_min, per_chapter_max: params.per_chapter_max }) })
+    const avg = (params.per_chapter_min + params.per_chapter_max) / 2
+    setParams({
+      chapter_count: safe,
+      word_count: Math.round(safe * avg),
+    })
   }
 
   function handlePerChapterChange(min, max) {
     const newMin = min || 200
     const newMax = max || 20000
     if (newMin > newMax) return
+    const avg = (newMin + newMax) / 2
     setParams({
       per_chapter_min: newMin,
       per_chapter_max: newMax,
-      chapter_count: calcChapterCount({ word_count: params.word_count, per_chapter_min: newMin, per_chapter_max: newMax }),
+      word_count: Math.round(params.chapter_count * avg),
     })
   }
-
-  /* 字数范围标记 */
-  const wordCountMarks = [
-    { v: 500, l: '500' }, { v: 2000, l: '2K' }, { v: 5000, l: '5K' },
-    { v: 10000, l: '1万' }, { v: 50000, l: '5万' }, { v: 100000, l: '10万' },
-    { v: 500000, l: '50万' },
-  ]
 
   /* Demo 模式下的题材数据 */
   const displayGenres = genres.length > 0 ? genres
     : demoMode ? (params.gender === '男频' ? DEMO_GENRES_MALE : DEMO_GENRES_FEMALE) : []
   const displayStyles = styles.length > 0 ? styles
     : demoMode ? DEMO_STYLES : []
+
+  const minTotal = params.chapter_count * params.per_chapter_min
+  const maxTotal = params.chapter_count * params.per_chapter_max
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,7 +106,7 @@ export default function NovelForm({ onGenerate }) {
           <div>
             <p className="font-medium">模型未配置</p>
             <p className="mt-0.5">{configInfo.error}</p>
-            <p className="mt-1">展开「高级设置 → 模型配置」手动配置</p>
+            <p className="mt-1">点击顶部「设置」按钮配置模型</p>
           </div>
         </div>
       )}
@@ -130,16 +137,16 @@ export default function NovelForm({ onGenerate }) {
         </div>
       </div>
 
-      {/* 题材（可折叠网格） */}
+      {/* 题材（可折叠网格）与风格互斥折叠 */}
       <div>
-        <button type="button" onClick={() => setShowGenres(!showGenres)}
+        <button type="button" onClick={() => toggleSection('genres')}
           className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5 w-full text-left hover:text-gray-900 transition-colors">
           <Tags className="w-4 h-4" />
           题材
           <span className="text-xs text-gray-400 font-normal">（{displayGenres.length} 种）</span>
-          {showGenres ? <ChevronDown className="w-3.5 h-3.5 ml-auto" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+          {expandedSection === 'genres' ? <ChevronDown className="w-3.5 h-3.5 ml-auto" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
         </button>
-        {showGenres && (
+        {expandedSection === 'genres' && (
           <div className="grid grid-cols-3 gap-1.5 max-h-64 overflow-y-auto">
             {displayGenres.map(g => (
               <button key={g} type="button" onClick={() => setParams({ genre: g })} disabled={generating}
@@ -154,51 +161,49 @@ export default function NovelForm({ onGenerate }) {
         )}
       </div>
 
-      {/* 风格（可折叠网格） */}
+      {/* 风格（可折叠网格，多选） */}
       {displayStyles.length > 0 && (
         <div>
-          <button type="button" onClick={() => setShowStyles(!showStyles)}
+          <button type="button" onClick={() => toggleSection('styles')}
             className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5 w-full text-left hover:text-gray-900 transition-colors">
             <BookOpen className="w-4 h-4" />
-            风格
+            风格 <span className="text-xs text-orange-500 font-normal">（可多选）</span>
             <span className="text-xs text-gray-400 font-normal">（{displayStyles.length} 种）</span>
-            {showStyles ? <ChevronDown className="w-3.5 h-3.5 ml-auto" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+            {expandedSection === 'styles' ? <ChevronDown className="w-3.5 h-3.5 ml-auto" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
           </button>
-          {showStyles && (
-            <div className="grid grid-cols-2 gap-1.5">
-              {displayStyles.map(s => (
-                <button key={s} type="button" onClick={() => setParams({ style: s })} disabled={generating}
-                  className={cn('px-2 py-1.5 rounded-lg text-xs border transition-all text-center',
-                    params.style === s
-                      ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300')}>
-                  {s}
-                </button>
-              ))}
+          {expandedSection === 'styles' && (
+            <div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {displayStyles.map(s => {
+                  const selected = (params.selectedStyles || ['轻松搞笑']).includes(s)
+                  return (
+                    <button key={s} type="button" onClick={() => toggleStyle(s)} disabled={generating}
+                      className={cn('px-2 py-1.5 rounded-lg text-xs border transition-all text-center',
+                        selected
+                          ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300')}>
+                      {s}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {(params.selectedStyles || []).map(s => (
+                  <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs">
+                    {s}
+                    <button type="button" onClick={() => toggleStyle(s)}
+                      className="hover:text-orange-900"><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* ── 核心参数：目标字数 + 章节数 ── */}
+      {/* ── 核心参数：章节数 → 每章范围 → 目标字数（自动计算） ── */}
       <div className="bg-gradient-to-br from-orange-50 to-rose-50 rounded-xl p-4 border border-orange-100 space-y-3">
-        {/* 目标字数 */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-sm font-medium text-gray-700">目标字数</label>
-            <span className="text-orange-600 font-bold text-sm">{params.word_count.toLocaleString()} 字</span>
-          </div>
-          <input type="range" min={500} max={500000} step={100}
-            value={params.word_count}
-            onChange={e => handleWordCountChange(Number(e.target.value))}
-            disabled={generating}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500" />
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
-            {wordCountMarks.map(m => <span key={m.v}>{m.l}</span>)}
-          </div>
-        </div>
-
-        {/* 章节数 */}
+        {/* 章节数（最上方） */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">章节数</label>
           <div className="flex items-center gap-3">
@@ -215,11 +220,11 @@ export default function NovelForm({ onGenerate }) {
             <span className="text-xs text-gray-400 flex-shrink-0">章</span>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            每章约 {Math.round(params.word_count / params.chapter_count).toLocaleString()} 字
+            每章约 {Math.round((params.per_chapter_min + params.per_chapter_max) / 2).toLocaleString()} 字
           </p>
         </div>
 
-        {/* 每章字数范围 */}
+        {/* 每章字数范围（中间） */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">每章字数范围</label>
           <div className="flex items-center gap-2">
@@ -240,75 +245,22 @@ export default function NovelForm({ onGenerate }) {
             <span>最多 {params.per_chapter_max} 字/章</span>
           </div>
         </div>
-      </div>
 
-      {/* ── 高级设置（section 卡片） ── */}
-      <div>
-        <button type="button" onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-          <Settings className="w-4 h-4" />
-          {showAdvanced ? '收起' : '展开'}高级设置
-          {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
-
-        {showAdvanced && (
-          <div className="mt-3 space-y-3">
-            {/* Section 1: 章节设置 */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-                <BookOpen className="w-4 h-4 text-orange-500" />
-                <span className="text-sm font-medium text-gray-800">章节设置</span>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-gray-500">章节数</label>
-                  <input type="number" min={1} max={200}
-                    value={params.chapter_count}
-                    onChange={e => handleChapterCountChange(Number(e.target.value))}
-                    disabled={generating}
-                    className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg mt-1 focus:border-orange-400 outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500">每章字数范围</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input type="number" min={200} max={params.per_chapter_max}
-                      value={params.per_chapter_min}
-                      onChange={e => handlePerChapterChange(Number(e.target.value), params.per_chapter_max)}
-                      disabled={generating}
-                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-orange-400 outline-none" />
-                    <span className="text-gray-400">~</span>
-                    <input type="number" min={params.per_chapter_min} max={20000}
-                      value={params.per_chapter_max}
-                      onChange={e => handlePerChapterChange(params.per_chapter_min, Number(e.target.value))}
-                      disabled={generating}
-                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-orange-400 outline-none" />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400">
-                  调整后将重新计算总字数（当前 {params.word_count.toLocaleString()} 字 / {params.chapter_count} 章）
-                </p>
-              </div>
-            </div>
-
-            {/* Section 2: 模型配置 */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-                <Cpu className="w-4 h-4 text-orange-500" />
-                <span className="text-sm font-medium text-gray-800">模型配置</span>
-              </div>
-              <ModelConfig models={models} />
-            </div>
-
-            {/* Section 3: 提示词 */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-                <BookOpen className="w-4 h-4 text-orange-500" />
-                <span className="text-sm font-medium text-gray-800">提示词</span>
-              </div>
-              <PromptDisplay gender={params.gender} genre={params.genre} style={params.style} />
-            </div>
+        {/* 目标字数（最下方，只读） */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-gray-700">目标字数 <span className="text-xs text-gray-400 font-normal">（自动计算）</span></label>
+            <span className="text-orange-600 font-bold text-sm">{params.word_count.toLocaleString()} 字</span>
           </div>
-        )}
+          <div className="w-full h-2 bg-gray-200 rounded-lg relative">
+            <div className="h-full bg-gradient-to-r from-orange-300 to-orange-500 rounded-lg"
+              style={{ width: `${Math.min(100, (params.word_count / maxTotal) * 100)}%` }} />
+          </div>
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span>{minTotal.toLocaleString()} 字</span>
+            <span>{maxTotal.toLocaleString()} 字（上限）</span>
+          </div>
+        </div>
       </div>
 
       {/* 错误 */}

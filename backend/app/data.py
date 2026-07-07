@@ -35,15 +35,24 @@ STYLES = [
     "治愈温暖", "史诗宏大", "脑洞大开", "硬核技术流", "古风典雅",
 ]
 
-# ========== 国产模型配置列表（OpenAI 兼容） ==========
+# ========== 模型配置列表（OpenAI 兼容接口） ==========
 CHINESE_MODELS = [
+    {
+        "provider": "opencode-mimo",
+        "label": "MiMo V2.5 (小米，限免)",
+        "base_url": "https://opencode.ai/zen/v1",
+        "models": [
+            {"id": "mimo-v2.5-free", "label": "MiMo V2.5 Free (限免)"},
+        ],
+        "need_key": False,
+    },
     {
         "provider": "deepseek",
         "label": "DeepSeek (深度求索)",
         "base_url": "https://api.deepseek.com/v1",
         "models": [
-            {"id": "deepseek-chat", "label": "DeepSeek V3 (通用)"},
-            {"id": "deepseek-reasoner", "label": "DeepSeek R1 (推理)"},
+            {"id": "deepseek-v4-flash", "label": "DeepSeek V4 Flash (快速)"},
+            {"id": "deepseek-v4-pro", "label": "DeepSeek V4 Pro (旗舰)"},
         ],
         "need_key": True,
     },
@@ -52,9 +61,9 @@ CHINESE_MODELS = [
         "label": "通义千问 (阿里云)",
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "models": [
-            {"id": "qwen-max", "label": "Qwen Max (旗舰)"},
-            {"id": "qwen-plus", "label": "Qwen Plus (均衡)"},
-            {"id": "qwen-turbo", "label": "Qwen Turbo (快速)"},
+            {"id": "qwen3.7-max", "label": "Qwen 3.7 Max (最新旗舰)"},
+            {"id": "qwen3.6-plus", "label": "Qwen 3.6 Plus (均衡)"},
+            {"id": "qwen3.6-flash", "label": "Qwen 3.6 Flash (快速)"},
         ],
         "need_key": True,
     },
@@ -63,9 +72,8 @@ CHINESE_MODELS = [
         "label": "智谱AI GLM",
         "base_url": "https://open.bigmodel.cn/api/paas/v4",
         "models": [
-            {"id": "glm-4-plus", "label": "GLM-4-Plus (旗舰)"},
-            {"id": "glm-4-flash", "label": "GLM-4-Flash (免费)"},
-            {"id": "glm-4-air", "label": "GLM-4-Air (轻量)"},
+            {"id": "glm-5.2", "label": "GLM-5.2 (最新旗舰)"},
+            {"id": "glm-4.7-flash", "label": "GLM-4.7-Flash (免费)"},
         ],
         "need_key": True,
     },
@@ -74,8 +82,7 @@ CHINESE_MODELS = [
         "label": "Kimi (月之暗面)",
         "base_url": "https://api.moonshot.cn/v1",
         "models": [
-            {"id": "moonshot-v1-128k", "label": "Kimi 128K (长上下文)"},
-            {"id": "moonshot-v1-8k", "label": "Kimi 8K (标准)"},
+            {"id": "kimi-k2.5", "label": "Kimi K2.5 (最新)"},
         ],
         "need_key": True,
     },
@@ -84,8 +91,8 @@ CHINESE_MODELS = [
         "label": "豆包 (火山引擎)",
         "base_url": "https://ark.cn-beijing.volces.com/api/v3",
         "models": [
-            {"id": "doubao-pro-32k", "label": "豆包 Pro 32K"},
-            {"id": "doubao-lite-32k", "label": "豆包 Lite 32K"},
+            {"id": "doubao-pro-256k", "label": "豆包 Pro 256K"},
+            {"id": "doubao-lite-128k", "label": "豆包 Lite 128K"},
         ],
         "need_key": True,
     },
@@ -94,8 +101,7 @@ CHINESE_MODELS = [
         "label": "文心一言 (百度)",
         "base_url": "https://qianfan.baidubce.com/v2",
         "models": [
-            {"id": "ernie-4.0", "label": "文心 4.0 (旗舰)"},
-            {"id": "ernie-3.5", "label": "文心 3.5 (均衡)"},
+            {"id": "ernie-4.5", "label": "文心 4.5 (最新旗舰)"},
         ],
         "need_key": True,
     },
@@ -114,7 +120,6 @@ CHINESE_MODELS = [
         "base_url": "https://api.baichuan-ai.com/v1",
         "models": [
             {"id": "Baichuan4", "label": "百川4"},
-            {"id": "Baichuan3-Turbo", "label": "百川3 Turbo"},
         ],
         "need_key": True,
     },
@@ -143,8 +148,8 @@ CHINESE_MODELS = [
         "label": "硅基流动 (SiliconFlow)",
         "base_url": "https://api.siliconflow.cn/v1",
         "models": [
-            {"id": "deepseek-ai/DeepSeek-V3", "label": "DeepSeek V3 (硅基)"},
-            {"id": "Qwen/Qwen2.5-72B", "label": "Qwen 2.5 72B (硅基)"},
+            {"id": "deepseek-ai/DeepSeek-V4", "label": "DeepSeek V4 (硅基)"},
+            {"id": "Qwen/Qwen3.6-Plus", "label": "Qwen 3.6 Plus (硅基)"},
         ],
         "need_key": True,
     },

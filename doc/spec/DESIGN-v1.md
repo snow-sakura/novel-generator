@@ -11,8 +11,8 @@
 | 前端路由 | React Router（多页模式） |
 | 后端框架 | Python FastAPI |
 | 包管理 | pip + venv |
-| LLM 框架 | LangChain |
-| 模型选型 | 多 Provider 可配置（OpenAI / Anthropic / Ollama） |
+| LLM 框架 | LangChain + CrewAI |
+| 模型选型 | 多 Provider 可配置（OpenAI / Anthropic / Ollama / OpenCode Zen / MiMo V2.5） |
 | 数据库 | SQLite（全文入库） |
 | 用户认证 | V1 不启用 |
 | 生成方式 | 同步请求 + SSE 流式输出 |
@@ -221,11 +221,20 @@ data: {"message": "生成失败，请重试"}
 └─────────────────────────────────┘
 ```
 
-### 4.1 生成流程（三步走）
+### 4.1 生成流程（四步走）
 
 **Step 1 — 要素解析：** 分析种子句，补充故事六要素
-**Step 2 — 大纲规划：** 根据目标字数规划章节和每章概要
-**Step 3 — 逐章生成：** 按章节流式输出，每章结束后flush一次
+**Step 2 — 大纲规划：** 五层独立大纲生成（战略/人物/世界观/结构/章节），每层一次 LLM 调用
+**Step 3 — 逐章生成：** 按章节流式输出，每章含题材约束注入，防止跨题材污染
+**Step 4 — 标题生成：** 根据全文生成吸引人的标题
+
+### 4.2 题材隔离防护
+
+为防止不同小说之间的角色/设定/世界观互相污染，生成管线内置三层防护：
+
+1. **大纲 L5 Prompt 隔离** — 章节细纲生成时强制要求符合指定题材世界观
+2. **章节 Prompt 隔离** — 每章写作时禁止混入其他题材元素
+3. **每章上下文注入** — 每章生成时注入题材约束提醒，不仅限前3章
 
 ---
 
@@ -258,7 +267,12 @@ class OllamaProvider(LLMProvider):
 
 ```env
 # 当前使用的 Provider
-LLM_PROVIDER=openai
+LLM_PROVIDER=opencode
+
+# OpenCode Zen（免费模型）
+OPENCODE_API_KEY=sk-xxx
+OPENCODE_BASE_URL=https://opencode.ai/zen/v1
+OPENCODE_MODEL=mimo-v2.5-free  # 可选: deepseek-v4-flash-free, mimo-v2.5-free, hy3-free
 
 # OpenAI
 OPENAI_API_KEY=sk-xxx
@@ -272,6 +286,15 @@ ANTHROPIC_MODEL=claude-sonnet-4-20250514
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen2.5:7b
 ```
+
+### 可用免费模型（OpenCode Zen）
+
+| 模型 ID | 说明 |
+|---------|------|
+| mimo-v2.5-free | MiMo V2.5（小米，限免） |
+| deepseek-v4-flash-free | DeepSeek V4 Flash |
+| hy3-free | 混元 3 |
+| nemotron-3-ultra-free | Nemotron 3 Ultra |
 
 ---
 
@@ -631,6 +654,78 @@ Store 中新增字段：
 | configOk | bool | 配置是否正常 |
 | configInfo | object | 配置详情 { provider, model, error } |
 
+---
+
+## 十五、V1.3 题材隔离与数据清理
+
+### 15.1 问题描述
+
+不同小说之间出现角色/设定/世界观互相污染，例如：
+- 都市小说出现仙侠角色
+- 古代小说出现现代科技元素
+- 同一角色出现在多部不同题材的小说中
+
+### 15.2 根因分析
+
+1. **LLM 上下文混淆**：大纲五层生成时，LLM 可能混淆不同题材的元素
+2. **章节生成缺乏约束**：逐章生成时没有明确的题材隔离规则
+3. **previous_summary 携带错误内容**：前一章的错误元素会传递到后续章节
+
+### 15.3 修复方案
+
+**三层题材隔离防护：**
+
+1. **大纲 L5 Prompt 隔离**
+   - `SYSTEM_PROMPT_L5_CHAPTERS` 增加 `【⚠️ 类型一致性要求】`
+   - 强制所有章节符合指定题材世界观
+   - 禁止引入其他题材的设定
+
+2. **章节 Prompt 隔离**
+   - `SYSTEM_PROMPT_CHAPTER` 增加 `【⚠️ 类型隔离规则 — 必须严格遵守】`
+   - 明确列出禁止混入的元素类型
+   - 要求忽略前文中的错误元素
+
+3. **每章上下文注入**
+   - `generator.py` 每章生成时注入 `【题材约束】`
+   - 不仅限前3章，而是所有章节都注入
+
+### 15.4 数据清理机制
+
+**新增 API 端点：**
+
+| 端点 | 说明 |
+|------|------|
+| `POST /api/v1/cleanup` | 一键清理孤立数据 |
+| `POST /api/v1/records/{id}/reset` | 重置卡住的记录 |
+
+**清理规则：**
+1. `in_progress` 状态超过 30 分钟且无 `novel_id` 的记录
+2. 标题为"生成中..."或包含"生成中断"的小说
+3. `completed` 状态但无 `novel_id` 的记录
+
+### 15.5 CrewAI 初始化修复
+
+**问题：** CrewAI Agent 初始化时会尝试创建默认 LLM，需要 `OPENAI_API_KEY` 环境变量。
+
+**修复：** `main.py` 启动时设置占位值：
+```python
+if not os.environ.get("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = "sk-crewai-placeholder"
+```
+
+### 15.6 MiMo V2.5 模型支持
+
+**新增模型配置：**
+- Provider: `opencode-mimo`
+- Base URL: `https://opencode.ai/zen/v1`
+- Model: `mimo-v2.5-free`
+- 免费额度：限免中
+
+**配置方式：**
+```env
+OPENCODE_MODEL=mimo-v2.5-free
+```
+
 ### 12.6 新增前端组件
 
 | 组件 | 用途 |
@@ -827,3 +922,30 @@ Demo 模式新增硬编码题材/风格数据，提供更好的预览体验：
 | log | 思考日志 | "string" |
 | complete | 全部完成 | `{ novel_id, title, total_words, time_cost }` |
 | error | 出错 | `{ message }` |
+
+---
+
+## 十六、模型配置系统
+
+### 16.1 配置层级
+
+1. **环境变量** (`backend/.env`) — 默认配置
+2. **数据库** (`model_configs` 表) — 前端设置页面持久化
+3. **请求参数** (`llm_config`) — 单次请求覆盖
+
+### 16.2 Provider 路由
+
+`get_llm_provider(model_config)` 工厂方法：
+
+- `openai` / `anthropic` / `ollama` / `opencode` → 内置 Provider（从 .env 读取）
+- `opencode-mimo` → CustomProvider（MiMo 通过 OpenCode Zen）
+- 其他 → CustomProvider（国产模型 OpenAI 兼容接口）
+
+### 16.3 可用免费模型
+
+| 模型 ID | 说明 |
+|---------|------|
+| mimo-v2.5-free | MiMo V2.5 (小米，限免) |
+| deepseek-v4-flash-free | DeepSeek V4 Flash (限免) |
+| hy3-free | Hy3 (限免) |
+| nemotron-3-ultra-free | Nemotron-3 Ultra (限免) |

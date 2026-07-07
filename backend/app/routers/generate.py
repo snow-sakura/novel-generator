@@ -43,8 +43,10 @@ async def generate_novel(req: GenerateRequest):
     valid_categories = get_categories_by_gender(req.gender)
     if req.genre not in valid_categories:
         return {"error": f"{req.gender}不支持该题材，可选：{', '.join(valid_categories)}"}
-    if req.style not in STYLES:
-        return {"error": f"不支持的风格，可选：{', '.join(STYLES)}"}
+    style_parts = req.style.split('+')
+    invalid = [s for s in style_parts if s not in STYLES]
+    if invalid:
+        return {"error": f"不支持的风格: {', '.join(invalid)}，可选：{', '.join(STYLES)}"}
     if req.word_count < 500:
         req.word_count = 500
     elif req.word_count > 500000:
@@ -104,7 +106,7 @@ async def generate_novel(req: GenerateRequest):
             ):
                 if event['event'] == 'log':
                     msg = event['data']
-                    if isinstance(msg, dict): msg = msg.get('data', '')
+                    if isinstance(msg, dict): msg = msg.get('text', '')
                     thinking_logs.append({
                         'time': datetime.now().strftime('%H:%M:%S'),
                         'type': 'info' if not str(msg).startswith('❌') else 'error',
@@ -151,8 +153,8 @@ async def continue_generation(record_id: int = Query(...)):
         record = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
         if not record:
             raise HTTPException(status_code=404, detail="记录不存在")
-        if record.status != "failed":
-            raise HTTPException(status_code=400, detail="只有失败状态的记录可以继续生成")
+        if record.status not in ("failed", "cancelled"):
+            raise HTTPException(status_code=400, detail="只有失败或已取消的记录可以继续生成")
 
         params = json.loads(record.params) if record.params else {}
         req = GenerateRequest(**params)
@@ -232,7 +234,7 @@ async def continue_generation(record_id: int = Query(...)):
             ):
                 if event['event'] == 'log':
                     msg = event['data']
-                    if isinstance(msg, dict): msg = msg.get('data', '')
+                    if isinstance(msg, dict): msg = msg.get('text', '')
                     thinking_logs.append({
                         'time': datetime.now().strftime('%H:%M:%S'),
                         'type': 'info' if not str(msg).startswith('❌') else 'error',
@@ -321,6 +323,21 @@ async def get_record(record_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/records/{record_id}/cancel")
+async def cancel_record(record_id: int, db: Session = Depends(get_db)):
+    """手动取消正在生成的记录（前端停止按钮调用）"""
+    r = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    if r.status not in ("in_progress",):
+        raise HTTPException(status_code=400, detail="只有进行中的记录可以取消")
+    r.status = "cancelled"
+    r.error_message = "用户手动停止"
+    r.updated_at = datetime.now()
+    db.commit()
+    return {"status": "cancelled", "id": record_id}
+
+
 @router.delete("/records/{record_id}")
 async def delete_record(record_id: int, db: Session = Depends(get_db)):
     r = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
@@ -335,6 +352,23 @@ async def check_config():
     return get_provider_config_status()
 
 
+@router.get("/records/{record_id}/status")
+async def get_record_status(record_id: int, db: Session = Depends(get_db)):
+    """轻量轮询端点 — 获取记录状态（用于前端轮询）"""
+    r = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    return {
+        "id": r.id,
+        "novel_id": r.novel_id,
+        "status": r.status,
+        "completed_chapters": r.completed_chapters,
+        "total_chapters": r.total_chapters,
+        "created_at": r.created_at.isoformat() if r.created_at else "",
+        "updated_at": r.updated_at.isoformat() if r.updated_at else "",
+    }
+
+
 @router.get("/models/list")
 async def list_models():
     """返回所有国产模型配置列表"""
@@ -345,3 +379,65 @@ async def list_models():
 async def list_genres(gender: str = "男频"):
     """获取指定频道的题材列表"""
     return {"gender": gender, "genres": get_categories_by_gender(gender), "styles": STYLES}
+
+
+# ── 数据清理 ──
+
+@router.post("/cleanup")
+async def cleanup_orphaned_data():
+    """清理无效数据：孤立的生成中记录、无主的生成记录、失败的小说"""
+    db = SessionLocal()
+    cleaned = {"orphaned_records": 0, "orphaned_novels": 0, "failed_novels": 0}
+    try:
+        # 1. 清理无 novel_id 且状态为 in_progress 超过 30 分钟的记录
+        from datetime import timedelta
+        cutoff = datetime.now() - timedelta(minutes=30)
+        stale_records = db.query(GenerationRecord).filter(
+            GenerationRecord.novel_id.is_(None),
+            GenerationRecord.status == "in_progress",
+            GenerationRecord.updated_at < cutoff,
+        ).all()
+        cleaned["orphaned_records"] = len(stale_records)
+        for rec in stale_records:
+            db.delete(rec)
+
+        # 2. 清理 title 为 "生成中..." 或包含 "生成中断" 的小说
+        bad_novels = db.query(Novel).filter(
+            (Novel.title == "生成中...") | (Novel.title.like("%生成中断%"))
+        ).all()
+        cleaned["orphaned_novels"] = len(bad_novels)
+        for novel in bad_novels:
+            # 同时清理关联的生成记录
+            db.query(GenerationRecord).filter(GenerationRecord.novel_id == novel.id).delete()
+            db.delete(novel)
+
+        # 3. 清理没有 content 的已完成记录（无效记录）
+        empty_completed = db.query(GenerationRecord).filter(
+            GenerationRecord.status == "completed",
+            GenerationRecord.novel_id.is_(None),
+        ).all()
+        cleaned["failed_novels"] += len(empty_completed)
+        for rec in empty_completed:
+            db.delete(rec)
+
+        db.commit()
+    finally:
+        db.close()
+
+    _log(f"数据清理完成: {cleaned}")
+    return {"status": "ok", "cleaned": cleaned}
+
+
+@router.post("/records/{record_id}/reset")
+async def reset_record_to_failed(record_id: int, db: Session = Depends(get_db)):
+    """将卡在 in_progress 的记录重置为 failed（允许用户重新生成）"""
+    r = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    if r.status != "in_progress":
+        raise HTTPException(status_code=400, detail="只有进行中的记录可以重置")
+    r.status = "failed"
+    r.error_message = "用户手动重置"
+    r.updated_at = datetime.now()
+    db.commit()
+    return {"status": "failed", "id": record_id}

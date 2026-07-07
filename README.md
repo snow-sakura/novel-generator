@@ -33,7 +33,7 @@ npm run dev
 
 - 前端：Vite + React + TailwindCSS + Zustand
 - 后端：Python FastAPI + LangChain + SQLite
-- 模型：支持 OpenAI / Anthropic / Ollama / OpenCode Zen 切换
+- 模型：支持 OpenAI / Anthropic / Ollama / OpenCode Zen / MiMo V2.5 切换
 
 ## 项目结构
 
@@ -72,7 +72,24 @@ novel-generator/
 
 ```env
 LLM_PROVIDER=opencode  # 可选：openai / anthropic / ollama / opencode
+
+# OpenCode Zen（默认）
+OPENCODE_API_KEY=sk-xxx
+OPENCODE_BASE_URL=https://opencode.ai/zen/v1
+OPENCODE_MODEL=mimo-v2.5-free  # 可选: mimo-v2.5-free, deepseek-v4-flash-free, hy3-free
 ```
+
+可用免费模型：MiMo-V2.5 (小米) / DeepSeek V4 Flash / Hy3 / Nemotron-3 Ultra
+
+国产模型（需 API Key）：DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零一万物 / 硅基流动
+
+前端可通过设置页面切换模型，配置持久化到数据库。
+
+可用的免费模型（OpenCode Zen）：
+- `mimo-v2.5-free` — MiMo V2.5（小米，限免）
+- `deepseek-v4-flash-free` — DeepSeek V4 Flash
+- `hy3-free` — 混元 3
+- `nemotron-3-ultra-free` — Nemotron 3 Ultra
 
 ## 许可证
 

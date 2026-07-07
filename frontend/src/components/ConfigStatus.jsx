@@ -5,7 +5,7 @@ import { useNovelStore } from '../stores/novelStore'
 import { cn } from '../lib/utils'
 
 export default function ConfigStatus() {
-  const { configChecked, configOk, configInfo, setConfigStatus, generating } = useNovelStore()
+  const { configChecked, configOk, configInfo, setConfigStatus, customModel, generating } = useNovelStore()
   const [checking, setChecking] = useState(false)
 
   useEffect(() => {
@@ -19,6 +19,17 @@ export default function ConfigStatus() {
     const info = await checkConfig()
     setConfigStatus(true, info.configured, info)
     setChecking(false)
+  }
+
+  // 优先展示前端选择的 customModel
+  if (customModel && customModel.provider && customModel.model) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg text-xs text-green-700">
+        <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+        <span>{customModel.provider === 'opencode' ? 'OpenCode' : customModel.provider}</span>
+        <span className="text-gray-400 ml-1">({customModel.model})</span>
+      </div>
+    )
   }
 
   if (checking) {
@@ -44,18 +55,7 @@ export default function ConfigStatus() {
       {configOk ? (
         <>
           <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>
-            {configInfo.provider === 'openai'
-              ? 'OpenAI'
-              : configInfo.provider === 'anthropic'
-              ? 'Anthropic'
-              : configInfo.provider === 'opencode'
-              ? 'OpenCode'
-              : configInfo.provider === 'ollama'
-              ? 'Ollama'
-              : configInfo.provider}{' '}
-            已配置
-          </span>
+          <span>{configInfo.provider}</span>
           {configInfo.model && (
             <span className="text-gray-400 ml-1">({configInfo.model})</span>
           )}

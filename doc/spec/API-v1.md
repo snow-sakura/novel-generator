@@ -204,7 +204,7 @@ data: {"novel_id":1,"title":"光之书","total_words":3120,"time_cost":45.2}
   "provider": "opencode",
   "configured": true,
   "error": "",
-  "model": "deepseek-v4-flash-free"
+  "model": "mimo-v2.5-free"
 }
 ```
 
@@ -216,3 +216,146 @@ data: {"novel_id":1,"title":"光之书","total_words":3120,"time_cost":45.2}
 | model | string | 使用的模型名称 |
 
 该接口在页面加载时自动调用，用于决定是否启用生成按钮。
+
+---
+
+## 7. 清理无效数据 — `POST /api/v1/cleanup`
+
+清理孤立的生成记录和无效小说数据。
+
+### 请求体
+
+无（空请求）
+
+### 响应
+
+```json
+{
+  "status": "ok",
+  "cleaned": {
+    "orphaned_records": 5,
+    "orphaned_novels": 3,
+    "failed_novels": 2
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| status | string | 操作状态 |
+| cleaned.orphaned_records | int | 清理的孤立记录数 |
+| cleaned.orphaned_novels | int | 清理的无效小说数 |
+| cleaned.failed_novels | int | 清理的失败记录数 |
+
+---
+
+## 8. 重置记录状态 — `POST /api/v1/records/{id}/reset`
+
+将卡在 `in_progress` 状态的记录重置为 `failed`，允许用户重新生成。
+
+### 路径参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| id | int | 记录 ID |
+
+### 响应
+
+```json
+{
+  "status": "failed",
+  "id": 36
+}
+```
+
+### 错误响应
+
+- 404: `{ "detail": "记录不存在" }`
+- 400: `{ "detail": "只有进行中的记录可以重置" }`
+
+---
+
+## 9. 获取模型配置 — `GET /api/v1/model-config`
+
+获取持久化的模型配置。
+
+### 响应
+
+```json
+{
+  "provider": "opencode-mimo",
+  "label": "MiMo V2.5 (小米，限免)",
+  "base_url": "https://opencode.ai/zen/v1",
+  "model_id": "mimo-v2.5-free",
+  "api_key": ""
+}
+```
+
+---
+
+## 10. 保存模型配置 — `PUT /api/v1/model-config`
+
+保存模型配置到数据库。
+
+### 请求体
+
+```json
+{
+  "provider": "opencode-mimo",
+  "label": "MiMo V2.5 (小米，限免)",
+  "base_url": "https://opencode.ai/zen/v1",
+  "model_id": "mimo-v2.5-free",
+  "api_key": ""
+}
+```
+
+### 响应
+
+```json
+{ "status": "ok" }
+```
+
+---
+
+## 11. 国产模型列表 — `GET /api/v1/models/list`
+
+返回所有可用的国产模型配置列表。
+
+### 响应
+
+```json
+{
+  "models": [
+    {
+      "provider": "opencode-mimo",
+      "label": "MiMo V2.5 (小米，限免)",
+      "base_url": "https://opencode.ai/zen/v1",
+      "models": [{"id": "mimo-v2.5-free", "label": "MiMo V2.5 Free (限免)"}],
+      "need_key": false
+    },
+    ...
+  ]
+}
+```
+
+---
+
+## 12. 题材列表 — `GET /api/v1/genres/list?gender=男频`
+
+获取指定频道的题材列表。
+
+### 查询参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| gender | string | 男频 | 频道：`男频` / `女频` |
+
+### 响应
+
+```json
+{
+  "gender": "男频",
+  "genres": ["西方奇幻", "东方仙侠", "科幻末世", ...],
+  "styles": ["轻松搞笑", "热血激昂", "甜宠温馨", ...]
+}
+```
