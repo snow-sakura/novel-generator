@@ -1,95 +1,83 @@
-# 番茄小说生成智能体 V1
-
-一句话输入，AI 自动生成完整小说。
+# 番茄小说生成智能体
 
 > 🎯 **在线 Demo：** https://snow-sakura.github.io/novel-generator/
->
-> Demo 模式无需后端，可在浏览器中直接体验完整生成流程。
 
-## 快速启动
-
-### 后端
-
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env .env.local  # 编辑 API Key
-python -m app.main
-```
-
-### 前端
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-访问 http://localhost:5173
-
-## 技术栈
-
-- 前端：Vite + React + TailwindCSS + Zustand
-- 后端：Python FastAPI + LangChain + SQLite
-- 模型：支持 OpenAI / Anthropic / Ollama / OpenCode Zen / MiMo V2.5 切换
+一句话输入，AI 自动生成完整小说。
 
 ## 项目结构
 
 ```
 novel-generator/
-├── backend/            # Python FastAPI 后端
-│   ├── app/
-│   │   ├── routers/    # API 路由（生成/查询/导出）
-│   │   ├── services/   # 生成管线 + Prompt 模板
-│   │   └── llm/        # LLM Provider 工厂
-│   └── requirements.txt
-├── frontend/           # Vite + React 前端
-│   └── src/
-│       ├── pages/      # 创作/阅读/历史页面
-│       ├── components/ # UI 组件
-│       └── services/   # API 调用 + Demo 模式
-├── doc/                # 设计文档 + 生成的小说文件
-│   ├── novel/          # 生成的小说文件（自动创建）
-│   ├── prd/            # PRD 文档（V1-V3）
-│   └── spec/           # 技术设计 + API + 数据库文档
-└── .github/workflows/  # GitHub Pages 自动部署
+├── v1/                    # V1 版本（骨架版）
+│   ├── backend/           # Python FastAPI 后端
+│   ├── frontend/          # Vite + React 前端
+│   └── *.md               # V1 文档
+├── v2/                    # V2 版本（血肉版）
+│   ├── backend/           # Python FastAPI 后端
+│   ├── frontend/          # Vite + React 前端
+│   └── *.md               # V2 文档
+├── doc/                   # 文档和小说
+│   ├── novel/
+│   │   ├── v1/            # V1 生成的小说
+│   │   └── v2/            # V2 生成的小说
+│   ├── prd/               # 需求文档
+│   └── spec/              # 技术规格文档
+└── README.md              # 本文件
 ```
 
-## Demo 模式说明
+## 版本说明
 
-部署到 GitHub Pages 时，前端自动进入 Demo 模式：
+### V1 — 骨架版（基础生成）
+- 一句话输入 → 六要素解析 → 六层大纲 → 逐章生成
+- 支持 37 种题材（男频19类/女频18类）+ 15 种风格
+- SSE 流式输出 + 多 Provider LLM 支持
+- Markdown/TXT/PDF/XMind 导出
 
-- 使用预生成的样例小说模拟完整 SSE 生成流程
-- 支持体验：要素解析 → 大纲规划 → 逐章生成 → 标题生成
-- 展示 StepProgress 进度条 + ThinkingLog 思考日志 + NovelReader 阅读器
-- 可查看样例小说详情页面
+### V2 — 血肉版（叙事升级）
+- 在 V1 基础上增加叙事技巧
+- 视角控制、节奏调节、语言风格预设
+- 叙事张力增强、细节填充
+- 多轮对话润色（重写/扩写/精简）
 
-## 模型配置
+## 快速启动
 
-后端支持多模型切换，在 `backend/.env` 中配置：
+### V1 版本
 
-```env
-LLM_PROVIDER=opencode  # 可选：openai / anthropic / ollama / opencode
+```bash
+cd v1/backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # 编辑 API Key
+python -m app.main
 
-# OpenCode Zen（默认）
-OPENCODE_API_KEY=sk-xxx
-OPENCODE_BASE_URL=https://opencode.ai/zen/v1
-OPENCODE_MODEL=mimo-v2.5-free  # 可选: mimo-v2.5-free, deepseek-v4-flash-free, hy3-free
+# 另开终端
+cd v1/frontend
+npm install
+npm run dev
 ```
 
-可用免费模型：MiMo-V2.5 (小米) / DeepSeek V4 Flash / Hy3 / Nemotron-3 Ultra
+### V2 版本
 
-国产模型（需 API Key）：DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零一万物 / 硅基流动
+```bash
+cd v2/backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # 编辑 API Key
+python -m app.main
 
-前端可通过设置页面切换模型，配置持久化到数据库。
+# 另开终端
+cd v2/frontend
+npm install
+npm run dev
+```
 
-可用的免费模型（OpenCode Zen）：
-- `mimo-v2.5-free` — MiMo V2.5（小米，限免）
-- `deepseek-v4-flash-free` — DeepSeek V4 Flash
-- `hy3-free` — 混元 3
-- `nemotron-3-ultra-free` — Nemotron 3 Ultra
+## 技术栈
+
+- **前端**: Vite + React 18 + TailwindCSS 3 + Zustand
+- **后端**: Python 3.12 + FastAPI + LangChain + CrewAI + SQLite
+- **模型**: OpenAI / Anthropic / Ollama / OpenCode Zen / MiMo V2.5
 
 ## 许可证
 

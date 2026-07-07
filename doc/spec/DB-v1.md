@@ -5,15 +5,15 @@
 | 项目 | 内容 |
 |------|------|
 | 类型 | SQLite 3 |
-| 文件路径 | `backend/novel_generator.db`（相对路径，运行后端时自动创建） |
+| 文件路径 | `backend/novel_generator_v1.db`（相对路径，运行后端时自动创建） |
 | ORM | SQLAlchemy 2.0 |
-| 连接方式 | `sqlite:///./novel_generator.db` |
+| 连接方式 | `sqlite:///./novel_generator_v1.db` |
 | 迁移管理 | V1 使用 `Base.metadata.create_all()` 自动建表，无迁移脚本 |
 | 数据导出 | 直接拷贝 `backend/novel_generator.db` 即可备份 |
 
 **开发环境连接方式：**
 ```bash
-sqlite3 backend/novel_generator.db
+sqlite3 backend/novel_generator_v1.db
 ```
 
 ---

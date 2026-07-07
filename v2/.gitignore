@@ -6,7 +6,6 @@ __pycache__/
 dist/
 *.db
 .env
-.venv/
 backend/.venv/
 
 # Node
@@ -29,7 +28,3 @@ frontend/dist/
 
 # Generated data (user content)
 novels_index.json
-
-# V1 and V2 databases
-v1/backend/*.db
-v2/backend/*.db
