@@ -29,7 +29,7 @@ from app.services.agents import (
     create_titler_agent,
 )
 
-NOVEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "doc", "novel", "v1")
+NOVEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "..", "docs", "novel", "v1")
 NOVEL_INDEX_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "novels_index.json")
 
 
@@ -391,7 +391,7 @@ class GeneratorService:
 
             _log(f"全部完成！标题:《{final_title}》 | 总字数:{actual_count} | 耗时:{time_cost:.1f}s")
             yield self._make_log(f"🎉 全部完成！标题《{final_title}》，总字数{actual_count}，耗时{time_cost:.1f}s")
-            yield self._make_log(f"📁 文件已保存至 doc/novel/{final_title}/")
+            yield self._make_log(f"📁 文件已保存至 docs/novel/{final_title}/")
 
             yield {
                 "event": "complete",

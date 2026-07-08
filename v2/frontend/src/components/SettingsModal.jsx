@@ -15,7 +15,6 @@ export default function SettingsModal({ open, onClose }) {
     if (open) {
       fetchModels().then(data => {
         setModels(data.models || [])
-        // 从数据库加载已保存的模型配置
         fetchModelConfig().then(cfg => {
           if (cfg && cfg.provider && data.models?.find(mo => mo.provider === cfg.provider)) {
             const m = data.models.find(mo => mo.provider === cfg.provider)
@@ -58,14 +57,16 @@ export default function SettingsModal({ open, onClose }) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={handleClose}>
-      <div className="bg-white rounded-2xl w-[90vw] max-w-2xl max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay animate-fade-in" onClick={handleClose}>
+      <div className="bg-white rounded-2xl w-[90vw] max-w-2xl max-h-[85vh] flex flex-col shadow-2xl border border-gray-100 animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <SettingsIcon className="w-5 h-5 text-orange-500" />
+            <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm">
+              <SettingsIcon className="w-4 h-4 text-white" />
+            </div>
             <h2 className="text-lg font-bold text-gray-900">设置</h2>
           </div>
-          <button onClick={handleClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={handleClose} className="btn-ghost p-1.5">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -111,7 +112,7 @@ export default function SettingsModal({ open, onClose }) {
 
         <div className="flex-shrink-0 border-t border-gray-100 px-6 py-4 flex justify-end">
           <button onClick={handleClose}
-            className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-rose-600 transition-all shadow-sm text-sm">
+            className="px-6 py-2.5 gradient-brand text-white rounded-xl font-medium hover:shadow-md transition-all shadow-sm text-sm">
             完成
           </button>
         </div>

@@ -60,10 +60,11 @@ STYLE_INTENSITY_OPTIONS = [
 CHINESE_MODELS = [
     {
         "provider": "opencode-mimo",
-        "label": "MiMo V2.5 (小米，限免)",
+        "label": "DeepSeek Free (免费，推荐)",
         "base_url": "https://opencode.ai/zen/v1",
         "models": [
-            {"id": "mimo-v2.5-free", "label": "MiMo V2.5 Free (限免)"},
+            {"id": "deepseek-v4-flash-free", "label": "DeepSeek V4 Flash Free (推荐)"},
+            # {"id": "mimo-v2.5-free", "label": "MiMo V2.5 Free"},
         ],
         "need_key": False,
     },

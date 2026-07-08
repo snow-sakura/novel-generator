@@ -1,38 +1,82 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2, Clock, BookOpen, Type, Cpu, Download, FileText, Brain, Map, RefreshCw, List, ChevronDown, ChevronUp, ArrowUp, Layers, Users, Globe, Layout, Zap, PenTool, ListChecks } from 'lucide-react'
+import { ArrowLeft, Trash2, Clock, BookOpen, Type, Cpu, Download, FileText, Brain, Map, RefreshCw, ArrowUp, Layers, Users, Globe, Layout, Zap, PenTool, ListChecks, ChevronDown, ChevronUp, Eye, Share2, Loader2, Sparkles, FileDown, ChevronRight, Minus, Plus, X } from 'lucide-react'
 import { fetchNovel, deleteNovel, isGitHubPages, getChapterExportUrl, getOutlineExportUrl, getOutlineXmindUrl, getPackageExportUrl, fetchRecord } from '../services/api'
-import { cn } from '../lib/utils'
+import NovelReader from '../components/NovelReader'
+import OutlineModal from '../components/OutlineModal'
+import ChaptersModal from '../components/ChaptersModal'
+import { cn, toast } from '../lib/utils'
 
-const OUTLINE_LABELS = {
-  strategy: { icon: Layers, label: '1. 战略层', color: 'text-purple-600', bg: 'bg-purple-50' },
-  characters: { icon: Users, label: '2. 人物层', color: 'text-blue-600', bg: 'bg-blue-50' },
-  world: { icon: Globe, label: '3. 设定层', color: 'text-teal-600', bg: 'bg-teal-50' },
-  plot_structure: { icon: Layout, label: '4. 结构层', color: 'text-orange-600', bg: 'bg-orange-50' },
-  rhythm: { icon: Zap, label: '5. 节奏层', color: 'text-pink-600', bg: 'bg-pink-50' },
-  style_tone: { icon: PenTool, label: '6. 风格层', color: 'text-indigo-600', bg: 'bg-indigo-50' },
-  chapters: { icon: ListChecks, label: '7. 章节细纲', color: 'text-rose-600', bg: 'bg-rose-50' },
+const TREE_NODE_COLORS = [
+  { dot: '#9333ea', bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700' },
+  { dot: '#2563eb', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
+  { dot: '#059669', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
+  { dot: '#d97706', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' },
+  { dot: '#e11d48', bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700' },
+  { dot: '#6366f1', bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700' },
+  { dot: '#f97316', bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700' },
+]
+
+function OutlineTreeNode({ node, depth = 0, colorIndex = 0 }) {
+  const [collapsed, setCollapsed] = useState(depth >= 2)
+  const title = node?.title || ''
+  const children = node?.children
+  const hasChildren = children && children.length > 0
+  const color = TREE_NODE_COLORS[colorIndex % TREE_NODE_COLORS.length]
+
+  if (!title) return null
+
+  return (
+    <div className="select-none">
+      <div
+        className={cn(
+          'flex items-start gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer hover:bg-gray-50/80 group',
+          depth === 0 && 'font-semibold',
+        )}
+        style={{ paddingLeft: `${12 + depth * 20}px` }}
+        onClick={() => hasChildren && setCollapsed(!collapsed)}
+      >
+        {hasChildren ? (
+          <span className="flex-shrink-0 w-5 h-5 mt-0.5 rounded flex items-center justify-center bg-gray-100 group-hover:bg-gray-200 transition-colors">
+            {collapsed ? (
+              <Plus className="w-3 h-3 text-gray-400" />
+            ) : (
+              <Minus className="w-3 h-3 text-gray-400" />
+            )}
+          </span>
+        ) : (
+          <span className="flex-shrink-0 w-5 h-5 mt-0.5 flex items-center justify-center">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color.dot }} />
+          </span>
+        )}
+        {depth === 0 ? (
+          <span className={cn('text-sm', color.text)}>{title}</span>
+        ) : depth === 1 ? (
+          <span className="text-sm font-medium text-gray-800">{title}</span>
+        ) : (
+          <span className="text-xs text-gray-600 leading-5">{title}</span>
+        )}
+      </div>
+      {hasChildren && !collapsed && (
+        <div className="animate-fade-in-down">
+          {children.map((child, i) => (
+            <OutlineTreeNode
+              key={i}
+              node={child}
+              depth={depth + 1}
+              colorIndex={depth === 0 ? colorIndex : colorIndex + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
-const FIELD_LABELS = {
-  core_idea: '核心立意', high_concept: '高概念设定', unique_selling_point: '独特卖点',
-  theme: '思想主题', core_question: '核心问题', values: '价值观',
-  ending: '结局预判', type: '结局类型', final_scene: '最终场景',
-  protagonist: '主角', name: '姓名', age: '年龄', identity: '身份',
-  desire: '核心欲望', flaw: '核心缺陷', traits: '性格特质', arc: '成长弧线',
-  supporting: '配角', antagonist: '反派', motive: '动机', threat: '压迫感',
-  value_opposition: '价值对立', relationships: '人物关系',
-  time_space: '时空背景', era: '时代', locations: '场景',
-  rules: '规则体系', world_rules: '世界规则', power_system: '力量体系',
-  social_structure: '社会结构', factions: '势力格局', description: '描述',
-  alignment: '立场', three_acts: '三幕式', act1: '第一幕·建置',
-  act2: '第二幕·对抗', act3: '第三幕·结局',
-  beat_sheet: '节拍表', beat: '节拍', chapter_range: '章节范围',
-  golden_three: '黄金三章', hook: '钩子', function: '功能定位',
-  satisfaction_points: '爽点布局', emotional_peaks: '泪点/痛点', pace_curve: '节奏曲线',
-  perspective: '叙事视角', language: '语言风格', atmosphere: '氛围基调',
-  summary: '概要', cliffhanger: '悬念', word_count_estimate: '字数预估',
-  role: '作用',
+function ensureTree(outline) {
+  if (!outline) return []
+  if (outline._tree && Array.isArray(outline._tree)) return outline._tree
+  return []
 }
 
 export default function NovelPage() {
@@ -44,7 +88,10 @@ export default function NovelPage() {
   const [thinkingLogs, setThinkingLogs] = useState([])
   const [showLogs, setShowLogs] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const [openOutlineSections, setOpenOutlineSections] = useState({})
+  const [showOutline, setShowOutline] = useState(false)
+  const [showOutlineModal, setShowOutlineModal] = useState(false)
+  const [showChaptersModal, setShowChaptersModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const demoMode = isGitHubPages() || id === '0'
 
   useEffect(() => { loadNovel() }, [id])
@@ -63,9 +110,8 @@ export default function NovelPage() {
       if (data.latest_record_id) {
         try {
           const rec = await fetchRecord(data.latest_record_id)
-          if (rec && rec.thinking_logs && rec.thinking_logs.length > 0) {
+          if (rec && rec.thinking_logs?.length > 0) {
             setThinkingLogs(rec.thinking_logs)
-            setShowLogs(true)
           }
         } catch {}
       }
@@ -74,202 +120,175 @@ export default function NovelPage() {
   }
 
   async function handleDelete() {
-    if (!window.confirm('确定删除？')) return
-    try { await deleteNovel(id); navigate('/history') }
-    catch (err) { alert('删除失败：' + err.message) }
+    if (!window.confirm('确定删除这部小说？删除后不可恢复。')) return
+    setDeleting(true)
+    try {
+      await deleteNovel(id)
+      toast.success('已删除')
+      navigate('/history')
+    } catch (err) { toast.error('删除失败: ' + err.message) }
+    finally { setDeleting(false) }
   }
 
-  function scrollToChapter(index) {
-    const el = document.getElementById(`ch-${index}`)
-    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+  function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  function handleContentChange(text, chIdx, paraIdx) {
+    toast.info('段落内容更新功能（V2 润色已保存至版本历史）')
   }
 
-  function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-80 gap-4">
+      <div className="w-10 h-10 border-[3px] border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-400 animate-pulse-soft">加载中...</p>
+    </div>
+  )
 
-  function toggleOutlineSection(key) {
-    setOpenOutlineSections(prev => ({ ...prev, [key]: !prev[key] }))
-  }
-
-  function renderOutlineValue(value, depth = 0) {
-    if (value === null || value === undefined) return null
-    if (typeof value === 'string' && value.trim()) {
-      return <p className={cn('text-xs', depth > 1 ? 'text-gray-500 ml-3' : 'text-gray-700')}>{value}</p>
-    }
-    if (typeof value === 'number') {
-      return <p className="text-xs text-gray-500 ml-3">{value.toLocaleString()}</p>
-    }
-    if (Array.isArray(value)) {
-      return (
-        <div className="space-y-1">
-          {value.map((item, i) => {
-            if (typeof item === 'string') {
-              return <p key={i} className="text-xs text-gray-600 ml-3">• {item}</p>
-            }
-            if (typeof item === 'object') {
-              const itemTitle = item.title || item.name || item.beat || `#${i + 1}`
-              return (
-                <div key={i} className="ml-3 p-2 bg-gray-50 rounded-lg">
-                  {itemTitle && <p className="text-xs font-medium text-gray-800 mb-1">{itemTitle}</p>}
-                  {Object.entries(item).filter(([k]) => !['title', 'name', 'beat'].includes(k)).map(([k, v]) => (
-                    <div key={k} className="flex gap-1">
-                      <span className="text-[11px] text-gray-400 w-14 flex-shrink-0">{FIELD_LABELS[k] || k}</span>
-                      <span className="text-[11px] text-gray-600">{String(v)}</span>
-                    </div>
-                  ))}
-                </div>
-              )
-            }
-            return null
-          })}
-        </div>
-      )
-    }
-    if (typeof value === 'object') {
-      return (
-        <div className="space-y-1.5 ml-2">
-          {Object.entries(value).map(([k, v]) => {
-            const label = FIELD_LABELS[k] || k
-            if (typeof v === 'object' && v !== null) {
-              return (
-                <div key={k}>
-                  <p className="text-xs font-medium text-gray-700 mt-1">{label}</p>
-                  {renderOutlineValue(v, depth + 1)}
-                </div>
-              )
-            }
-            if (typeof v === 'string' && v.trim()) {
-              return (
-                <div key={k} className="flex gap-1">
-                  <span className="text-[11px] text-gray-400 w-16 flex-shrink-0">{label}</span>
-                  <span className="text-xs text-gray-600">{v}</span>
-                </div>
-              )
-            }
-            return null
-          })}
-        </div>
-      )
-    }
-    return null
-  }
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
-
-  if (error) return <div className="text-center py-16"><p className="text-red-500">{error}</p><button onClick={() => navigate(-1)} className="mt-4 text-orange-500 hover:underline">返回</button></div>
+  if (error) return (
+    <div className="text-center py-20">
+      <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+        <span className="text-3xl">😅</span>
+      </div>
+      <p className="text-red-500 mb-4 font-medium">{error}</p>
+      <button onClick={() => navigate(-1)} className="text-orange-500 hover:text-orange-700 text-sm underline">返回上一页</button>
+    </div>
+  )
 
   if (!novel) return null
 
   let chapters = novel.chapters
-  if (typeof chapters === 'string') {
-    try { chapters = JSON.parse(chapters) } catch { chapters = [] }
-  }
+  if (typeof chapters === 'string') { try { chapters = JSON.parse(chapters) } catch { chapters = [] } }
   chapters = Array.isArray(chapters) ? chapters : []
   const outline = novel.outline || {}
+  const outlineLayerList = ['strategy', 'characters', 'world', 'plot_structure', 'rhythm', 'style_tone']
+    .filter(k => outline[k])
+    .map(k => ({ type: k, data: outline[k] }))
 
   return (
     <div className="space-y-6">
-      {/* 顶栏 */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors">
-          <ArrowLeft className="w-4 h-4" />返回
-        </button>
-        <div className="flex items-center gap-2 flex-wrap">
-          {!demoMode && (
-            <>
-              <div className="flex items-center gap-1">
-                <a href={`/api/v2/novels/${id}/export?format=markdown`} download
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-50 text-gray-600">
-                  <FileText className="w-3 h-3" />MD
-                </a>
-                <a href={`/api/v2/novels/${id}/export?format=txt`} download
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-50 text-gray-600">
-                  <FileText className="w-3 h-3" />TXT
-                </a>
-                <a href={`/api/v2/novels/${id}/export?format=pdf`} download
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-50 text-gray-600">
-                  <FileText className="w-3 h-3" />PDF
-                </a>
-              </div>
-              <a href={getPackageExportUrl(id)} download
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors font-medium">
-                <Download className="w-3 h-3" />下载ZIP
-              </a>
-              <a href={getChapterExportUrl(id)} download
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-50 text-gray-600">
-                <Download className="w-3 h-3" />章节ZIP
-              </a>
-              <a href={getOutlineExportUrl(id)} download
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-50 text-gray-600">
-                <Brain className="w-3 h-3" />大纲MD
-              </a>
-              <a href={getOutlineXmindUrl(id)} download
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-50 text-gray-600">
-                <Map className="w-3 h-3" />大纲XMind
-              </a>
-            </>
-          )}
+      {/* ─── 顶栏 ─── */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)}
+            className="flex items-center gap-1 px-3 py-2 text-xs text-gray-400 hover:text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+            <ArrowLeft className="w-3.5 h-3.5" /> 返回
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
           {!demoMode && novel.generation_status === 'failed' && novel.latest_record_id && (
             <button onClick={() => navigate(`/?continue=true&record_id=${novel.latest_record_id}`)}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors">
-              <RefreshCw className="w-3 h-3" />继续生成
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-all">
+              <RefreshCw className="w-3 h-3" /> 继续生成
             </button>
           )}
+
+          {Object.keys(outline).length > 0 && (
+            <>
+              <button onClick={() => setShowOutline(!showOutline)}
+                className={cn(
+                  'flex items-center gap-1 px-3 py-1.5 text-xs font-medium border rounded-lg transition-all',
+                  showOutline ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                )}>
+                <Brain className="w-3 h-3" /> 大纲
+              </button>
+              {outlineLayerList.length > 0 && (
+                <button onClick={() => setShowOutlineModal(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-all">
+                  <Map className="w-3 h-3" /> 大纲生成结果
+                </button>
+              )}
+              {chapters.length > 0 && (
+                <button onClick={() => setShowChaptersModal(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all">
+                  <ListChecks className="w-3 h-3" /> 章节细纲
+                </button>
+              )}
+            </>
+          )}
+
           {!demoMode && (
-            <button onClick={handleDelete}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-              <Trash2 className="w-3 h-3" />删除
-            </button>
+            <div className="flex items-center gap-1">
+              {[
+                { key: 'markdown', label: 'MD', icon: FileText },
+                { key: 'txt', label: 'TXT', icon: FileText },
+                { key: 'pdf', label: 'PDF', icon: FileText },
+              ].map(f => (
+                <a key={f.key} href={`/api/v2/novels/${id}/export?format=${f.key}`} download
+                  className="flex items-center gap-1 px-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-all">
+                  <f.icon className="w-3 h-3" />{f.label}
+                </a>
+              ))}
+            </div>
+          )}
+
+          {!demoMode && (
+            <>
+              <a href={getPackageExportUrl(id)} download
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs gradient-brand text-white rounded-lg hover:shadow-sm transition-all">
+                <FileDown className="w-3 h-3" /> ZIP
+              </a>
+              <button onClick={handleDelete} disabled={deleting}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all">
+                {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+              </button>
+            </>
           )}
           {demoMode && <span className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg">Demo 预览</span>}
         </div>
       </div>
 
-      {/* 小说信息 */}
-      <div>
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold text-gray-900">{novel.title || '未命名小说'}</h1>
-          {novel.generation_status === 'failed' && (
-            <span className="px-2 py-0.5 text-xs bg-red-50 text-red-600 border border-red-200 rounded-full flex items-center gap-1">
-              <RefreshCw className="w-3 h-3" /> 生成中断
-            </span>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-500">
-          <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full text-xs">{novel.gender}</span>
-          <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {novel.genre}</span>
-          <span className="flex items-center gap-1"><Type className="w-3.5 h-3.5" /> {novel.style}</span>
-          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {novel.created_at ? new Date(novel.created_at).toLocaleString('zh-CN') : ''}</span>
-          <span className="flex items-center gap-1"><Cpu className="w-3.5 h-3.5" /> {novel.model_used}</span>
-          <span>{novel.actual_count?.toLocaleString()} 字（目标 {novel.word_count} 字）</span>
-          {novel.time_cost && <span>耗时 {novel.time_cost.toFixed(1)}秒</span>}
-          {novel.per_chapter_min && <span>每章 {novel.per_chapter_min}-{novel.per_chapter_max} 字</span>}
+      {/* ─── 小说信息 ─── */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm gradient-card">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center shadow-sm">
+            <BookOpen className="w-7 h-7 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-gray-900">{novel.title || '未命名小说'}</h1>
+              {novel.generation_status === 'failed' && (
+                <span className="px-2.5 py-0.5 text-xs bg-red-50 text-red-600 border border-red-200 rounded-full flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> 生成中断
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-gray-500">
+              {novel.gender && <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full font-medium border border-orange-200/50">{novel.gender}</span>}
+              {novel.genre && <span className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200/50"><BookOpen className="w-3 h-3" /> {novel.genre}</span>}
+              {novel.style && <span className="flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200/50"><Type className="w-3 h-3" /> {novel.style}</span>}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 mt-2.5 text-xs text-gray-400">
+              <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> {novel.model_used || '-'}</span>
+              <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> {novel.actual_count?.toLocaleString() || '?'} / {novel.word_count?.toLocaleString() || '?'} 字</span>
+              {novel.time_cost && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {novel.time_cost.toFixed(1)}s</span>}
+              {novel.created_at && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(novel.created_at).toLocaleString('zh-CN')}</span>}
+              {novel.per_chapter_min && <span>每章 {novel.per_chapter_min}-{novel.per_chapter_max} 字</span>}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 生成日志 */}
+      {/* ─── 生成日志 ─── */}
       {thinkingLogs.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           <button onClick={() => setShowLogs(!showLogs)}
-            className="flex items-center gap-1.5 w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+            className="flex items-center gap-1.5 w-full text-left px-4 py-3.5 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors hover:bg-gray-50/50">
             <RefreshCw className="w-4 h-4 text-orange-500" />
             生成日志
             <span className="text-xs text-gray-400 font-normal">（{thinkingLogs.length} 条）</span>
-            {showLogs ? <ChevronUp className="w-3.5 h-3.5 ml-auto" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto" />}
+            <ChevronUp className={cn('w-3.5 h-3.5 ml-auto transition-transform', !showLogs && 'rotate-180')} />
           </button>
           {showLogs && (
-            <div className="mt-3 max-h-80 overflow-y-auto space-y-0.5 bg-gray-50 rounded-lg p-3">
+            <div className="px-4 pb-3.5 max-h-60 overflow-y-auto bg-gray-50/50 rounded-b-xl">
               {thinkingLogs.map((log, i) => (
-                <div key={i} className="flex items-start gap-2 py-0.5 text-sm leading-relaxed">
-                  <span className="text-[11px] text-gray-400 font-mono flex-shrink-0 mt-0.5 select-none">{log.time}</span>
+                <div key={i} className="flex items-start gap-2 py-0.5 text-xs leading-relaxed">
+                  <span className="text-[10px] text-gray-400 font-mono flex-shrink-0 mt-0.5 select-none">{log.time}</span>
                   <span className={cn(
                     'flex-1',
                     log.type === 'success' && 'text-green-700',
                     log.type === 'error' && 'text-red-600',
                     log.type === 'warn' && 'text-amber-700',
                     log.type === 'chapter' && 'text-orange-700',
-                    (!log.type || log.type === 'info') && 'text-gray-700',
+                    (!log.type || log.type === 'info') && 'text-gray-600',
                   )}>{log.text}</span>
                 </div>
               ))}
@@ -278,53 +297,43 @@ export default function NovelPage() {
         </div>
       )}
 
-      {/* 创作大纲 — 全层次可折叠展示 */}
-      {outline && Object.keys(OUTLINE_LABELS).some(k => outline[k] || outline.elements?.[k]) && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="text-sm font-medium text-gray-800 mb-3 flex items-center gap-1.5">
-            <Brain className="w-4 h-4 text-orange-500" />
-            创作大纲
-          </h3>
-          <div className="space-y-2">
-            {Object.entries(OUTLINE_LABELS).map(([key, meta]) => {
-              const data = outline[key] || outline.elements?.[key]
-              if (!data) return null
-              const isOpen = openOutlineSections[key]
-              return (
-                <div key={key} className={cn('border rounded-xl overflow-hidden transition-all', meta.bg)}>
-                  <button onClick={() => toggleOutlineSection(key)}
-                    className="flex items-center gap-2 w-full text-left px-3 py-2.5 hover:opacity-80 transition-opacity">
-                    <meta.icon className={cn('w-4 h-4', meta.color)} />
-                    <span className={cn('text-sm font-medium', meta.color)}>{meta.label}</span>
-                    {isOpen ? <ChevronUp className="w-3.5 h-3.5 ml-auto text-gray-400" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto text-gray-400" />}
-                  </button>
-                  {isOpen && (
-                    <div className="px-3 pb-3">
-                      {renderOutlineValue(data)}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
+      {/* ─── 创作大纲（树形） ─── */}
+      {showOutline && (
+        (() => {
+          const tree = ensureTree(outline)
+          return tree.length > 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 animate-fade-in-down shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-1.5">
+                <Brain className="w-4 h-4 text-orange-500" />
+                创作大纲
+                <span className="text-xs text-gray-400 font-normal">（{tree.length} 个分支）</span>
+              </h3>
+              <div className="divide-y divide-gray-100">
+                {tree.map((node, i) => (
+                  <OutlineTreeNode key={i} node={node} depth={0} colorIndex={i} />
+                ))}
+              </div>
+            </div>
+          ) : null
+        })()
       )}
 
-      {/* 章节导航 */}
+      {/* ─── 章节导航 ─── */}
       {chapters.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-1.5 mb-2 text-sm font-medium text-gray-700">
-            <List className="w-4 h-4 text-orange-500" />
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <div className="flex items-center gap-1.5 mb-3 text-sm font-medium text-gray-700">
+            <Eye className="w-4 h-4 text-orange-500" />
             章节导航
             <span className="text-xs text-gray-400 font-normal">（{chapters.length} 章）</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {chapters.map((ch, i) => (
-              <button key={i} onClick={() => scrollToChapter(i)}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-gray-50 hover:bg-orange-50 hover:text-orange-700 border border-gray-200 hover:border-orange-300 rounded-lg transition-all">
-                <span className="w-4 h-4 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-[10px] font-bold">
-                  {i + 1}
-                </span>
+              <button key={i} onClick={() => {
+                const el = document.getElementById(`ch-${i}`)
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-gray-50 hover:bg-orange-50 hover:text-orange-700 border border-gray-200 hover:border-orange-300 rounded-lg transition-all">
+                <span className="w-4 h-4 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-[9px] font-bold">{i + 1}</span>
                 <span className="truncate max-w-[120px]">{ch.title || `第${i+1}章`}</span>
               </button>
             ))}
@@ -332,59 +341,37 @@ export default function NovelPage() {
         </div>
       )}
 
-      {/* 小说内容 */}
-      <ChapterContent content={novel.content} chapters={chapters} />
+      {/* ─── 小说正文（集成 V2 润色） ─── */}
+      <NovelReader
+        novelId={id}
+        initialContent={novel.content}
+        initialChapters={chapters}
+        onContentChange={handleContentChange}
+      />
 
-      {/* 回到顶部按钮 */}
+      {/* ─── 大纲生成结果弹窗 ─── */}
+      {showOutlineModal && (
+        <OutlineModal outlineThinking={outlineLayerList} onClose={() => setShowOutlineModal(false)} />
+      )}
+
+      {/* ─── 章节细纲弹窗 ─── */}
+      {showChaptersModal && (
+        <ChaptersModal
+          chapters={chapters}
+          chapterTexts={[]}
+          onClose={() => setShowChaptersModal(false)}
+          onViewChapter={(i) => setShowChaptersModal(false)}
+        />
+      )}
+
+      {/* ─── 回到顶部 ─── */}
       {showScrollTop && (
         <button onClick={scrollToTop}
-          className="fixed bottom-8 z-50 w-11 h-11 rounded-full bg-gradient-to-br from-orange-400 to-rose-400 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+          className="fixed bottom-8 z-50 w-11 h-11 rounded-full gradient-brand text-white shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center animate-fade-in"
           style={{ right: 'max(1rem, calc((100vw - 1024px) / 2 + 1rem))' }}>
           <ArrowUp className="w-5 h-5" />
         </button>
       )}
     </div>
   )
-}
-
-/* 章节内容渲染 */
-function ChapterContent({ content, chapters }) {
-  if (!content) return null
-
-  const blocks = content.split(/(?=## )/).filter(Boolean)
-  if (blocks.length <= 1) {
-    return <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 novel-content" dangerouslySetInnerHTML={{ __html: renderMD(content) }} />
-  }
-
-  return (
-    <div className="space-y-4">
-      {blocks.map((block, i) => {
-        const titleMatch = block.match(/^## (.+)/)
-        const title = titleMatch ? titleMatch[1].trim() : (chapters[i]?.title || `第${i+1}章`)
-        const body = block.replace(/^## .+\n+/, '')
-        return (
-          <section key={i} id={`ch-${i}`} className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 scroll-mt-24">
-            <div className="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100">
-              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-rose-400 text-white flex items-center justify-center text-sm font-bold shadow-sm">{i + 1}</span>
-              <h2 className="text-xl font-bold text-gray-900 m-0">{title}</h2>
-            </div>
-            <div className="novel-content" dangerouslySetInnerHTML={{ __html: renderMD(body) }} />
-          </section>
-        )
-      })}
-    </div>
-  )
-}
-
-function renderMD(text) {
-  if (!text) return ''
-  let html = text
-    .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold my-3 text-gray-800">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold my-4 text-gray-900 text-left">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold my-5 text-gray-900 text-left">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '</p><p class="text-base leading-relaxed mb-4 text-gray-800">')
-    .replace(/\n/g, '<br/>')
-  return '<p class="text-base leading-relaxed mb-4 text-gray-800">' + html + '</p>'
 }

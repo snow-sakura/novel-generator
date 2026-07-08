@@ -22,7 +22,7 @@ export default function ParagraphActions({ onRefine, onViewHistory, disabled }) 
   }
 
   return (
-    <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex items-center gap-1">
       {Object.entries(ACTION_CONFIG).map(([action, config]) => {
         const Icon = config.icon
         const isLoading = loading === action
@@ -31,16 +31,17 @@ export default function ParagraphActions({ onRefine, onViewHistory, disabled }) 
             key={action}
             type="button"
             onClick={() => handleClick(action)}
-            disabled={disabled || loading}
+            disabled={disabled || loading !== null}
             className={cn(
               'flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all',
               config.color,
-              isLoading && 'opacity-50 cursor-wait'
+              isLoading && 'opacity-50 cursor-wait',
+              disabled && 'opacity-40 cursor-not-allowed'
             )}
             title={config.label}
           >
             <Icon className={cn('w-3.5 h-3.5', isLoading && 'animate-spin')} />
-            {config.label}
+            {isLoading ? '处理中...' : config.label}
           </button>
         )
       })}
@@ -52,6 +53,7 @@ export default function ParagraphActions({ onRefine, onViewHistory, disabled }) 
         title="版本历史"
       >
         <History className="w-3.5 h-3.5" />
+        历史
       </button>
     </div>
   )

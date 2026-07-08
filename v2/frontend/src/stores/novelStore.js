@@ -63,6 +63,7 @@ export const useNovelStore = create((set) => ({
   eventLog: [],
   thinkingLogs: [],
   outlineThinking: [],
+  outlineTree: null,
   errorMessage: '',
 
   configChecked: false,
@@ -133,6 +134,7 @@ export const useNovelStore = create((set) => ({
     set((state) => ({ thinkingLogs: [...state.thinkingLogs, log] })),
   addOutlineThinking: (item) =>
     set((state) => ({ outlineThinking: [...state.outlineThinking, item] })),
+  setOutlineTree: (tree) => set({ outlineTree: tree }),
 
   setCurrentRecordId: (id) => set({ currentRecordId: id }),
   setContinueRecordId: (id) => set({ continueRecordId: id }),

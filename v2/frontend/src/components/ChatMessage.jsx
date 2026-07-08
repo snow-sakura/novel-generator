@@ -20,19 +20,19 @@ export default function ChatMessage({ message, isLast }) {
 
   return (
     <div className={cn(
-      'flex gap-3 px-4 py-3',
+      'flex gap-3 px-4 py-3 animate-fade-in-up group',
       isUser ? 'justify-end' : 'justify-start',
     )}>
       {!isUser && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shadow-sm">
+        <div className="flex-shrink-0 w-8 h-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm">
           <Sparkles className="w-4 h-4 text-white" />
         </div>
       )}
 
       <div className={cn(
-        'max-w-[80%] rounded-2xl px-4 py-3',
+        'max-w-[80%] rounded-2xl px-4 py-3 shadow-sm',
         isUser
-          ? 'bg-orange-500 text-white rounded-tr-md'
+          ? 'bg-gradient-to-br from-orange-500 to-rose-500 text-white rounded-tr-md'
           : 'bg-gray-100 text-gray-800 rounded-tl-md',
       )}>
         {isUser ? (
@@ -45,7 +45,7 @@ export default function ChatMessage({ message, isLast }) {
         )}
         {isStreaming && (
           <span className="inline-flex ml-1">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span className="inline-block w-1.5 h-4 bg-current rounded-sm animate-pulse" />
           </span>
         )}
       </div>

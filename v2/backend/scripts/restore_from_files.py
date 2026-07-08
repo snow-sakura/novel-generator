@@ -16,7 +16,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-NOVEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "doc", "novel")
+    NOVEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "..", "docs", "novel")
 INDEX_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "novels_index.json")
 
 
@@ -128,7 +128,7 @@ def scan_novels(interactive=True):
     """扫描 doc/novel/，返回可恢复的小说数据列表"""
     novels = []
     if not os.path.isdir(NOVEL_DIR):
-        print(f"  doc/novel/ 目录不存在: {NOVEL_DIR}")
+        print(f"  docs/novel/ 目录不存在: {NOVEL_DIR}")
         return novels
 
     entries = sorted(os.listdir(NOVEL_DIR))

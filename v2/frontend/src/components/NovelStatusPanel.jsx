@@ -1,19 +1,46 @@
-import { Layers, Users, Globe, Layout, Zap, PenTool, BookOpen, Loader2, FileText } from 'lucide-react'
+import { Layers, Users, Globe, Layout, Zap, PenTool, BookOpen, Loader2, FileText, Sparkles, ChevronRight } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { STEP_CONFIG } from '../stores/novelStore'
 
-const OUTLINE_ICONS = {
-  strategy: Layers, characters: Users, world: Globe,
-  plot_structure: Layout, rhythm: Zap, style_tone: PenTool,
+const BRANCH_ICONS = {
+  '1. 战略层': Layers, '2. 人物层': Users, '3. 设定层': Globe,
+  '4. 结构层': Layout, '5. 节奏层': Zap, '6. 风格层': PenTool,
+  '7. 章节细纲': BookOpen,
+}
+
+function getIconForTitle(title) {
+  for (const [prefix, Icon] of Object.entries(BRANCH_ICONS)) {
+    if (title.startsWith(prefix)) return Icon
+  }
+  return ChevronRight
+}
+
+function collectBranches(tree, depth = 0, maxDepth = 1) {
+  const items = []
+  for (const node of tree || []) {
+    items.push({ title: node.title, node, depth })
+    if (depth < maxDepth && node.children) {
+      items.push(...collectBranches(node.children, depth + 1, maxDepth))
+    }
+  }
+  return items
+}
+
+function ensureTree(outline) {
+  if (!outline) return []
+  if (outline._tree && Array.isArray(outline._tree)) return outline._tree
+  return []
 }
 
 export default function NovelStatusPanel({ novelData }) {
   if (!novelData) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 h-full flex flex-col items-center justify-center text-gray-400">
-        <BookOpen className="w-10 h-10 mb-3 text-gray-300" />
-        <p className="text-sm">输入故事灵感，开始生成</p>
-        <p className="text-xs text-gray-300 mt-1">右侧将实时展示生成进度</p>
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center mb-3">
+          <BookOpen className="w-6 h-6 text-gray-300" />
+        </div>
+        <p className="text-sm font-medium text-gray-500">等待输入</p>
+        <p className="text-xs text-gray-300 mt-1 text-center">输入故事灵感后，<br/>右侧将展示生成进度</p>
       </div>
     )
   }
@@ -24,25 +51,29 @@ export default function NovelStatusPanel({ novelData }) {
   const totalChapters = (chapters || []).length
   const writing = step === 'writing'
 
+  const tree = ensureTree(outline)
+  const branches = collectBranches(tree)
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
-      {/* 基本信息 */}
+    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4 shadow-sm">
       <div>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">故事信息</h3>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-orange-400" />
+          故事信息
+        </h3>
         <div className="space-y-1.5">
           <p className="text-xs text-gray-700 truncate">
             <span className="text-gray-400">种子：</span>
             {seedText || '-'}
           </p>
           <div className="flex flex-wrap gap-1">
-            {gender && <span className="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-[10px] font-medium">{gender}</span>}
-            {genre && <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-medium">{genre}</span>}
-            {style && <span className="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-[10px] font-medium">{style}</span>}
+            {gender && <span className="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-[10px] font-medium border border-orange-200/50">{gender}</span>}
+            {genre && <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-medium border border-blue-200/50">{genre}</span>}
+            {style && <span className="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-[10px] font-medium border border-purple-200/50">{style}</span>}
           </div>
         </div>
       </div>
 
-      {/* 当前步骤 */}
       <div>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">当前步骤</h3>
         <div className="space-y-1">
@@ -53,7 +84,7 @@ export default function NovelStatusPanel({ novelData }) {
               <div key={s.key} className="flex items-center gap-2">
                 <span className={cn(
                   'flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold',
-                  isPast && 'bg-green-500 text-white',
+                  isPast && 'bg-emerald-500 text-white',
                   isActive && 'bg-orange-500 text-white ring-2 ring-orange-200',
                   !isPast && !isActive && 'bg-gray-200 text-gray-400',
                 )}>
@@ -62,7 +93,7 @@ export default function NovelStatusPanel({ novelData }) {
                 <span className={cn(
                   'text-[11px]',
                   isActive && 'text-orange-700 font-medium',
-                  isPast && 'text-green-700',
+                  isPast && 'text-emerald-700',
                   !isPast && !isActive && 'text-gray-400',
                 )}>
                   {s.label}
@@ -78,7 +109,6 @@ export default function NovelStatusPanel({ novelData }) {
         </div>
       </div>
 
-      {/* 章节进度 */}
       {totalChapters > 0 && (
         <div>
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -92,7 +122,7 @@ export default function NovelStatusPanel({ novelData }) {
               return (
                 <span key={i} className={cn(
                   'w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold',
-                  done && 'bg-green-500 text-white',
+                  done && 'bg-emerald-500 text-white',
                   isActive && 'bg-orange-500 text-white animate-pulse',
                   !done && !isActive && 'bg-gray-100 text-gray-400',
                 )}>
@@ -104,29 +134,33 @@ export default function NovelStatusPanel({ novelData }) {
         </div>
       )}
 
-      {/* 字数统计 */}
       <div>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">字数统计</h3>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <FileText className="w-3 h-3 text-gray-400" />
+          字数统计
+        </h3>
         <div className="flex items-center gap-2">
-          <FileText className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-sm font-medium text-gray-800">
+          <span className="text-sm font-semibold text-gray-800">
             {(totalWords || 0).toLocaleString()} 字
           </span>
         </div>
       </div>
 
-      {/* 大纲缩略 */}
-      {outline && Object.keys(outline).length > 0 && (
+      {branches.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">大纲结构</h3>
-          <div className="space-y-1">
-            {Object.entries(OUTLINE_ICONS).map(([key, Icon]) => {
-              if (!outline[key]) return null
+          <div className="space-y-0.5">
+            {branches.map((b, i) => {
+              const Icon = getIconForTitle(b.title)
               return (
-                <div key={key} className="flex items-center gap-1.5 text-[10px] text-gray-600">
-                  <Icon className="w-3 h-3 text-gray-400" />
-                  <span>{key === 'strategy' ? '战略' : key === 'characters' ? '人物' : key === 'world' ? '设定' : key === 'plot_structure' ? '结构' : key === 'rhythm' ? '节奏' : '风格'}</span>
-                  <span className="text-green-500 ml-auto">✓</span>
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 text-[10px] text-gray-600"
+                  style={{ paddingLeft: `${b.depth * 12}px` }}
+                >
+                  <Icon className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                  <span className="truncate">{b.title}</span>
+                  <span className="text-emerald-500 ml-auto flex-shrink-0">✓</span>
                 </div>
               )
             })}

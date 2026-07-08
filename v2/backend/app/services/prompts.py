@@ -154,19 +154,25 @@ SYSTEM_PROMPT_TITLE_V1 = """根据小说全文内容，为这篇{gender}频道{g
 
 # ── V3 优化版（实际生成使用） ──
 
-SYSTEM_PROMPT_PARSE = """根据用户的一句话种子句，提取以下 JSON 格式的故事要素，每个字段中文填写，不少于20字：
+SYSTEM_PROMPT_PARSE = """你必须严格基于用户指定的题材框架来理解种子句，不得偏离到其他题材。
+
+根据用户的一句话种子句，提取以下 JSON 格式的故事要素，每个字段中文填写，不少于20字：
 {
-  "protagonist": "主角身份背景与核心欲望",
-  "time_era": "故事时代背景",
-  "locations": "主要场景",
-  "conflict_type": "核心冲突类型",
+  "protagonist": "主角身份背景与核心欲望（必须符合本题材设定）",
+  "time_era": "故事时代背景（与本题材一致）",
+  "locations": "主要场景（本题材的典型场景）",
+  "conflict_type": "核心冲突类型（符合本题材特征）",
   "inciting_incident": "激励事件",
-  "development": "发展路径",
+  "development": "发展路径（不超出本题材范畴）",
   "resolution_tendency": "结局倾向（悲剧/正剧/喜剧）",
   "world_tone": "世界观基调"
-}"""
+}
 
-SYSTEM_PROMPT_OUTLINE_P1 = """为一部{gender}频道{genre}题材、{style}风格的小说，根据以下故事要素，生成前三层大纲（策略/人物/世界观），输出严格 JSON。
+⚠️ 你提取的所有要素必须严格限定在用户指定的题材和风格内。如果种子句涉及其他题材元素，请将其转换为本题材的等价设定。"""
+
+SYSTEM_PROMPT_OUTLINE_P1 = """【⚠️ 强制约束】本题材为"{genre}"，风格为"{style}"。所有大纲内容必须严格限定在"{genre}"题材的世界观和规则体系内，不得引入其他题材的设定（如都市题材不得出现修仙/法术/异能；仙侠题材不得出现现代科技/枪械）。以下故事要素已按本题材提取，请基于此生成。
+
+为一部{gender}频道{genre}题材、{style}风格的小说，根据以下故事要素，生成前三层大纲（策略/人物/世界观），输出严格 JSON。
 
 【故事要素】
 {story_elements}
@@ -193,7 +199,9 @@ SYSTEM_PROMPT_OUTLINE_P1 = """为一部{gender}频道{genre}题材、{style}风�
 
 只输出 JSON，无额外文字。"""
 
-SYSTEM_PROMPT_OUTLINE_P2 = """以下是一部{gender}频道{genre}题材、{style}风格小说的前三层大纲：
+SYSTEM_PROMPT_OUTLINE_P2 = """【⚠️ 强制约束】本题材为"{genre}"，风格为"{style}"。以下大纲的所有内容（情节结构/节奏/风格/章节细纲）必须严格限定在"{genre}"题材的框架内，不得混入其他题材元素。
+
+以下是一部{gender}频道{genre}题材、{style}风格小说的前三层大纲：
 
 {context_p1}
 
@@ -235,15 +243,18 @@ SYSTEM_PROMPT_OUTLINE_P2 = """以下是一部{gender}频道{genre}题材、{styl
 
 # ── V4 五层独立大纲 prompt（每层 <500 chars，首块快速返回） ──
 
-SYSTEM_PROMPT_L1_STRATEGY = """为一部{gender}频道{genre}题材、{style}风格的小说，根据以下要素生成战略层大纲，输出 JSON：
+SYSTEM_PROMPT_L1_STRATEGY = """【⚠️ 强制约束】本题材为"{genre}"，风格为"{style}"。所有战略层内容必须严格限定在"{genre}"题材范围内。
+
+为一部{gender}频道{genre}题材、{style}风格的小说，根据以下要素生成战略层大纲，输出 JSON：
 
 【故事要素】
 {story_elements}
 
 {  "strategy": {
-    "core_idea": { "high_concept": "高概念", "unique_selling_point": "卖点" },
-    "theme": { "core_question": "核心命题", "values": "价值观" },
-    "ending": { "type": "悲剧/正剧/喜剧", "final_scene": "最终画面" }
+    "core_idea": { "high_concept": "一句话高概念设定", "unique_selling_point": "非看不可的独特卖点" },
+    "tone": "故事基调（如：热血爽文、黑暗沉重、轻松甜宠、沙雕搞笑）",
+    "theme": { "core_question": "探讨的核心命题", "values": "传达的价值观" },
+    "ending": { "type": "悲剧/正剧/喜剧", "final_scene": "最后一个镜头/台词/画面" }
   }
 }
 
@@ -251,13 +262,15 @@ SYSTEM_PROMPT_L1_STRATEGY = """为一部{gender}频道{genre}题材、{style}风
 
 SYSTEM_PROMPT_L2_CHARACTERS = """续接战略层：{previous_layers}
 
+【⚠️ 强制约束】本题材为"{genre}"，风格为"{style}"。所有角色设定必须符合"{genre}"题材的特征（如都市题材的角色不应有修仙能力，仙侠题材的角色不应使用现代科技）。
+
 为这部{gender}频道{genre}题材、{style}风格的小说生成人物层大纲，输出 JSON：
 
 {  "characters": {
-    "protagonist": { "name": "姓名", "age": "年龄", "identity": "身份", "desire": "欲望", "flaw": "缺陷", "traits": "特质", "arc": "成长" },
-    "supporting": [ { "name": "姓名", "type": "角色类型", "role": "作用", "relationship": "关系" } ],
-    "antagonist": { "name": "姓名", "motive": "动机", "threat": "压迫感", "value_opposition": "对立" },
-    "relationships": "关系网"
+    "protagonist": { "name": "姓名", "age": "年龄", "identity": "身份背景", "initial_state": "初始状态（出场时的身份、性格、能力水平）", "desire": "核心欲望——他最想要什么", "flaw": "核心缺陷——性格上的致命弱点", "traits": "性格特质（3-5个关键词）", "arc": "成长弧线——从开始到结局的转变" },
+    "supporting": [ { "name": "姓名", "type": "导师/盟友/恋人/对手", "role": "在故事中的作用", "relationship": "与主角的关系", "love_interest": "是否为情感线对象（是/否）" } ],
+    "antagonist": { "name": "姓名", "motive": "反派动机——他为什么与主角对立", "threat": "压迫感与威胁等级", "value_opposition": "价值观/信念上的核心对立", "conflict_point": "与主角的具体冲突点（利益冲突还是理念冲突？对立事件是什么）" },
+    "relationships": "核心人物关系网简要描述"
   }
 }
 
@@ -265,12 +278,21 @@ SYSTEM_PROMPT_L2_CHARACTERS = """续接战略层：{previous_layers}
 
 SYSTEM_PROMPT_L3_WORLD = """续接前两层：{previous_layers}
 
+【⚠️ 强制约束】本题材为"{genre}"，风格为"{style}"。世界观设定（时代/场景/规则/力量体系/社会结构）必须严格符合"{genre}"题材的特征，不得混入其他题材的元素。
+
 为这部{gender}频道{genre}题材、{style}风格的小说生成世界观层大纲，输出 JSON：
 
 {  "world": {
-    "time_space": { "era": "时代", "locations": "场景" },
-    "rules": { "world_rules": "规则", "power_system": "力量体系", "social_structure": "社会结构" },
-    "factions": [ { "name": "势力", "description": "描述", "alignment": "敌对/同盟/中立" } ]
+    "time_space": { "era": "时代/朝代背景", "locations": "主要地理场景", "core_conflict_source": "核心冲突根源（如：种族矛盾、资源匮乏、阶级固化、科技反噬）" },
+    "rules": { "world_rules": "世界运行的底层逻辑和规则", "power_system": "力量体系/技能/能力树", "social_structure": "社会阶层、权力结构、经济体系" },
+    "factions": [ { "name": "势力名称", "description": "势力描述", "alignment": "敌对/同盟/中立" } ],
+    "devices": {
+      "power_rules": "力量体系/金手指的具体规则、限制和代价（如果是奇幻/科幻题材，升级的逻辑是什么）",
+      "key_items": "核心道具/关键线索（如：一枚玉佩、一张藏宝图、一个失落的记忆片段——对主线推进有决定性作用）"
+    },
+    "foreshadowing": [
+      { "item": "伏笔内容描述", "planned_reveal": "计划揭晓的章节范围或时机" }
+    ]
   }
 }
 
@@ -278,36 +300,45 @@ SYSTEM_PROMPT_L3_WORLD = """续接前两层：{previous_layers}
 
 SYSTEM_PROMPT_L4_STRUCTURE = """续接前三层：{previous_layers}
 
+【⚠️ 强制约束】本题材为"{genre}"，风格为"{style}"。情节结构、节奏和风格层必须严格基于"{genre}"题材的特点来设计（如悬疑题材需要埋设伏笔，言情题材注重感情线推进）。
+
 为这部{gender}频道{genre}题材、{style}风格的小说生成情节结构/节奏/风格层大纲，输出 JSON：
 
 {  "plot_structure": {
-    "three_acts": { "act1": "第一幕", "act2": "第二幕", "act3": "第三幕" },
-    "beat_sheet": [ { "beat": "节拍", "chapter_range": "范围", "description": "描述" } ],
-    "golden_three": [ { "chapter": 1, "title": "标题", "hook": "钩子", "function": "定位" } ]
+    "three_acts": {
+      "act1": "第一幕·建置（约占25%）——日常状态→激励事件→初步反应。建立世界，主角在平凡生活中的挣扎，天降系统/突逢巨变/遇到贵人打破平静，主角被迫踏入未知",
+      "act2": "第二幕·对抗（约占50%）——踏上征途→中期转折→绝地反击。主角离开舒适区结识伙伴，看似接近目标实则落入陷阱（伪胜利/伪失败），在谷底找到真正的力量",
+      "act3": "第三幕·结局（约占25%）——最终危机→高潮战斗→结局收尾。反派势力全面压境，核心矛盾爆发，主角运用成长后的能力解决问题，新世界达成平衡状态"
+    },
+    "beat_sheet": [ { "beat": "节拍名称（如：激励事件/中点转折/至暗时刻）", "chapter_range": "所处章节范围", "description": "具体发生了什么" } ],
+    "golden_three": [ { "chapter": 1, "title": "第1章标题", "hook": "开篇钩子（必须在3秒内抓住读者）", "function": "本章在全书的定位" } ]
   },
   "rhythm": {
-    "satisfaction_points": ["爽点1", "爽点2", "爽点3"],
-    "emotional_peaks": ["情感高潮"],
-    "pace_curve": "节奏描述"
+    "satisfaction_points": ["爽点1：具体场景描述", "爽点2：具体场景描述", "爽点3：具体场景描述"],
+    "emotional_peaks": ["泪点/痛点/情感高潮的安排"],
+    "pace_curve": "整体节奏描述——哪些章节紧张激烈、推进快，哪些章节舒缓铺垫、蓄势待发"
   },
   "style_tone": {
-    "perspective": "视角",
-    "language": "语言风格",
-    "atmosphere": "氛围"
+    "perspective": "叙事视角（第一人称/第三人称有限/上帝视角）",
+    "language": "语言风格特征（如：幽默吐槽风/古风典雅/冷峻写实/热血激昂），对话风格，描写密度",
+    "atmosphere": "整体情绪色彩和氛围基调"
   }
 }
 
 只输出 JSON，无额外文字。"""
 
-SYSTEM_PROMPT_L5_CHAPTERS = """续接前四层大纲：{previous_layers}
+SYSTEM_PROMPT_L5_CHAPTERS = """【⚠️ 强制约束】本题材为"{genre}"，风格为"{style}"。以下每一条都必须严格遵守。
+
+续接前四层大纲：{previous_layers}
 
 根据以上完整设定，为这部{gender}频道{genre}题材、{style}风格的小说生成全部章节细纲，输出 JSON。
 
-【⚠️ 类型一致性要求】
+【⚠️ 类型一致性要求 — 必须遵守】
 - 所有章节必须严格符合"{genre}"题材的世界观和规则
 - 人物只能来自前面几层大纲中定义的角色
 - 不得引入其他题材的设定（如都市题材不得出现修仙/法术/异能；仙侠题材不得出现现代科技/枪械）
 - 场景描写必须与"{genre}"题材的时代背景一致
+- 如果前文任何地方出现了与"{genre}"题材不符的内容，忽略它们，回归本题材的正确设定
 
 chapters 数组约 {chapter_count} 章，每章 {per_chapter_min}-{per_chapter_max} 字。
 
@@ -315,24 +346,25 @@ chapters 数组约 {chapter_count} 章，每章 {per_chapter_min}-{per_chapter_m
 
 {  "chapters": [
     {
-      "title": "标题", "summary": "概要",
-      "hook": "钩子", "cliffhanger": "悬念",
-      "function": "起/承/转/合", "word_count_estimate": 2000,
-      "scenes": ["场景1描述", "场景2描述", "场景3描述"]
+      "title": "章节标题", "summary": "本章概要（100-200字，说清发生了什么）",
+      "hook": "开篇钩子（一句话吸引读者看完本章）", "cliffhanger": "结尾悬念（让读者忍不住点下一章）",
+      "function": "起/承/转/合——本章在三幕式中的定位", "word_count_estimate": 2500,
+      "scenes": ["场景1具体描述", "场景2具体描述", "场景3具体描述"]
     }
   ]
 }
 
 只输出 JSON，无额外文字。"""
 
-SYSTEM_PROMPT_CHAPTER = """你正在创作一篇{gender}频道{genre}题材、{style}风格的小说。
-
-【⚠️ 类型隔离规则 — 必须严格遵守】
-本小说是"{genre}"题材，你必须严格遵守以下设定：
+SYSTEM_PROMPT_CHAPTER = """【🔴 硬性约束 — 置于最前】本题材为"{genre}"，风格为"{style}"。你必须严格遵守：
 - 人物：只能使用大纲中已定义的角色，不得引入大纲外的角色名
 - 世界观：只能使用"{genre}"题材的世界观和规则体系
-- 禁止混入其他题材的元素（如：都市小说不得出现修仙/仙侠/异能/法术；仙侠小说不得出现现代科技/枪械/手机；言情小说不得出现战斗升级/修炼体系）
-- 如果前文出现了不属于本题材的元素，忽略它们，回归本题材的正确设定
+- 禁止出现任何其他题材的元素（都市题材不得出现修仙/仙侠/异能/法术；仙侠题材不得出现现代科技/枪械/手机；言情题材不得出现战斗升级/修炼体系）
+- 场景、对话、冲突必须全部围绕"{genre}"题材展开
+- 如果前文出现了不属于本题材的元素，忽略它们，强制回归本题材的正确设定
+- 风格必须保持"{style}"风格的一致性
+
+你正在创作一篇{gender}频道{genre}题材、{style}风格的小说。
 
 【叙事视角】{pov}
 - 第一人称：全程使用「我」叙述，代入感强，只能写「我」看到和感受到的
@@ -368,6 +400,6 @@ SYSTEM_PROMPT_CHAPTER = """你正在创作一篇{gender}频道{genre}题材、{s
 - 输出 Markdown 格式（无需标题，直接从正文开始写）
 - 场景之间用 *** 分隔"""
 
-SYSTEM_PROMPT_TITLE = """为这篇{gender}频道{genre}题材的小说起一个5-15字的网文风格标题，直接输出标题，不要多余内容。"""
+SYSTEM_PROMPT_TITLE = """【强制约束】本题材为{genre}。标题必须严格贴合{genre}题材的风格和用户种子句内容。
 
-SYSTEM_PROMPT_TITLE = """为这篇{gender}频道{genre}题材的小说起一个5-15字的网文风格标题，直接输出标题，不要多余内容。"""
+为这篇{gender}频道{genre}题材的小说起一个5-15字的网文风格标题，直接输出标题，不要多余内容。"""

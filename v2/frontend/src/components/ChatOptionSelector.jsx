@@ -70,13 +70,15 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-orange-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-orange-200 shadow-sm overflow-hidden animate-fade-in-up">
       <div className="bg-gradient-to-r from-orange-50 to-rose-50 px-4 py-3 border-b border-orange-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-orange-500" />
+          <div className="w-6 h-6 rounded-lg gradient-brand flex items-center justify-center">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+          </div>
           <span className="text-sm font-semibold text-gray-800">选择创作参数</span>
         </div>
-        <button onClick={onCancel} className="p-1 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-lg transition-all">
+        <button onClick={onCancel} className="btn-ghost p-1">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -87,7 +89,7 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
             <button key={g} type="button" onClick={() => handleGenderChange(g)}
               className={cn('flex-1 py-2 rounded-xl text-sm font-medium border transition-all',
                 gender === g
-                  ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white border-transparent shadow-sm'
+                  ? 'gradient-brand text-white border-transparent shadow-sm'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300')}>
               {g === '男频' ? '♂ ' : '♀ '}{g}
             </button>
@@ -105,7 +107,7 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
             <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
               {displayGenres.map(g => (
                 <button key={g} type="button" onClick={() => setGenre(g)}
-                  className={cn('px-2 py-1.5 rounded-lg text-xs border transition-all text-center',
+                  className={cn('chip',
                     genre === g
                       ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300')}>
@@ -130,7 +132,7 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
                   const selected = selectedStyles.includes(s)
                   return (
                     <button key={s} type="button" onClick={() => toggleStyle(s)}
-                      className={cn('px-2 py-1.5 rounded-lg text-xs border transition-all text-center',
+                      className={cn('chip',
                         selected
                           ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
                           : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300')}>
@@ -141,7 +143,7 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
                 {selectedStyles.map(s => (
-                  <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs">
+                  <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs border border-orange-200">
                     {s}
                     <button type="button" onClick={() => toggleStyle(s)} className="hover:text-orange-900"><X className="w-3 h-3" /></button>
                   </span>
@@ -158,7 +160,7 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
               <input type="range" min={1} max={50} value={chapterCount}
                 onChange={e => setChapterCount(Number(e.target.value))}
                 className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500" />
-              <span className="text-sm font-medium text-orange-600 w-8 text-right">{chapterCount}</span>
+              <span className="text-sm font-bold text-orange-600 w-8 text-right">{chapterCount}</span>
             </div>
           </div>
           <div>
@@ -182,7 +184,7 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
 
       <div className="border-t border-gray-100 p-3">
         <button onClick={handleConfirm}
-          className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-rose-600 transition-all shadow-sm flex items-center justify-center gap-2 text-sm">
+          className="w-full py-2.5 gradient-brand text-white rounded-xl font-medium hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-2 text-sm">
           <Sparkles className="w-4 h-4" />
           开始生成
         </button>

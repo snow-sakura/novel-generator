@@ -91,39 +91,35 @@ async def export_chapters_zip(novel_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/novels/{novel_id}/export/outline")
-async def export_outline(novel_id: int, format: str = "markdown", db: Session = Depends(get_db)):
-    """导出创作大纲（支持 markdown / xmind 格式）"""
-    novel = db.query(Novel).filter(Novel.id == novel_id).first()
-    if not novel:
-        raise HTTPException(status_code=404, detail="小说不存在")
+def _render_tree_markdown(tree, title, novel):
+    """将 TreeNode 数组渲染为 Markdown 大纲"""
+    lines = [f"# 《{title}》完整创作大纲\n", f"> {novel.gender} · {novel.genre} · {novel.style}\n\n", "---\n"]
 
-    title = novel.title or "未命名小说"
-    outline_raw = novel.outline or "{}"
-    try:
-        outline = json.loads(outline_raw)
-    except json.JSONDecodeError:
-        outline = {}
+    def walk(nodes, depth=2):
+        buf = []
+        for node in nodes:
+            node_title = node.get("title", "")
+            children = node.get("children")
+            prefix = "#" * depth
+            buf.append(f"\n{prefix} {node_title}\n\n")
+            if children:
+                for child in children:
+                    child_title = child.get("title", "")
+                    child_children = child.get("children")
+                    child_prefix = "#" * (depth + 1)
+                    if child_children:
+                        buf.append(f"\n{child_prefix} {child_title}\n\n")
+                        buf.extend(walk(child_children, depth + 2))
+                    else:
+                        buf.append(f"- {child_title}\n")
+        return buf
 
-    elements = outline.get("elements", {})
-    chapters = outline.get("chapters", [])
-    if not chapters and novel.chapters:
-        # 如果 outline 中没有章节列表，回退到 novel.chapters 字段
-        try:
-            chapters = json.loads(novel.chapters)
-        except json.JSONDecodeError:
-            pass
+    lines.extend(walk(tree, 2))
+    return lines
 
-    if format == "xmind":
-        xmind_bytes = generate_xmind(title, outline)
-        safe_title = re.sub(r'[\\/:*?"<>|]', "", title).strip() or "未命名小说"
-        return StreamingResponse(
-            iter([xmind_bytes]),
-            media_type="application/x-xmind",
-            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(f'{safe_title}_大纲.xmind')}"},
-        )
 
-    # 默认 markdown — 完整大纲
+def _render_flat_markdown(outline, elements, chapters, title, novel):
+    """将旧 flat dict 渲染为 Markdown 大纲（向后兼容）"""
     lines = [f"# 《{title}》完整创作大纲\n", f"> {novel.gender} · {novel.genre} · {novel.style}\n\n", "---\n"]
 
     outline_labels = {
@@ -185,14 +181,12 @@ async def export_outline(novel_id: int, format: str = "markdown", db: Session = 
                 buf.append(f"- **{label_text}**: {v}\n")
         return buf
 
-    elements = outline.get("elements", {})
     for section in ("strategy", "characters", "world", "plot_structure", "rhythm", "style_tone"):
         if section in elements:
             lines.extend(render_dict({section: elements[section]}))
         elif section in outline:
             lines.extend(render_dict({section: outline[section]}))
 
-    # 章节细纲单独处理
     if chapters:
         lines.append("\n## 7. 章节细纲\n\n")
         for i, ch in enumerate(chapters):
@@ -203,6 +197,58 @@ async def export_outline(novel_id: int, format: str = "markdown", db: Session = 
                     fl = outline_labels.get(f, f)
                     lines.append(f"- **{fl}**: {ch[f]}\n")
             lines.append("\n")
+
+    return lines
+
+
+@router.get("/novels/{novel_id}/export/outline")
+async def export_outline(novel_id: int, format: str = "markdown", db: Session = Depends(get_db)):
+    """导出创作大纲（支持 markdown / xmind 格式）"""
+    novel = db.query(Novel).filter(Novel.id == novel_id).first()
+    if not novel:
+        raise HTTPException(status_code=404, detail="小说不存在")
+
+    title = novel.title or "未命名小说"
+    outline_raw = novel.outline or "{}"
+    try:
+        outline = json.loads(outline_raw)
+    except json.JSONDecodeError:
+        outline = {}
+
+    # 确保 old flat dict 也有 _tree（向后兼容）
+    if isinstance(outline, dict) and "_tree" not in outline:
+        try:
+            from app.services.generator import GeneratorService
+            tree = GeneratorService._dict_to_tree(outline)
+            if tree:
+                outline["_tree"] = tree
+        except Exception:
+            pass
+
+    elements = outline.get("elements", {})
+    chapters = outline.get("chapters", [])
+    if not chapters and novel.chapters:
+        # 如果 outline 中没有章节列表，回退到 novel.chapters 字段
+        try:
+            chapters = json.loads(novel.chapters)
+        except json.JSONDecodeError:
+            pass
+
+    if format == "xmind":
+        xmind_bytes = generate_xmind(title, outline)
+        safe_title = re.sub(r'[\\/:*?"<>|]', "", title).strip() or "未命名小说"
+        return StreamingResponse(
+            iter([xmind_bytes]),
+            media_type="application/x-xmind",
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(f'{safe_title}_大纲.xmind')}"},
+        )
+
+    # 优先使用 tree 格式渲染 markdown
+    tree = outline.get("_tree")
+    if tree:
+        lines = _render_tree_markdown(tree, title, novel)
+    else:
+        lines = _render_flat_markdown(outline, elements, chapters, title, novel)
 
     text = "".join(lines)
     return PlainTextResponse(text, media_type="text/markdown; charset=utf-8",
@@ -225,6 +271,14 @@ async def export_package(novel_id: int, db: Session = Depends(get_db)):
         outline = json.loads(outline_raw)
     except json.JSONDecodeError:
         outline = {}
+    if isinstance(outline, dict) and "_tree" not in outline:
+        try:
+            from app.services.generator import GeneratorService
+            tree = GeneratorService._dict_to_tree(outline)
+            if tree:
+                outline["_tree"] = tree
+        except Exception:
+            pass
     chapters = outline.get("chapters", [])
     if not chapters and novel.chapters:
         try:

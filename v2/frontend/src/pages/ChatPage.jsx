@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, ArrowLeft, Loader2, CheckCircle, StopCircle } from 'lucide-react'
+import { Sparkles, ArrowLeft, Loader2, CheckCircle, StopCircle, MessageSquarePlus } from 'lucide-react'
 import { useChatStore } from '../stores/chatStore'
 import { chatGenerate, cancelRecord } from '../services/api'
 import ChatMessage from '../components/ChatMessage'
@@ -18,6 +18,7 @@ export default function ChatPage() {
   } = useChatStore()
 
   const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
   const [showStopConfirm, setShowStopConfirm] = useState(false)
   const [showOptions, setShowOptions] = useState(false)
   const [pendingSeed, setPendingSeed] = useState('')
@@ -213,17 +214,19 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-[calc(100vh-5rem)] flex flex-col">
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/')}
-            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors">
-            <ArrowLeft className="w-4 h-4" />返回
+            className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 bg-white border border-gray-200 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-all">
+            <ArrowLeft className="w-3.5 h-3.5" />返回
           </button>
-          <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-orange-500" />
-            AI 对话创作
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg gradient-brand flex items-center justify-center shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-sm font-bold text-gray-900">AI 对话创作</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {generating && (
@@ -235,27 +238,37 @@ export default function ChatPage() {
           )}
           {novelData?.novelId && (
             <button onClick={handleViewNovel}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-lg hover:from-orange-600 hover:to-rose-600 transition-all">
+              className="flex items-center gap-1 px-3 py-1.5 text-xs gradient-brand text-white rounded-lg hover:shadow-sm transition-all">
               <CheckCircle className="w-3.5 h-3.5" />
               查看小说
             </button>
           )}
           <button onClick={handleNewChat}
-            className="px-3 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all">
+            <MessageSquarePlus className="w-3.5 h-3.5" />
             新对话
           </button>
         </div>
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0">
-        <div className="flex-1 flex flex-col bg-white rounded-xl border border-gray-200 min-w-0">
-          <div className="flex-1 overflow-y-auto py-2">
+        <div className="flex-1 flex flex-col bg-white rounded-xl border border-gray-200 min-w-0 shadow-sm">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto py-2 scrollbar-hide">
+            {messages.length <= 1 && !generating && (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-400 animate-fade-in-up">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-100 to-rose-100 flex items-center justify-center mb-4">
+                  <Sparkles className="w-8 h-8 text-orange-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-500">输入故事灵感开始对话</p>
+                <p className="text-xs text-gray-300 mt-1">AI 将引导你完成小说创作</p>
+              </div>
+            )}
             {messages.map((msg, i) => (
               <ChatMessage key={i} message={msg} isLast={i === messages.length - 1} />
             ))}
             {generating && (
-              <div className="px-4 py-2">
-                <span className="inline-flex items-center gap-1.5 text-xs text-orange-500">
+              <div className="px-4 py-3">
+                <span className="inline-flex items-center gap-2 text-xs text-orange-500 bg-orange-50 px-3 py-1.5 rounded-full">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   生成中...
                 </span>
@@ -264,7 +277,7 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
           {showOptions && pendingSeed && !generating && (
-            <div className="px-4 pb-3">
+            <div className="px-4 pb-3 animate-slide-up">
               <ChatOptionSelector
                 seedText={pendingSeed}
                 onConfirm={handleOptionsConfirm}
@@ -275,26 +288,26 @@ export default function ChatPage() {
           <ChatInput onSend={handleSend} disabled={generating || showOptions} />
         </div>
 
-        <div className="w-72 flex-shrink-0 overflow-y-auto">
+        <div className="w-72 flex-shrink-0 overflow-y-auto hidden lg:block">
           <NovelStatusPanel novelData={novelData} />
         </div>
       </div>
 
       {showStopConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowStopConfirm(false)}>
-          <div className="bg-white rounded-2xl w-[90vw] max-w-sm shadow-2xl p-6 text-center" onClick={e => e.stopPropagation()}>
-            <StopCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+        <div className="modal-overlay animate-fade-in" onClick={() => setShowStopConfirm(false)}>
+          <div className="bg-white rounded-2xl w-[90vw] max-w-sm shadow-2xl border border-gray-100 p-6 text-center animate-scale-in" onClick={e => e.stopPropagation()}>
+            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <StopCircle className="w-7 h-7 text-red-400" />
+            </div>
             <h2 className="text-lg font-bold text-gray-900 mb-2">确认停止生成？</h2>
             <p className="text-sm text-gray-500 mb-6">已生成的内容将自动保存。</p>
             <div className="flex gap-3 justify-center">
               <button onClick={handleStop}
-                className="px-5 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-all text-sm">
+                className="px-5 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-all text-sm shadow-sm">
                 确认停止
               </button>
               <button onClick={() => setShowStopConfirm(false)}
-                className="px-5 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all text-sm">
-                取消
-              </button>
+                className="px-5 py-2 btn-secondary text-sm">取消</button>
             </div>
           </div>
         </div>

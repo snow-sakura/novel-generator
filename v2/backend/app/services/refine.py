@@ -18,6 +18,7 @@ REFINE_PROMPTS = {
 - 保持原文的核心情节和信息不变
 - 使用不同的句式和词汇重新表达
 - 保持{style}风格
+- 叙事视角：{pov}，节奏：{pacing}，风格强度：{style_intensity}
 - 字数与原文相近（±20%）
 - 输出 Markdown 格式，不要包含标题""",
 
@@ -33,6 +34,7 @@ REFINE_PROMPTS = {
 - 在保持原文核心情节的基础上，增加环境描写、心理活动、对话细节
 - 扩展后字数约为原文的 1.5-2 倍
 - 保持{style}风格
+- 叙事视角：{pov}，节奏：{pacing}，风格强度：{style_intensity}
 - 细节要具体、有画面感
 - 输出 Markdown 格式，不要包含标题""",
 
@@ -48,6 +50,7 @@ REFINE_PROMPTS = {
 - 删除冗余描写，保留核心情节和关键信息
 - 精简后字数约为原文的 50-70%
 - 保持{style}风格
+- 叙事视角：{pov}，节奏：{pacing}，风格强度：{style_intensity}
 - 节奏紧凑，语言精炼
 - 输出 Markdown 格式，不要包含标题""",
 }
@@ -63,6 +66,9 @@ class RefineService:
         original_content: str,
         context: str = "",
         style: str = "轻松搞笑",
+        pov: str = "第三人称有限",
+        pacing: str = "标准型",
+        style_intensity: str = "中度",
     ) -> AsyncGenerator[str, None]:
         """流式润色段落"""
         prompt_tpl = REFINE_PROMPTS.get(action, REFINE_PROMPTS["rewrite"])
@@ -70,6 +76,9 @@ class RefineService:
             original_content=original_content,
             context=context or "（无前文）",
             style=style,
+            pov=pov,
+            pacing=pacing,
+            style_intensity=style_intensity,
         )
 
         async for chunk in self.llm.generate_stream(prompt):

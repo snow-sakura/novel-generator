@@ -55,6 +55,16 @@ async def get_novel(novel_id: int, db: Session = Depends(get_db)):
         raw_key = model_cfg["api_key"]
         model_cfg["api_key"] = raw_key[:8] + "****" + raw_key[-4:] if len(raw_key) > 12 else "****"
 
+    outline = json.loads(novel.outline) if novel.outline else {}
+    if isinstance(outline, dict) and "_tree" not in outline:
+        try:
+            from app.services.generator import GeneratorService
+            tree = GeneratorService._dict_to_tree(outline)
+            if tree:
+                outline["_tree"] = tree
+        except Exception:
+            pass
+
     return {
         "id": novel.id, "title": novel.title, "seed_text": novel.seed_text,
         "gender": novel.gender, "genre": novel.genre, "style": novel.style,
@@ -62,7 +72,7 @@ async def get_novel(novel_id: int, db: Session = Depends(get_db)):
         "per_chapter_max": novel.per_chapter_max, "actual_count": novel.actual_count,
         "content": novel.content,
         "chapters": json.loads(novel.chapters) if novel.chapters else [],
-        "outline": json.loads(novel.outline) if novel.outline else {},
+        "outline": outline,
         "model_used": novel.model_used,
         "model_config": model_cfg,
         "time_cost": novel.time_cost,

@@ -30,7 +30,7 @@ from app.services.prompts import (
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INDEX_PATH = os.path.join(PROJECT_ROOT, "novels_index.json")
-NOVEL_DIR = os.path.join(PROJECT_ROOT, "doc", "novel")
+NOVEL_DIR = os.path.join(PROJECT_ROOT, "..", "docs", "novel")
 
 
 def seed_prompt_templates():

@@ -153,6 +153,8 @@ class OpenCodeProvider(LLMProvider):
         async for chunk in self._llm().astream(messages):
             if chunk.content:
                 yield chunk.content
+            else:
+                yield ""  # 心跳，防止流式超时
 
 
 class CustomProvider(LLMProvider):
@@ -188,6 +190,8 @@ class CustomProvider(LLMProvider):
             async for chunk in self.llm.astream(messages):
                 if chunk.content:
                     yield chunk.content
+                else:
+                    yield ""  # 心跳，防止流式超时
         except Exception as e:
             yield f"\n\n[生成错误: {e}]"
 
@@ -203,7 +207,7 @@ def get_llm_provider(model_config: dict = None) -> LLMProvider:
             # MiMo 模型通过 OpenCode Zen 接口访问
             return CustomProvider(
                 base_url=model_config.get("base_url", "https://opencode.ai/zen/v1"),
-                model=model_config.get("model", "mimo-v2.5-free"),
+                model=model_config.get("model", settings.opencode_model or "deepseek-v4-flash-free"),
                 api_key=model_config.get("api_key", settings.opencode_api_key),
             )
         else:

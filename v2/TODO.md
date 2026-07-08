@@ -4,6 +4,26 @@
 
 ---
 
+## v1.4.0 (2026-07-08)
+
+### 新增功能
+
+- **详情页大纲/章节弹窗**：NovelPage 顶栏新增「大纲生成结果」和「章节细纲」按钮
+  - `OutlineModal` — 6 层 tab 切换展示，每层使用彩色卡片风格（紫色/蓝色/绿色/琥珀/靛色/玫红）
+  - `ChaptersModal` — 章节 tab 导航 + 单章卡片展示，轮换 5 色区分
+- **卡片式 UI 风格**：两个弹窗均参考 `MultiStepLog.OutlineLayerCard` 设计，使用 `outline-card-grid` 网格布局
+- **全中文 LABEL_MAP**：补齐 outline 数据中 24 个缺失的中文 key 映射，消除英文显示
+
+### 文件变更
+
+| 文件 | 说明 |
+|---|---|
+| `v2/frontend/src/pages/NovelPage.jsx` | 新增 state/计算/按钮/弹窗渲染 |
+| `v2/frontend/src/components/OutlineModal.jsx` | 重写：tab 导航 + 卡片式内容展示 |
+| `v2/frontend/src/components/ChaptersModal.jsx` | 重写：tab 导航 + 单章卡片展示 |
+
+---
+
 ## v1.3.1 (2026-07-07)
 
 ### Bug 修复
@@ -30,7 +50,7 @@
 
 - 删除了 3 部孤立的"生成中..."小说（ID 7/8/9）
 - 清理了无主的生成记录
-- 清理了 `novels_index.json` 和 `doc/novel/` 下的无效文件
+- 清理了 `novels_index.json` 和 `docs/novel/` 下的无效文件
 
 ### 文档
 
@@ -60,8 +80,8 @@
 - **回到顶部按钮**：NovelPage 新增悬浮圆角回到顶部按钮（渐变色），滚动超过 400px 后出现
 - **存储结构调整**：
   - 删除 `backend/novel/` 目录
-  - 所有小说文件统一存储至 `doc/novel/{title}/`
-  - 已有小说从 `doc/` 根目录迁移至 `doc/novel/`
+  - 所有小说文件统一存储至 `docs/novel/{title}/`
+  - 已有小说从 `doc/` 根目录迁移至 `docs/novel/`
 - **Demo 模式默认页面**：默认渲染「创作」CreatePage，不再展示空白页
 
 ### 修正（v1.3.0 fix）

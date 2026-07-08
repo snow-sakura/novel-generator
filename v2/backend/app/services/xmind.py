@@ -8,6 +8,7 @@ FIELD_LABELS = {
     "core_idea": "1.1 核心立意",
     "high_concept": "高概念设定",
     "unique_selling_point": "独特卖点",
+    "tone": "故事基调",
     "theme": "1.2 思想主题",
     "core_question": "探讨的核心问题",
     "values": "价值观输出",
@@ -19,20 +20,24 @@ FIELD_LABELS = {
     "name": "姓名",
     "age": "年龄",
     "identity": "身份",
+    "initial_state": "初始状态",
     "desire": "核心欲望",
     "flaw": "核心缺陷",
     "traits": "性格特质",
     "arc": "成长弧线",
     "supporting": "2.2 配角",
+    "love_interest": "情感线对象",
     "antagonist": "2.3 反派",
     "motive": "反派动机",
     "threat": "压迫感",
     "value_opposition": "价值对立",
+    "conflict_point": "冲突点",
     "relationships": "人物关系网",
     "world": "3. 设定层",
     "time_space": "3.1 时空背景",
     "era": "时代背景",
     "locations": "地理场景",
+    "core_conflict_source": "核心冲突根源",
     "rules": "3.2 规则体系",
     "world_rules": "世界规则",
     "power_system": "力量体系",
@@ -40,6 +45,12 @@ FIELD_LABELS = {
     "factions": "3.3 势力格局",
     "description": "描述",
     "alignment": "立场",
+    "devices": "设定与伏笔",
+    "power_rules": "力量/金手指规则",
+    "key_items": "核心道具/关键线索",
+    "foreshadowing": "伏笔清单",
+    "item": "伏笔内容",
+    "planned_reveal": "计划揭晓",
     "plot_structure": "4. 结构层",
     "three_acts": "4.1 三幕式",
     "act1": "第一幕·建置",
@@ -73,19 +84,24 @@ def label(key, fallback=None):
     return FIELD_LABELS.get(key, fallback or key)
 
 
-def _make_topic(topic_id, title, children_xml=""):
+def _make_topic(topic_id, title, children_xml="", extra_attrs=""):
     title_esc = escape(title)
+    attrs = f' id="{topic_id}"'
+    if extra_attrs:
+        attrs += f' {extra_attrs}'
     if children_xml:
         return (
-            f'<topic id="{topic_id}">\n'
+            f'<topic{attrs}>\n'
             f'  <title>{title_esc}</title>\n'
-            f'  <children positions="merged">\n'
-            f'    {children_xml}\n'
+            f'  <children>\n'
+            f'    <topics type="attached">\n'
+            f'{children_xml}\n'
+            f'    </topics>\n'
             f'  </children>\n'
             f'</topic>\n'
         )
     return (
-        f'<topic id="{topic_id}">\n'
+        f'<topic{attrs}>\n'
         f'  <title>{title_esc}</title>\n'
         f'</topic>\n'
     )
@@ -128,20 +144,43 @@ def _value_to_topics(key, value, parent_id):
         return _make_topic(_next_id(), label(key, key), children)
 
 
+def _tree_to_topics(tree_nodes, parent_id="root"):
+    """将 TreeNode 数组转换为 XMind 节点 XML（泛化递归）
+    tree_nodes: [{title, children?}]
+    """
+    xml = ""
+    for node in tree_nodes:
+        title = node.get("title", "")
+        children = node.get("children")
+        if children:
+            sub = _tree_to_topics(children, _next_id())
+            xml += _make_topic(_next_id(), title, sub)
+        else:
+            xml += _make_topic(_next_id(), title)
+    return xml
+
+
 def _outline_to_topics(outline, root_title):
     """将完整 outline dict 转换为 XMind 节点 XML"""
+    # 优先走 _tree 字段
+    tree = outline.get("_tree")
+    if tree:
+        root_children = _tree_to_topics(tree)
+        if root_children:
+            return _make_topic("root", root_title, root_children, 'structure-class="org.xmind.ui.logic.right"')
+        return ""
+
+    # 旧 flat dict 兼容
     topics = ""
     elements = outline.get("elements", {})
-    # 六层结构在 elements 子字典中
     for key in ("strategy", "characters", "world", "plot_structure", "rhythm", "style_tone"):
         if key in elements:
             topics += _value_to_topics(key, elements[key], _next_id())
-    # 章节细纲在顶层
     if "chapters" in outline:
         topics += _value_to_topics("chapters", outline["chapters"], _next_id())
     if not topics:
         return ""
-    return _make_topic("root", root_title, topics)
+    return _make_topic("root", root_title, topics, 'structure-class="org.xmind.ui.logic.right"')
 
 
 def _chapters_to_topics(title, chapters):
@@ -152,7 +191,7 @@ def _chapters_to_topics(title, chapters):
         summary = escape(ch.get("summary", "")[:80])
         topics_xml += _make_topic(f"ch-{i}", ch_title,
             _make_topic(f"sum-{i}", summary))
-    return _make_topic("root", title, topics_xml)
+    return _make_topic("root", title, topics_xml, 'structure-class="org.xmind.ui.logic.right"')
 
 
 def generate_xmind(title, chapters_or_outline):
@@ -169,7 +208,7 @@ def generate_xmind(title, chapters_or_outline):
     elif isinstance(chapters_or_outline, list):
         root_xml = _chapters_to_topics(title, chapters_or_outline)
     else:
-        root_xml = _make_topic("root", title)
+        root_xml = _make_topic("root", title, extra_attrs='structure-class="org.xmind.ui.logic.right"')
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -197,11 +236,29 @@ def generate_xmind(title, chapters_or_outline):
             '<xmap-content xmlns="urn:xmind:xmap:xmlns:content:2.0"'
             ' xmlns:fo="http://www.w3.org/1999/XSL/Format"'
             ' xmlns:svg="http://www.w3.org/2000/svg">\n'
-            f'  <sheet id="sheet1" theme="default-theme">\n'
+            f'  <sheet id="sheet1">\n'
             f"    {root_xml}\n"
             f"  </sheet>\n"
             f"</xmap-content>\n"
         )
         zf.writestr("content.xml", content.encode("utf-8"))
+
+        styles = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+            '<stylesheet xmlns="urn:xmind:xmind:style:2011">\n'
+            '  <theme id="default">\n'
+            '    <topic-spacing>12</topic-spacing>\n'
+            '    <line-style>\n'
+            '      <line-color>#4A90D9</line-color>\n'
+            '      <line-width>1.5</line-width>\n'
+            '      <line-class>org.xmind.ui.style.CurvedLine</line-class>\n'
+            '    </line-style>\n'
+            '    <central-topic>\n'
+            '      <shape-class>org.xmind.ui.style.rounded-rect</shape-class>\n'
+            '    </central-topic>\n'
+            '  </theme>\n'
+            '</stylesheet>\n'
+        )
+        zf.writestr("styles.xml", styles.encode("utf-8"))
 
     return buf.getvalue()

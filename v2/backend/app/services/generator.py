@@ -29,7 +29,7 @@ from app.services.agents import (
     create_titler_agent,
 )
 
-NOVEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "doc", "novel", "v2")
+NOVEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "..", "docs", "novel", "v2")
 NOVEL_INDEX_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "novels_index.json")
 
 
@@ -38,21 +38,38 @@ def _log(msg: str):
     print(f"  [{ts}] [生成管线] {msg}", flush=True)
 
 
-async def _timeout_iterate(agen: AsyncIterator, timeout: int = 120, first_chunk_timeout: int = 60) -> AsyncGenerator[str, None]:
-    """逐块迭代异步生成器，首块用较短超时，后续块用较长超时"""
+async def _timeout_iterate(agen: AsyncIterator, timeout: int = 120, first_chunk_timeout: int = 60, heartbeat_interval: int = 30) -> AsyncGenerator[str, None]:
+    """逐块迭代异步生成器。
+    - 首块：每 heartbeat_interval 秒检测一次，超时前持续 yield "" 保活
+    - 后续块：单次 timeout 等待
+    """
     ait = agen.__aiter__()
     is_first = True
     while True:
         try:
             t = first_chunk_timeout if is_first else timeout
-            chunk = await asyncio.wait_for(ait.__anext__(), timeout=t)
-            is_first = False
-            yield chunk
+            if is_first:
+                elapsed = 0
+                while elapsed < t:
+                    try:
+                        chunk = await asyncio.wait_for(ait.__anext__(), timeout=min(heartbeat_interval, t - elapsed))
+                        is_first = False
+                        yield chunk
+                        break
+                    except asyncio.TimeoutError:
+                        elapsed += heartbeat_interval
+                        yield ""  # 惰性心跳，防止连接断开
+                if is_first:
+                    _log(f"⚠️ 流式迭代超时（首块 {first_chunk_timeout}s）")
+                    break
+            else:
+                chunk = await asyncio.wait_for(ait.__anext__(), timeout=t)
+                yield chunk
         except StopAsyncIteration:
             break
         except asyncio.TimeoutError:
-            stage = "首块" if is_first else "后续"
-            _log(f"⚠️ 流式迭代超时（{stage} {t}s）")
+            if not is_first:
+                _log(f"⚠️ 流式迭代超时（后续 {timeout}s）")
             break
         except Exception as e:
             _log(f"⚠️ 流式迭代异常: {e}")
@@ -158,7 +175,7 @@ class GeneratorService:
                 yield {"event": "parse", "data": "正在分析故事要素..."}
                 yield self._make_log("📝 正在分析故事要素...")
 
-                story_elements = await self._parse_elements(seed_text, parse_prompt)
+                story_elements = await self._parse_elements(seed_text, gender, genre, style, parse_prompt)
 
                 yield self._make_log("✅ 要素分析完成")
                 yield {"event": "parse_done", "data": story_elements}
@@ -263,9 +280,9 @@ class GeneratorService:
                 yield self._make_log(f"  📖 第{i+1}章《{title}》开始生成...")
                 yield {"event": "chapter_start", "data": {"title": title, "index": i, "start_time": now_ts}}
 
-                # 构建章节 prompt，始终包含题材约束，前3章额外附带高概念
-                novel_context = f'\n【题材约束】本小说为"{genre}"题材，必须严格遵守该题材的世界观和规则，不得混入其他题材元素。\n'
-                if i < 3 and outline_data:
+                # 构建章节 prompt，始终包含题材约束 + 核心高概念
+                novel_context = f'\n【🔴 题材约束】本小说为"{genre}"题材，风格为"{style}"。你必须严格遵守：禁止出现任何其他题材的元素；人物只能使用大纲中已定义的角色；世界观必须严格限定在"{genre}"题材的框架内。\n'
+                if outline_data:
                     high_concept = (
                         outline_data.get("strategy", {})
                         .get("core_idea", {})
@@ -273,6 +290,9 @@ class GeneratorService:
                     )
                     if high_concept:
                         novel_context += f"【小说定位】{high_concept}\n"
+                    seed_reference = outline_data.get("elements", {}).get("inciting_incident", "")
+                    if seed_reference:
+                        novel_context += f"【原始种子】{seed_reference}\n"
 
                 chapter_prompt = chapter_prompt_tpl.format(
                     gender=gender, genre=genre, style=style,
@@ -306,7 +326,7 @@ class GeneratorService:
                             try:
                                 async for chunk in _timeout_iterate(
                                     self.llm.generate_stream(seg_prompt),
-                                    timeout=120, first_chunk_timeout=90,
+                                    timeout=120, first_chunk_timeout=180,
                                 ):
                                     seg_text += chunk
                                     yield {"event": "content", "data": chunk}
@@ -326,7 +346,7 @@ class GeneratorService:
                         try:
                             async for chunk in _timeout_iterate(
                                 self.llm.generate_stream(chapter_prompt),
-                                timeout=120, first_chunk_timeout=90,
+                                timeout=120, first_chunk_timeout=180,
                             ):
                                 chapter_content += chunk
                                 yield {"event": "content", "data": chunk}
@@ -398,7 +418,7 @@ class GeneratorService:
 
             _log(f"全部完成！标题:《{final_title}》 | 总字数:{actual_count} | 耗时:{time_cost:.1f}s")
             yield self._make_log(f"🎉 全部完成！标题《{final_title}》，总字数{actual_count}，耗时{time_cost:.1f}s")
-            yield self._make_log(f"📁 文件已保存至 doc/novel/{final_title}/")
+            yield self._make_log(f"📁 文件已保存至 docs/novel/v2/{final_title}/")
 
             yield {
                 "event": "complete",
@@ -463,7 +483,13 @@ class GeneratorService:
         try:
             novel = db.query(Novel).filter(Novel.id == novel_id).first()
             if novel:
-                novel.outline = json.dumps({"chapters": chapters, "elements": elements}, ensure_ascii=False)
+                outline_dict = {"chapters": chapters, "elements": elements}
+                try:
+                    tree = self._dict_to_tree(outline_dict)
+                    outline_dict["_tree"] = tree
+                except Exception:
+                    pass
+                novel.outline = json.dumps(outline_dict, ensure_ascii=False)
                 db.commit()
         finally:
             db.close()
@@ -718,7 +744,7 @@ class GeneratorService:
                 async for chunk in _timeout_iterate(
                     self.llm.generate_stream(prompt, system_prompt),
                     timeout=timeout,
-                    first_chunk_timeout=90,
+                    first_chunk_timeout=180,
                 ):
                     result += chunk
             try:
@@ -735,8 +761,10 @@ class GeneratorService:
                 await asyncio.sleep(1)
         return result
 
-    async def _parse_elements(self, seed_text: str, prompt_tpl: str = SYSTEM_PROMPT_PARSE) -> dict:
-        result = await self._call_llm(seed_text, prompt_tpl)
+    async def _parse_elements(self, seed_text: str, gender: str = "", genre: str = "", style: str = "", prompt_tpl: str = SYSTEM_PROMPT_PARSE) -> dict:
+        # Inject genre/style into the user prompt so the LLM knows what context to parse within
+        enriched = f"【用户设定】频道：{gender}，题材：{genre}，风格：{style}\n【种子句】{seed_text}\n\n请严格基于本题材框架解析以下种子句，不得偏离到其他题材。"
+        result = await self._call_llm(enriched, prompt_tpl)
         try:
             start = result.index("{")
             end = result.rindex("}") + 1
@@ -844,8 +872,12 @@ class GeneratorService:
             layers.setdefault(key, {} if key != "chapters" else self._fallback_chapters(chapter_count))
         layers.setdefault("elements", story_elements)
 
+        # 构建树结构
+        tree = self._dict_to_tree(layers)
+        layers["_tree"] = tree
+
         yield self._make_log(f"✅ 大纲规划完成（{total}层）")
-        yield {"event": "outline_done", "data": {"chapters": layers.get("chapters", []), "outline": layers}}
+        yield {"event": "outline_done", "data": {"chapters": layers.get("chapters", []), "outline": layers, "tree": tree}}
         yield {"event": "_outline_result", "data": layers}
 
     def _fallback_outline(self, story_elements, chapter_count):
@@ -871,10 +903,150 @@ class GeneratorService:
         return [{"title": f"第{i+1}章", "summary": "内容待展开", "hook": "", "cliffhanger": "",
                  "function": "", "word_count_estimate": 2000} for i in range(count)]
 
+    @staticmethod
+    def _dict_to_tree(flat, root_title="创作大纲"):
+        """将 flat dict（5层 + chapters）转换为 TreeNode 数组
+        返回: [TreeNode, ...] 即根节点的 children
+        """
+        T = lambda t: t  # label helper 直接用
+
+        LABELS = {
+            "strategy": "1. 战略层", "core_idea": "核心立意", "high_concept": "高概念设定",
+            "unique_selling_point": "独特卖点", "tone": "故事基调",
+            "theme": "思想主题", "core_question": "核心问题",
+            "values": "价值观", "ending": "结局预判", "type": "结局类型", "final_scene": "最终场景",
+            "characters": "2. 人物层", "protagonist": "主角",
+            "name": "姓名", "age": "年龄", "identity": "身份", "initial_state": "初始状态",
+            "desire": "核心欲望", "flaw": "核心缺陷", "traits": "性格特质", "arc": "成长弧线",
+            "supporting": "配角", "love_interest": "情感线对象",
+            "antagonist": "反派",
+            "motive": "动机", "threat": "压迫感", "value_opposition": "价值对立", "conflict_point": "冲突点",
+            "relationships": "人物关系网",
+            "world": "3. 设定层", "time_space": "时空背景", "era": "时代", "locations": "场景",
+            "core_conflict_source": "核心冲突根源",
+            "rules": "规则体系", "world_rules": "世界规则", "power_system": "力量体系",
+            "social_structure": "社会结构", "factions": "势力格局", "description": "描述", "alignment": "立场",
+            "devices": "设定与伏笔", "power_rules": "力量/金手指规则", "key_items": "核心道具/关键线索",
+            "foreshadowing": "伏笔清单", "item": "伏笔内容", "planned_reveal": "计划揭晓",
+            "plot_structure": "4. 结构层", "three_acts": "三幕式",
+            "act1": "第一幕·建置", "act2": "第二幕·对抗", "act3": "第三幕·结局",
+            "beat_sheet": "节拍表", "beat": "节拍", "chapter_range": "章节范围",
+            "golden_three": "黄金三章", "hook": "钩子", "function": "功能定位",
+            "rhythm": "5. 节奏层", "satisfaction_points": "爽点布局", "emotional_peaks": "泪点/痛点",
+            "pace_curve": "节奏曲线",
+            "style_tone": "6. 风格层", "perspective": "叙事视角", "language": "语言风格",
+            "atmosphere": "氛围基调",
+            "chapters": "7. 章节细纲", "summary": "概要", "cliffhanger": "悬念", "word_count_estimate": "字数预估",
+            "role": "作用", "locations": "场景",
+        }
+
+        def val_label(k):
+            return LABELS.get(k, k)
+
+        def flatten(k, v, depth=0):
+            """将任意 value 转换为 title string"""
+            if v is None:
+                return None
+            label = val_label(k)
+            if isinstance(v, str):
+                if not v.strip():
+                    return None
+                return f"{label}: {v.strip()}"
+            if isinstance(v, (int, float)):
+                return f"{label}: {v}"
+            if isinstance(v, list):
+                if not v:
+                    return None
+                items = []
+                for item in v:
+                    if isinstance(item, dict):
+                        item_title = item.get("title") or item.get("name") or item.get("beat") or ""
+                        sub_children = []
+                        for sk, sv in item.items():
+                            if sk in ("title", "name", "beat"):
+                                continue
+                            sub = flatten(sk, sv, depth + 1)
+                            if sub:
+                                sub_children.append({"title": sub})
+                        items.append({"title": f"{label} — {item_title}" if item_title else label, "children": sub_children} if sub_children else {"title": f"{label} — {item_title}"} if item_title else None)
+                    else:
+                        items.append({"title": f"{label}: {item}"})
+                return [x for x in items if x] or None
+            if isinstance(v, dict):
+                children = []
+                for sk, sv in v.items():
+                    # 跳过与父级同名的子键（如 strategy: {strategy: {...}} 旧数据）
+                    if sk == k:
+                        sub = flatten(sk, sv, depth + 1)
+                        if sub is None:
+                            continue
+                        if isinstance(sub, list):
+                            children.extend(sub)
+                        elif isinstance(sub, str):
+                            children.append({"title": sub})
+                        elif isinstance(sub, dict):
+                            # 展开孙子节点，避免重复层
+                            if sub.get("children"):
+                                children.extend(sub["children"])
+                            else:
+                                children.append(sub)
+                    else:
+                        result = flatten(sk, sv, depth + 1)
+                        if result is None:
+                            continue
+                        if isinstance(result, list):
+                            children.extend(result)
+                        elif isinstance(result, str):
+                            children.append({"title": result})
+                        elif isinstance(result, dict):
+                            children.append(result)
+                if not children:
+                    return None
+                return {"title": label, "children": children}
+            return None
+
+        SECTION_ORDER = [
+            "strategy", "characters", "world", "plot_structure", "rhythm", "style_tone"
+        ]
+        children = []
+        for sec in SECTION_ORDER:
+            if sec in flat and flat[sec]:
+                result = flatten(sec, flat[sec])
+                if result:
+                    if isinstance(result, list):
+                        children.extend(result)
+                    elif isinstance(result, str):
+                        children.append({"title": result})
+                    elif isinstance(result, dict):
+                        children.append(result)
+
+        if "chapters" in flat and flat["chapters"]:
+            chs = flat["chapters"]
+            if isinstance(chs, dict) and "chapters" in chs:
+                chs = chs["chapters"]
+            if isinstance(chs, list) and chs:
+                ch_children = []
+                for i, ch in enumerate(chs):
+                    ch_title = ch.get("title", f"第{i+1}章")
+                    ch_sub = []
+                    for sk in ("summary", "hook", "cliffhanger", "word_count_estimate", "function"):
+                        sv = ch.get(sk)
+                        if sv and (isinstance(sv, str) and sv.strip()) or (isinstance(sv, (int, float))):
+                            ch_sub.append({"title": flatten(sk, sv)})
+                    ch_children.append({
+                        "title": f"第{i+1}章《{ch_title}》",
+                        "children": ch_sub,
+                    })
+                children.append({"title": "7. 章节细纲", "children": ch_children})
+
+        return children
+
     async def _generate_title(self, content, gender, genre, prompt_tpl=SYSTEM_PROMPT_TITLE) -> str:
         preview = content[:500]
-        prompt = f"{gender}频道{genre}题材小说开头：\n{preview}\n\n请为这篇小说起一个5-15字的吸引人标题："
-        result = await self._call_llm(prompt, prompt_tpl)
+        prompt = f"{gender}频道{genre}题材小说开头：\n{preview}\n\n请为这篇{genre}题材小说起一个5-15字的吸引人标题，必须贴合{genre}题材的典型风格和内容："
+        # Format the system prompt template with user params (it has {gender}/{genre} placeholders)
+        system_prompt = prompt_tpl.replace("{gender}", gender).replace("{genre}", genre)
+        result = await self._call_llm(prompt, system_prompt)
         return result.strip() or "未命名小说"
 
 

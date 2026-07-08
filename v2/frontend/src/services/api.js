@@ -283,35 +283,77 @@ export async function cleanupData() {
 
 // ── V2 新增：润色 API ──
 
-export function refineParagraph(params, onEvent, onComplete, onError) {
-  const controller = new AbortController()
+// Demo 模式润色模拟
+async function* mockRefineStream(action, originalContent) {
+  const mockResults = {
+    rewrite: `（重写版本）${originalContent.split('').reverse().join('')}`,
+    expand: `（扩写版本）${originalContent}\n\n这是扩写后增加的细节描写，让内容更加丰富饱满。`,
+    compress: `（精简版本）${originalContent.slice(0, Math.floor(originalContent.length * 0.6))}`,
+  }
 
-  fetch(`${API_BASE}/refine`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-    signal: controller.signal,
-  }).then(async response => {
+  const result = mockResults[action] || mockResults.rewrite
+  const chunkSize = 10
+  for (let i = 0; i < result.length; i += chunkSize) {
+    await new Promise(resolve => setTimeout(resolve, 50))
+    yield { event: 'content', data: { text: result.slice(i, i + chunkSize) } }
+  }
+  yield { event: 'complete', data: { version: 1, total_versions: 1 } }
+}
+
+export async function refineParagraph(params, onEvent, onComplete, onError) {
+  if (isGitHubPages()) {
+    // Demo 模式
+    try {
+      for await (const chunk of mockRefineStream(params.action, params.original_content)) {
+        if (chunk.event === 'content') {
+          onEvent('refine_content', chunk.data)
+        } else if (chunk.event === 'complete') {
+          onComplete(chunk.data)
+        }
+      }
+    } catch (err) {
+      onError({ message: err.message || 'Demo 润色失败' })
+    }
+    return { abort: () => {} }
+  }
+
+  const controller = new AbortController()
+  let timeoutId = null
+
+  try {
+    timeoutId = setTimeout(() => controller.abort(), 120000) // 2分钟超时
+
+    const response = await fetch(`${API_BASE}/refine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
       throw new Error(err.error || err.detail || `请求失败 (${response.status})`)
     }
+
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
 
-    function processStream() {
-      reader.read().then(({ done, value }) => {
-        if (done) return
-        buffer += decoder.decode(value, { stream: true })
+    const processStream = async () => {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
+        buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
 
         let currentEvent = ''
         for (const line of lines) {
           if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7)
+            currentEvent = line.slice(7).trim()
           } else if (line.startsWith('data: ') && currentEvent) {
             try {
               const data = JSON.parse(line.slice(6))
@@ -322,29 +364,41 @@ export function refineParagraph(params, onEvent, onComplete, onError) {
               } else if (currentEvent === 'error') {
                 onError(data)
               }
-            } catch {}
+            } catch (e) {
+              console.warn('SSE 解析失败:', e)
+            }
             currentEvent = ''
           }
         }
-        processStream()
-      }).catch(err => {
-        if (err.name !== 'AbortError') {
-          onError({ message: err.message })
-        }
-      })
+      }
     }
-    processStream()
-  }).catch(err => {
+
+    await processStream()
+  } catch (err) {
+    if (timeoutId) clearTimeout(timeoutId)
     if (err.name !== 'AbortError') {
-      onError({ message: err.message })
+      onError({ message: err.message || '网络错误' })
     }
-  })
+  }
 
   return controller
 }
 
 export async function fetchParagraphVersions(novelId, chapterIndex, paragraphIndex) {
-  if (isGitHubPages()) return { versions: [] }
+  if (isGitHubPages()) {
+    // Demo 模式返回模拟数据
+    return {
+      versions: [
+        {
+          id: 1,
+          action: 'rewrite',
+          content: '这是模拟的润色版本内容。',
+          version: 1,
+          created_at: new Date().toISOString(),
+        }
+      ]
+    }
+  }
   const res = await fetch(
     `${API_BASE}/refine/versions?novel_id=${novelId}&chapter_index=${chapterIndex}&paragraph_index=${paragraphIndex}`
   )

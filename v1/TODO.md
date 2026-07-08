@@ -30,7 +30,7 @@
 
 - 删除了 3 部孤立的"生成中..."小说（ID 7/8/9）
 - 清理了无主的生成记录
-- 清理了 `novels_index.json` 和 `doc/novel/` 下的无效文件
+- 清理了 `novels_index.json` 和 `docs/novel/` 下的无效文件
 
 ### 文档
 
@@ -60,8 +60,8 @@
 - **回到顶部按钮**：NovelPage 新增悬浮圆角回到顶部按钮（渐变色），滚动超过 400px 后出现
 - **存储结构调整**：
   - 删除 `backend/novel/` 目录
-  - 所有小说文件统一存储至 `doc/novel/{title}/`
-  - 已有小说从 `doc/` 根目录迁移至 `doc/novel/`
+  - 所有小说文件统一存储至 `docs/novel/{title}/`
+  - 已有小说从 `doc/` 根目录迁移至 `docs/novel/`
 - **Demo 模式默认页面**：默认渲染「创作」CreatePage，不再展示空白页
 
 ### 修正（v1.3.0 fix）

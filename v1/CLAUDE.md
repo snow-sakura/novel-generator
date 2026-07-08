@@ -32,7 +32,7 @@ novel-generator/
 │   ├── components/    # NovelForm / MultiStepLog / ChatMessage / ChatInput / NovelStatusPanel
 │   ├── stores/        # novelStore.js + chatStore.js
 │   └── services/      # API 调用 + Demo 模式
-├── doc/novel/         # 生成的小说文件
+├── docs/novel/         # 生成的小说文件
 └── novels_index.json  # 跨设备 DB 同步
 ```
 

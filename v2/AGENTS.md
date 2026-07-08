@@ -8,7 +8,7 @@
 ```
 种子句 → 选择(频道/题材/风格[多选]/字数) → 后端 CrewAI 四智能体管线
 (要素解析 Agent → 大纲规划 Agent → 逐章生成 Agent → 标题生成 Agent)
-→ SSE 流式推送前端 → 自动存储到 doc/novel/{title}/ + DB
+→ SSE 流式推送前端 → 自动存储到 docs/novel/{title}/ + DB
 ```
 
 ## 多智能体架构 (CrewAI)
@@ -80,6 +80,11 @@ LLM Provider 调用可能因 API 不可达而挂死。GeneratorService 有三层
 ## 前端关键约定
 
 - **MultiStepLog**: 生成期间始终显示，每步骤一个可折叠卡片，日志按 `step` 字段自动归入对应面板
+- **OutlineModal / ChaptersModal**: 详情页和生成页共用的大纲/章节弹窗
+  - `OutlineModal` — 6 层 tab 切换，每层使用 `outline-card-grid` CSS 网格 + 彩色边框卡片
+  - `ChaptersModal` — 章节 tab 导航，单章卡片展示，轮换 5 色左竖条区分
+  - NovelPage 通过 `outlineLayerList`（`[{type, data}]`）将 `novel.outline` 字典转换后传入
+  - CreatePage/MultiStepLog 从 zustand store 的 `outlineThinking` 直接传入
 - **停止生成**: 红色「停止生成」按钮 → 先调用 `POST /records/{id}/cancel` 标记 DB 记录 → 再 `abortController.abort()`
 - **章节目录 (TOC)**: 仅在逐章生成阶段（`currentStep >= WRITING`）及之后显示
 - **生成中可切历史 tab**: HistoryPage 每 3s 轮询 `GET /records/{id}/status`，`in_progress` 记录高亮 + 进度条，点击回到 CreatePage 恢复
@@ -90,7 +95,7 @@ LLM Provider 调用可能因 API 不可达而挂死。GeneratorService 有三层
 
 - `migrate_database()` 在启动时自动检测并 ALTER TABLE 新增列
 - 文件导出统一 `filename*=UTF-8''` 支持中文文件名
-- 小说文件存储: `doc/novel/{title}/`（逐章 TXT + 全文 TXT + 大纲 Markdown + 大纲 XMind）
+- 小说文件存储: `docs/novel/{title}/`（逐章 TXT + 全文 TXT + 大纲 Markdown + 大纲 XMind）
 - `.env` 从 `.env.example` 复制（`run.sh` 自动处理）
 - CrewAI Agent 不含 `llm` 参数（避免 Pydantic 验证错误），仅用作角色/目标/背景的结构化容器；实际 LLM 调用走项目自身 `LLMProvider`
 - CrewAI Agent 初始化需要 `OPENAI_API_KEY` 环境变量（即使不使用 OpenAI），`main.py` 启动时设置占位值 `sk-crewai-placeholder`
