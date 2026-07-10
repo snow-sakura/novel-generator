@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+*.db
+.env
+backend/.venv/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Vite
+frontend/dist/
+
+# Logs
+*.log
+
+# Generated data (user content)
+novels_index.json
+backend/tests/.pytest_cache/

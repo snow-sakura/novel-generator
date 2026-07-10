@@ -22,4 +22,5 @@ class Novel(Base):
     model_used = Column(String(100), default="")
     model_config = Column(Text, default="{}")             # 自定义模型配置JSON
     time_cost = Column(Float, default=0.0)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     created_at = Column(DateTime, default=datetime.now)

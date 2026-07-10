@@ -1,10 +1,10 @@
-"""从 doc/novel/ 文件系统重建 novels_index.json + DB 记录
+"""从 docs/novel/ 文件系统重建 novels_index.json + DB 记录
 
 用法:
     cd backend && python scripts/restore_from_files.py
     cd backend && python scripts/restore_from_files.py --non-interactive    # 跳过询问
 
-设计: 以 doc/novel/ 为数据源, 自动提取可恢复的元数据,
+设计: 以 docs/novel/ 为数据源, 自动提取可恢复的元数据,
      缺失值优先交互式询问, --non-interactive 时使用默认值。
 """
 import argparse
@@ -16,7 +16,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    NOVEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "..", "docs", "novel")
+NOVEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "..", "docs", "novel")
 INDEX_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "novels_index.json")
 
 
@@ -125,7 +125,7 @@ def prompt_value(label, default="", required=False):
 
 
 def scan_novels(interactive=True):
-    """扫描 doc/novel/，返回可恢复的小说数据列表"""
+    """扫描 docs/novel/，返回可恢复的小说数据列表"""
     novels = []
     if not os.path.isdir(NOVEL_DIR):
         print(f"  docs/novel/ 目录不存在: {NOVEL_DIR}")
@@ -291,7 +291,7 @@ def write_db(novels):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="从 doc/novel/ 恢复小说数据")
+    parser = argparse.ArgumentParser(    description="从 docs/novel/ 恢复小说数据")
     parser.add_argument("--non-interactive", "-y", action="store_true",
                         help="非交互模式，缺失字段使用默认值")
     parser.add_argument("--db-only", action="store_true",
@@ -300,7 +300,7 @@ def main():
                         help="仅更新 index（不写入 DB）")
     args = parser.parse_args()
 
-    print("📂 扫描 doc/novel/ 目录...")
+    print("📂 扫描 docs/novel/ 目录...")
     novels = scan_novels(interactive=not args.non_interactive)
 
     if not novels:

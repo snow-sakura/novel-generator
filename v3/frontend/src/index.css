@@ -1,0 +1,401 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+    background-color: #faf8f5;
+    color: #1f2937;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: #f97316;
+    color: white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #f97316;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: all 0.15s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 2px 6px rgba(249,115,22,0.3);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #f97316;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+}
+
+@layer components {
+  .novel-content {
+    font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+    font-size: 1rem;
+    line-height: 1.9;
+    color: #374151;
+  }
+  .novel-content h1 {
+    @apply text-2xl font-bold my-6 text-gray-900 text-left;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  }
+  .novel-content h2 {
+    @apply text-xl font-bold my-4 text-gray-900 text-left;
+  }
+  .novel-content h3 {
+    @apply text-lg font-bold my-3 text-gray-800 text-left;
+  }
+  .novel-content p {
+    @apply text-base leading-relaxed mb-4 text-gray-700;
+    text-indent: 2em;
+  }
+  .novel-content p:first-of-type {
+    text-indent: 0;
+  }
+  .novel-content blockquote {
+    @apply border-l-4 border-orange-300 pl-4 italic text-gray-500 my-4 text-sm;
+  }
+  .novel-content strong {
+    @apply font-semibold text-gray-900;
+  }
+  .novel-content em {
+    @apply italic text-gray-600;
+  }
+
+  .thinking-log {
+    @apply bg-gray-950 text-gray-200 rounded-xl p-3 font-mono text-xs leading-relaxed;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .thinking-log .log-entry {
+    @apply block py-0.5;
+    opacity: 0;
+    animation: logFadeIn 0.2s ease forwards;
+  }
+  .thinking-log .log-time {
+    @apply text-gray-500 mr-2 select-none;
+  }
+  .thinking-log .log-info { @apply text-gray-300; }
+  .thinking-log .log-success { @apply text-green-400; }
+  .thinking-log .log-warn { @apply text-yellow-400; }
+  .thinking-log .log-error { @apply text-red-400; }
+  .thinking-log .log-chapter { @apply text-orange-300; }
+
+  @keyframes logFadeIn {
+    to { opacity: 1; }
+  }
+
+  /* ── MultiStepLog 增强样式 ── */
+
+  .log-timeline-entry {
+    display: grid;
+    grid-template-columns: 48px 14px 1fr;
+    gap: 6px;
+    padding: 5px 0;
+    animation: logSlideIn 0.25s ease-out;
+  }
+  .log-timeline-entry:last-child {
+    padding-bottom: 1px;
+  }
+
+  .log-timeline-time {
+    text-align: right;
+    padding-right: 2px;
+    padding-top: 2px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-end;
+    line-height: 1.3;
+    gap: 0;
+    white-space: nowrap;
+  }
+  .log-timeline-time .hour {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+  }
+  .log-timeline-time .sec {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  .log-timeline-time .time-sep {
+    font-size: 11px;
+    color: #d1d5db;
+    margin: 0 1px;
+  }
+
+  .log-timeline-dot-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .log-timeline-line {
+    width: 2px;
+    flex: 1;
+    min-height: 6px;
+    border-radius: 1px;
+  }
+  .log-timeline-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    z-index: 1;
+    margin-top: 4px;
+  }
+
+  .log-timeline-content {
+    padding-bottom: 3px;
+    min-width: 0;
+  }
+  .log-timeline-content .log-title {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .log-timeline-content .log-title .icon-wrap {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .log-timeline-content .log-detail {
+    font-size: 12px;
+    line-height: 1.5;
+    margin-top: 2px;
+  }
+  .log-timeline-content .log-meta {
+    font-size: 11px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 2px;
+    color: #6b7280;
+  }
+
+  @keyframes logSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .log-scroll-fade {
+    position: relative;
+  }
+  .log-scroll-fade::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: linear-gradient(to top, white, transparent);
+    pointer-events: none;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .log-jump-bottom {
+    position: sticky;
+    bottom: 8px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .log-jump-bottom button {
+    pointer-events: auto;
+  }
+
+  /* 大纲卡片结构化 */
+  .outline-card-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+  }
+  .outline-card-grid .ock-key {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    white-space: nowrap;
+    padding: 2px 0;
+  }
+  .outline-card-grid .ock-val {
+    font-size: 12px;
+    color: #374151;
+    padding: 2px 0;
+    word-break: break-word;
+  }
+  .outline-card-grid .ock-val-array {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .outline-card-grid .ock-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+  }
+
+  .input-focus {
+    @apply border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+  }
+
+  .card-hover-sm {
+    @apply transition-all duration-150 hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  .gradient-brand {
+    @apply bg-gradient-to-r from-orange-500 to-rose-500;
+  }
+
+  .gradient-brand-hover {
+    @apply hover:from-orange-600 hover:to-rose-600 transition-all;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-orange-600 to-rose-600 bg-clip-text text-transparent;
+  }
+
+  .gradient-card {
+    @apply bg-gradient-to-br from-white to-orange-50/30;
+  }
+
+  .skeleton {
+    @apply bg-gray-200 rounded animate-pulse;
+  }
+
+  .inset-soft {
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.04),
+                inset 0 2px 8px rgba(0,0,0,0.03);
+  }
+
+  .toolbar-glass {
+    @apply bg-white/80 backdrop-blur-lg border border-gray-200/80 shadow-lg;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-2xl shadow-2xl border border-gray-100;
+  }
+
+  .btn-primary {
+    @apply gradient-brand text-white rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-white border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-150;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .chip {
+    @apply px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150 text-center;
+  }
+
+  .tag {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border;
+  }
+
+  .section-toggle {
+    @apply flex items-center gap-2 w-full text-left cursor-pointer;
+  }
+  .section-toggle:hover {
+    opacity: 0.8;
+  }
+  .section-toggle-icon {
+    @apply flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors;
+  }
+  .section-toggle-label {
+    @apply text-sm font-medium text-gray-700 transition-colors;
+  }
+  .section-toggle:hover .section-toggle-label {
+    @apply text-gray-900;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(0,0,0,0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,0.02) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .bg-dot {
+    background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+}

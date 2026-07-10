@@ -46,17 +46,17 @@
 
 | 端点 | 说明 |
 |------|------|
-| POST `/api/v1/generate` | SSE 流式生成 |
-| POST `/api/v1/generate/continue?record_id=X` | 从失败/取消继续 |
-| POST `/api/v1/chat/generate` | AI 对话式生成 SSE |
-| POST `/api/v1/records/{id}/cancel` | 标记记录为 cancelled |
-| POST `/api/v1/records/{id}/reset` | 重置卡住的 in_progress 为 failed |
-| GET `/api/v1/records/{id}/status` | 轻量状态轮询 |
-| POST `/api/v1/cleanup` | 清理孤立数据（无主记录 + 无效小说） |
-| GET `/api/v1/novels/{id}/export` | 全文导出 |
-| GET `/api/v1/models/list` | 国产模型列表 |
-| GET `/api/v1/genres/list?gender=` | 题材列表 |
-| GET/PUT `/api/v1/model-config` | 模型配置持久化 |
+| POST `/api/v2/generate` | SSE 流式生成 |
+| POST `/api/v2/generate/continue?record_id=X` | 从失败/取消继续 |
+| POST `/api/v2/chat/generate` | AI 对话式生成 SSE |
+| POST `/api/v2/records/{id}/cancel` | 标记记录为 cancelled |
+| POST `/api/v2/records/{id}/reset` | 重置卡住的 in_progress 为 failed |
+| GET `/api/v2/records/{id}/status` | 轻量状态轮询 |
+| POST `/api/v2/cleanup` | 清理孤立数据（无主记录 + 无效小说） |
+| GET `/api/v2/novels/{id}/export` | 全文导出 |
+| GET `/api/v2/models/list` | 国产模型列表 |
+| GET `/api/v2/genres/list?gender=` | 题材列表 |
+| GET/PUT `/api/v2/model-config` | 模型配置持久化 |
 
 ### SSE 事件
 

@@ -30,6 +30,12 @@ frontend/dist/
 # Generated data (user content)
 novels_index.json
 
-# V1 and V2 databases
+# V1, V2, V3 databases
 v1/backend/*.db
 v2/backend/*.db
+v3/backend/*.db
+*.pytest_cache/
+
+# IDE / Tools
+.opencode/
+.mimocode/

@@ -200,6 +200,8 @@ class GeneratorService:
                     story_elements, gender, genre, style,
                     chapter_count, per_chapter_min, per_chapter_max,
                     outline_prompts=outline_prompts,
+                    enable_suspense=enable_suspense,
+                    enable_twist=enable_twist,
                 ):
                     if ev["event"] == "_outline_result":
                         full_outline = ev["data"]
@@ -294,6 +296,16 @@ class GeneratorService:
                     if seed_reference:
                         novel_context += f"【原始种子】{seed_reference}\n"
 
+                tension_lines = []
+                if enable_suspense:
+                    tension_lines.append("- 悬念：已启用。每章结尾必须留有悬念/钩子（Cliffhanger），让读者忍不住点击下一章")
+                if enable_twist:
+                    tension_lines.append("- 反转：已启用。故事中期或结尾需安排至少一次意外反转，全篇不超过2次")
+                tension_block = (
+                    "\n【叙事张力】\n" + "\n".join(tension_lines) + "\n"
+                    if tension_lines else ""
+                )
+
                 chapter_prompt = chapter_prompt_tpl.format(
                     gender=gender, genre=genre, style=style,
                     chapter_title=title,
@@ -301,6 +313,7 @@ class GeneratorService:
                     previous_summary=previous_summary,
                     target_words=per_chapter_target,
                     pov=pov, pacing=pacing, style_intensity=style_intensity,
+                    tension_block=tension_block,
                 )
 
                 # 分段生成：长章节拆成多个短段，每段独立调用 LLM 降低超时风险
@@ -793,7 +806,8 @@ class GeneratorService:
 
     async def _generate_outline_5layer(self, story_elements, gender, genre, style,
                                         chapter_count, per_chapter_min, per_chapter_max,
-                                        outline_prompts=None) -> AsyncGenerator[dict, None]:
+                                        outline_prompts=None,
+                                        enable_suspense=True, enable_twist=True) -> AsyncGenerator[dict, None]:
         """五层独立大纲生成器：每层一次微型 LLM 调用，串行 yield 事件"""
         elements_str = json.dumps(story_elements, ensure_ascii=False, indent=2)
         layer_configs = [
@@ -833,6 +847,15 @@ class GeneratorService:
                     summaries[k] = compact[:500]
             previous_layers = json.dumps(summaries, ensure_ascii=False)[:3000]
 
+            enhanced_cliffhanger_requirement = (
+                "【悬念要求】每章必须设计一个章节结尾悬念（cliffhanger字段），让读者「停不下来」。"
+                if enable_suspense else ""
+            )
+            twist_requirement = (
+                "【反转要求】全篇至少安排一次意外反转（不超过2次），在对应章节的scenes中标注反转场景。"
+                if enable_twist else ""
+            )
+
             prompt = self._safe_format(
                 tpl,
                 gender=gender, genre=genre, style=style,
@@ -840,6 +863,8 @@ class GeneratorService:
                 previous_layers=previous_layers,
                 chapter_count=str(chapter_count),
                 per_chapter_min=str(per_chapter_min), per_chapter_max=str(per_chapter_max),
+                enhanced_cliffhanger_requirement=enhanced_cliffhanger_requirement,
+                twist_requirement=twist_requirement,
             )
 
             raw = await self._call_llm(prompt, timeout=120)
@@ -1050,11 +1075,4 @@ class GeneratorService:
         return result.strip() or "未命名小说"
 
 
-def _strip_leading_title(content: str, title: str) -> str:
-    lines = content.strip().split("\n")
-    if lines:
-        first = lines[0].strip()
-        if re.match(r"^#{1,3}\s+", first):
-            if title in first or re.search(r"第[一二三四五六七八九十\d]+章", first):
-                lines = lines[1:]
-    return "\n".join(lines).strip()
+

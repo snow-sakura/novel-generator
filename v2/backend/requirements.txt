@@ -2,13 +2,14 @@ fastapi
 uvicorn[standard]
 sqlalchemy>=2.0.35
 python-dotenv>=1.0.1
-langchain-core>=0.3.17,<0.4
-langchain>=0.3.0,<0.4
+langchain-core>=1.0.0
+langchain>=1.0.0
 langchain-openai>=0.2.0
 langchain-anthropic>=0.3.0
 langchain-community
 reportlab
 markdown
 aiofiles
+langchain-ollama>=0.2.0
 pydantic>=2.9.0
 crewai>=1.14.0

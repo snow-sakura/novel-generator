@@ -177,31 +177,4 @@ CHINESE_MODELS = [
     },
 ]
 
-# ========== 默认提示词模板 ==========
-DEFAULT_PROMPTS = {
-    "parse": (
-        "你是一位专业的小说创作助手。根据用户输入的一句话，"
-        "提取并补全以下故事六要素，以 JSON 格式输出，key 使用英文：\n"
-        "character（人物身份背景）, time（时代时间段）, place（主要场景）, "
-        "cause（起点）, process（发展方向）, result（结局倾向）"
-    ),
-    "outline": (
-        '根据以下故事要素，规划一篇{gender}频道{genre}题材的{style}风格小说大纲。\n'
-        '目标总字数{word_count}字，按每章{chapter_words}字分配章节。\n'
-        '要求每章给出标题和100字概要，注意黄金三章的开篇吸引力，'
-        '起承转合完整，结尾收束有力。\n以JSON数组格式输出，每项含title和summary。'
-    ),
-    "chapter": (
-        "你正在创作{gender}频道{genre}题材、{style}风格的小说。\n"
-        "当前章节：{chapter_title}\n章节概要：{chapter_summary}\n"
-        "前情提要：{previous_summary}\n\n"
-        "【重要】本章目标字数约{target_words}字，请务必达到。\n"
-        "不要提前结束，内容要充实，细节要丰富。\n"
-        "要求：- 每段100-200字 - 对话与描写交替 - 保持{style}风格统一\n"
-        "- 注意节奏起伏 - 输出Markdown格式 - 不要在内容中重复输出章节标题"
-    ),
-    "title": (
-        "根据小说全文，为这篇{gender}频道{genre}题材的小说起一个吸引人的标题。\n"
-        "要求：贴合主题、有网文吸引力、5-15字。\n直接输出标题，不要多余内容。"
-    ),
-}
+

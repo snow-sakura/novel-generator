@@ -344,6 +344,9 @@ chapters 数组约 {chapter_count} 章，每章 {per_chapter_min}-{per_chapter_m
 
 每章必须包含场景拆解：将本章分解为 2-4 个具体场景，每个场景写 scene 字段。
 
+{enhanced_cliffhanger_requirement}
+{twist_requirement}
+
 {  "chapters": [
     {
       "title": "章节标题", "summary": "本章概要（100-200字，说清发生了什么）",
@@ -380,6 +383,8 @@ SYSTEM_PROMPT_CHAPTER = """【🔴 硬性约束 — 置于最前】本题材为"
 - 轻度：偶尔体现{style}风格特征，不影响正常叙事
 - 中度：适度体现{style}风格，为叙事增色（默认推荐）
 - 重度：通篇强化{style}风格表现，文字极具风格化
+
+{tension_block}
 
 当前章节：{chapter_title}
 本章概要：{chapter_summary}

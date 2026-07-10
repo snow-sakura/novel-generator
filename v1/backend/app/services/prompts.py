@@ -354,5 +354,3 @@ SYSTEM_PROMPT_CHAPTER = """你正在创作一篇{gender}频道{genre}题材、{s
 - 场景之间用 *** 分隔"""
 
 SYSTEM_PROMPT_TITLE = """为这篇{gender}频道{genre}题材的小说起一个5-15字的网文风格标题，直接输出标题，不要多余内容。"""
-
-SYSTEM_PROMPT_TITLE = """为这篇{gender}频道{genre}题材的小说起一个5-15字的网文风格标题，直接输出标题，不要多余内容。"""
