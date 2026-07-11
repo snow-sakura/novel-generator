@@ -1,10 +1,11 @@
 """段落润色 API — SSE 流式返回润色内容"""
 import json
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
+from app.database import SessionLocal, get_db
 from app.models.novel import Novel
 from app.models.generation_record import GenerationRecord
 from app.models.paragraph_version import ParagraphVersion
@@ -29,33 +30,27 @@ class RefineRequest(BaseModel):
 
 
 @router.post("/refine")
-async def refine_paragraph(req: RefineRequest):
+async def refine_paragraph(req: RefineRequest, db: Session = Depends(get_db)):
     """SSE 流式润色段落"""
     if req.action not in ("rewrite", "expand", "compress", "insert_quote"):
         raise HTTPException(status_code=400, detail="action 必须是 rewrite/expand/compress/insert_quote")
 
     # 验证小说或生成记录存在
-    db = SessionLocal()
-    try:
-        # novel_id 可能是 GenerationRecord.id（前端传递的 record_id）
-        novel = db.query(Novel).filter(Novel.id == req.novel_id).first()
-        if not novel:
-            # 尝试查询 GenerationRecord
-            record = db.query(GenerationRecord).filter(
-                GenerationRecord.id == req.novel_id
-            ).first()
-            if not record:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"小说/记录不存在 (id={req.novel_id})"
-                )
-            # 如果 record 有关联 novel，使用 novel 的风格参数
-            if record.novel_id:
-                novel = db.query(Novel).filter(Novel.id == record.novel_id).first()
-        if not novel:
-            raise HTTPException(status_code=404, detail="小说不存在")
-    finally:
-        db.close()
+    # novel_id 可能是 GenerationRecord.id（前端传递的 record_id）
+    novel = db.query(Novel).filter(Novel.id == req.novel_id).first()
+    if not novel:
+        record = db.query(GenerationRecord).filter(
+            GenerationRecord.id == req.novel_id
+        ).first()
+        if not record:
+            raise HTTPException(
+                status_code=404,
+                detail=f"小说/记录不存在 (id={req.novel_id})"
+            )
+        if record.novel_id:
+            novel = db.query(Novel).filter(Novel.id == record.novel_id).first()
+    if not novel:
+        raise HTTPException(status_code=404, detail="小说不存在")
 
     # 读取 novel 的风格参数作为默认值
     if not req.style and novel and novel.style:
@@ -89,10 +84,10 @@ async def refine_paragraph(req: RefineRequest):
                 yield f"event: error\ndata: {json.dumps({'message': '润色结果为空，请重试'}, ensure_ascii=False)}\n\n"
                 return
 
-            # 保存润色版本到数据库
-            db = SessionLocal()
+            # 保存润色版本到数据库（SSE generator 内无法使用 Depends，需手动管理 session）
+            save_db = SessionLocal()
             try:
-                existing = db.query(ParagraphVersion).filter(
+                existing = save_db.query(ParagraphVersion).filter(
                     ParagraphVersion.novel_id == req.novel_id,
                     ParagraphVersion.chapter_index == req.chapter_index,
                     ParagraphVersion.paragraph_index == req.paragraph_index,
@@ -110,12 +105,12 @@ async def refine_paragraph(req: RefineRequest):
                     content=result,
                     version=new_version,
                 )
-                db.add(version)
-                db.commit()
+                save_db.add(version)
+                save_db.commit()
 
                 yield f"event: complete\ndata: {json.dumps({'version': new_version, 'total_versions': 3}, ensure_ascii=False)}\n\n"
             finally:
-                db.close()
+                save_db.close()
 
         except Exception as e:
             yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
@@ -128,27 +123,24 @@ async def get_paragraph_versions(
     novel_id: int = Query(..., description="小说/记录 ID"),
     chapter_index: int = Query(..., description="章节索引"),
     paragraph_index: int = Query(..., description="段落索引"),
+    db: Session = Depends(get_db),
 ):
     """获取段落的历史版本（最多 3 版）"""
-    db = SessionLocal()
-    try:
-        versions = db.query(ParagraphVersion).filter(
-            ParagraphVersion.novel_id == novel_id,
-            ParagraphVersion.chapter_index == chapter_index,
-            ParagraphVersion.paragraph_index == paragraph_index,
-        ).order_by(ParagraphVersion.version.desc()).limit(3).all()
+    versions = db.query(ParagraphVersion).filter(
+        ParagraphVersion.novel_id == novel_id,
+        ParagraphVersion.chapter_index == chapter_index,
+        ParagraphVersion.paragraph_index == paragraph_index,
+    ).order_by(ParagraphVersion.version.desc()).limit(3).all()
 
-        return {
-            "versions": [
-                {
-                    "id": v.id,
-                    "action": v.action,
-                    "content": v.content,
-                    "version": v.version,
-                    "created_at": v.created_at.isoformat() if v.created_at else "",
-                }
-                for v in versions
-            ]
-        }
-    finally:
-        db.close()
+    return {
+        "versions": [
+            {
+                "id": v.id,
+                "action": v.action,
+                "content": v.content,
+                "version": v.version,
+                "created_at": v.created_at.isoformat() if v.created_at else "",
+            }
+            for v in versions
+        ]
+    }

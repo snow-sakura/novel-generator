@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db, SessionLocal
+from app.database import get_db
 from app.models.model_config import ModelConfig
 from app.config import settings
 
@@ -67,78 +67,66 @@ def _get_or_seed_env_default(db):
 
 
 @router.get("")
-async def get_model_config():
+async def get_model_config(db: Session = Depends(get_db)):
     """获取当前激活的配置；无持久化配置时自动从 .env 读取并写入数据库"""
-    db = SessionLocal()
-    try:
-        config = db.query(ModelConfig).filter(ModelConfig.is_default == True).first()
-        if config and config.provider and config.model_id:
-            # 如果 active 配置是 opencode-mimo 但 model_id 与 .env 不一致 → 更新
-            if config.provider == "opencode-mimo" and config.model_id != (settings.opencode_model or "deepseek-v4-flash-free"):
-                config = _get_or_seed_env_default(db)
-            return {
-                "provider": config.provider,
-                "label": config.label,
-                "base_url": config.base_url,
-                "model_id": config.model_id,
-                "api_key": config.api_key or "",
-            }
-        # 无有效配置时从 .env 种子并返回
-        env_config = _get_or_seed_env_default(db)
+    config = db.query(ModelConfig).filter(ModelConfig.is_default == True).first()
+    if config and config.provider and config.model_id:
+        # 如果 active 配置是 opencode-mimo 但 model_id 与 .env 不一致 → 更新
+        if config.provider == "opencode-mimo" and config.model_id != (settings.opencode_model or "deepseek-v4-flash-free"):
+            config = _get_or_seed_env_default(db)
         return {
-            "provider": env_config.provider,
-            "label": env_config.label,
-            "base_url": env_config.base_url,
-            "model_id": env_config.model_id,
-            "api_key": env_config.api_key or "",
+            "provider": config.provider,
+            "label": config.label,
+            "base_url": config.base_url,
+            "model_id": config.model_id,
+            "api_key": config.api_key or "",
         }
-    finally:
-        db.close()
+    # 无有效配置时从 .env 种子并返回
+    env_config = _get_or_seed_env_default(db)
+    return {
+        "provider": env_config.provider,
+        "label": env_config.label,
+        "base_url": env_config.base_url,
+        "model_id": env_config.model_id,
+        "api_key": env_config.api_key or "",
+    }
 
 
 @router.put("")
-async def save_model_config(data: ModelConfigSchema):
+async def save_model_config(data: ModelConfigSchema, db: Session = Depends(get_db)):
     """保存模型配置（按 provider+model_id 去重），标记为激活"""
-    db = SessionLocal()
-    try:
-        if not data.provider:
-            # 恢复默认：清除激活标记，下次 GET 自动从 .env 重新种子
-            db.query(ModelConfig).update({ModelConfig.is_default: False})
-            db.commit()
-            return {"status": "ok"}
-
-        # 查找是否有相同 (provider, model_id) 的已有记录
-        config = db.query(ModelConfig).filter(
-            ModelConfig.provider == data.provider,
-            ModelConfig.model_id == data.model_id,
-        ).first()
-
-        now = datetime.now()
-        if config:
-            config.label = data.label
-            config.base_url = data.base_url
-            config.api_key = data.api_key
-            config.is_default = True
-            config.updated_at = now
-        else:
-            # 存入新配置（保留历史）
-            config = ModelConfig(
-                provider=data.provider,
-                label=data.label,
-                base_url=data.base_url,
-                model_id=data.model_id,
-                api_key=data.api_key,
-                is_default=True,
-                created_at=now,
-                updated_at=now,
-            )
-            db.add(config)
-
-        # 该配置标记为默认，其他配置取消默认
-        db.query(ModelConfig).filter(ModelConfig.id != config.id).update(
-            {ModelConfig.is_default: False}
-        )
+    if not data.provider:
+        db.query(ModelConfig).update({ModelConfig.is_default: False})
         db.commit()
         return {"status": "ok"}
-    finally:
-        db.close()
+
+    config = db.query(ModelConfig).filter(
+        ModelConfig.provider == data.provider,
+        ModelConfig.model_id == data.model_id,
+    ).first()
+
+    now = datetime.now()
+    if config:
+        config.label = data.label
+        config.base_url = data.base_url
+        config.api_key = data.api_key
+        config.is_default = True
+        config.updated_at = now
+    else:
+        config = ModelConfig(
+            provider=data.provider,
+            label=data.label,
+            base_url=data.base_url,
+            model_id=data.model_id,
+            api_key=data.api_key,
+            is_default=True,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(config)
+
+    db.query(ModelConfig).filter(ModelConfig.id != config.id).update(
+        {ModelConfig.is_default: False}
+    )
+    db.commit()
+    return {"status": "ok"}

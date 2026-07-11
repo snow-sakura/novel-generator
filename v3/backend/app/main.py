@@ -5,11 +5,6 @@ import uvicorn
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-# CrewAI Agent 初始化需要 OPENAI_API_KEY 环境变量（即使不使用 OpenAI），
-# 在应用启动前设置占位值，避免 CrewAI 内部校验报错
-if not os.environ.get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = "sk-crewai-placeholder"
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

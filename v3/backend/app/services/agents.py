@@ -1,10 +1,21 @@
-"""CrewAI 智能体定义 — 四角色小说生成团队
+"""多智能体角色定义 — 四角色小说生成团队
 
-注意：这些 Agent 仅用于角色定义（role/goal/backstory），
+注意：这些 Agent 定义现为纯数据容器（dataclass），
 实际的 LLM 调用走项目自己的 LLMProvider 流式管线。
-不传 llm 参数，避免 CrewAI 做无效的 LLM 连接校验。
+CrewAI 依赖已移除（原有 Agent 从未参与实际编排）。
 """
-from crewai import Agent
+from dataclasses import dataclass, field
+from typing import Optional
+
+
+@dataclass
+class Agent:
+    """轻量 Agent 数据容器 — 替代 crewai.Agent"""
+    role: str
+    goal: str
+    backstory: str
+    verbose: bool = False
+    allow_delegation: bool = False
 
 
 def create_parser_agent() -> Agent:

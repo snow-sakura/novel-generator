@@ -251,35 +251,27 @@ async def generate_novel(req: GenerateRequest):
         return StreamingResponse(error_stream(), media_type="text/event-stream")
 
     # 创建生成记录
-    db = SessionLocal()
-    record = GenerationRecord(
-        params=json.dumps(req.model_dump(exclude={"llm_config"}), ensure_ascii=False),
-        status="in_progress",
-        seed_text=req.seed_text,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-    )
-    db.add(record)
-    db.commit()
-    record_id = record.id
-    db.close()
+    init_db = SessionLocal()
+    try:
+        record = GenerationRecord(
+            params=json.dumps(req.model_dump(exclude={"llm_config"}), ensure_ascii=False),
+            status="in_progress",
+            seed_text=req.seed_text,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        init_db.add(record)
+        init_db.commit()
+        record_id = record.id
+    finally:
+        init_db.close()
 
     llm = get_llm_provider(req.llm_config)
     service = GeneratorService(llm)
 
     async def event_stream():
+        db = SessionLocal()
         thinking_logs = []
-        def _save_logs():
-            if thinking_logs and record_id:
-                db_l = SessionLocal()
-                try:
-                    rec = db_l.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
-                    if rec:
-                        rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
-                        db_l.commit()
-                finally:
-                    db_l.close()
-
         try:
             async for event in service.generate(
                 seed_text=req.seed_text, gender=req.gender, genre=req.genre,
@@ -307,55 +299,43 @@ async def generate_novel(req: GenerateRequest):
                     })
                 # 保存完整大纲到生成记录
                 if event['event'] == 'outline_done':
-                    db_o = SessionLocal()
-                    try:
-                        rec_o = db_o.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
-                        if rec_o:
-                            rec_o.outline_data = json.dumps(event['data'].get('outline', {}), ensure_ascii=False)
-                            db_o.commit()
-                    finally:
-                        db_o.close()
+                    rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+                    if rec:
+                        rec.outline_data = json.dumps(event['data'].get('outline', {}), ensure_ascii=False)
+                        db.commit()
                 # 保存情感曲线到生成记录
                 if event['event'] == 'emotion_curve' and isinstance(event['data'], list):
-                    db_ec = SessionLocal()
-                    try:
-                        rec_ec = db_ec.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
-                        if rec_ec:
-                            od = json.loads(rec_ec.outline_data) if rec_ec.outline_data else {}
-                            od['emotion_curve'] = event['data']
-                            rec_ec.outline_data = json.dumps(od, ensure_ascii=False)
-                            db_ec.commit()
-                    finally:
-                        db_ec.close()
+                    rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+                    if rec:
+                        od = json.loads(rec.outline_data) if rec.outline_data else {}
+                        od['emotion_curve'] = event['data']
+                        rec.outline_data = json.dumps(od, ensure_ascii=False)
+                        db.commit()
                 # 关键节点保存日志
                 if event['event'] in ('chapter_end', 'complete', 'error'):
-                    _save_logs()
+                    rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+                    if rec:
+                        rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                        db.commit()
                 yield f"event: {event['event']}\ndata: {json.dumps(event['data'], ensure_ascii=False)}\n\n"
         except Exception as e:
             yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
             _log(f"event_stream 异常: {e}")
-            _save_logs()
-            db_e = SessionLocal()
-            try:
-                rec = db_e.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
-                if rec and rec.status == "in_progress":
-                    rec.status = "failed"
-                    rec.error_message = f"连接中断: {e}"
-                    db_e.commit()
-            finally:
-                db_e.close()
+            rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+            if rec and rec.status == "in_progress":
+                rec.status = "failed"
+                rec.error_message = f"连接中断: {e}"
+                rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                db.commit()
         finally:
-            _save_logs()
-            # 确保记录不会卡在 in_progress
-            db_f = SessionLocal()
-            try:
-                rec = db_f.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
-                if rec and rec.status == "in_progress":
-                    rec.status = "failed"
-                    rec.error_message = "生成中断（客户端断开）"
-                    db_f.commit()
-            finally:
-                db_f.close()
+            rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+            if rec and rec.status == "in_progress":
+                rec.status = "failed"
+                rec.error_message = "生成中断（客户端断开）"
+                if thinking_logs:
+                    rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                db.commit()
+            db.close()
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -461,18 +441,8 @@ async def continue_generation(record_id: int = Query(...)):
     service = GeneratorService(llm)
 
     async def event_stream():
+        db = SessionLocal()
         thinking_logs = json.loads(record.thinking_logs) if record.thinking_logs else []
-        def _save_logs():
-            if thinking_logs and new_record_id:
-                db_l = SessionLocal()
-                try:
-                    rec = db_l.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
-                    if rec:
-                        rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
-                        db_l.commit()
-                finally:
-                    db_l.close()
-
         try:
             yield f"event: continue_from\ndata: {json.dumps({'original_record_id': record_id}, ensure_ascii=False)}\n\n"
             async for event in service.generate(
@@ -499,31 +469,28 @@ async def continue_generation(record_id: int = Query(...)):
                         'text': str(msg),
                     })
                 if event['event'] in ('chapter_end', 'complete', 'error'):
-                    _save_logs()
+                    rec = db.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
+                    if rec:
+                        rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                        db.commit()
                 yield f"event: {event['event']}\ndata: {json.dumps(event['data'], ensure_ascii=False)}\n\n"
         except Exception as e:
             yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
-            _save_logs()
-            db_e = SessionLocal()
-            try:
-                rec = db_e.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
-                if rec and rec.status == "in_progress":
-                    rec.status = "failed"
-                    rec.error_message = f"连接中断: {e}"
-                    db_e.commit()
-            finally:
-                db_e.close()
+            rec = db.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
+            if rec and rec.status == "in_progress":
+                rec.status = "failed"
+                rec.error_message = f"连接中断: {e}"
+                rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                db.commit()
         finally:
-            _save_logs()
-            db_f = SessionLocal()
-            try:
-                rec = db_f.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
-                if rec and rec.status == "in_progress":
-                    rec.status = "failed"
-                    rec.error_message = "生成中断（客户端断开）"
-                    db_f.commit()
-            finally:
-                db_f.close()
+            rec = db.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
+            if rec and rec.status == "in_progress":
+                rec.status = "failed"
+                rec.error_message = "生成中断（客户端断开）"
+                if thinking_logs:
+                    rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                db.commit()
+            db.close()
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -652,46 +619,41 @@ async def list_genres(gender: str = "男频"):
 # ── 数据清理 ──
 
 @router.post("/cleanup")
-async def cleanup_orphaned_data():
+async def cleanup_orphaned_data(db: Session = Depends(get_db)):
     """清理无效数据：孤立的生成中记录、无主的生成记录、失败的小说"""
-    db = SessionLocal()
     cleaned = {"orphaned_records": 0, "orphaned_novels": 0, "failed_novels": 0}
-    try:
-        # 1. 清理无 novel_id 且状态为 in_progress 超过 30 分钟的记录
-        from datetime import timedelta
-        cutoff = datetime.now() - timedelta(minutes=30)
-        stale_records = db.query(GenerationRecord).filter(
-            GenerationRecord.novel_id.is_(None),
-            GenerationRecord.status == "in_progress",
-            GenerationRecord.updated_at < cutoff,
-        ).all()
-        cleaned["orphaned_records"] = len(stale_records)
-        for rec in stale_records:
-            db.delete(rec)
 
-        # 2. 清理 title 为 "生成中..." 或包含 "生成中断" 的小说
-        bad_novels = db.query(Novel).filter(
-            (Novel.title == "生成中...") | (Novel.title.like("%生成中断%"))
-        ).all()
-        cleaned["orphaned_novels"] = len(bad_novels)
-        for novel in bad_novels:
-            # 同时清理关联的生成记录
-            db.query(GenerationRecord).filter(GenerationRecord.novel_id == novel.id).delete()
-            db.delete(novel)
+    # 1. 清理无 novel_id 且状态为 in_progress 超过 30 分钟的记录
+    from datetime import timedelta
+    cutoff = datetime.now() - timedelta(minutes=30)
+    stale_records = db.query(GenerationRecord).filter(
+        GenerationRecord.novel_id.is_(None),
+        GenerationRecord.status == "in_progress",
+        GenerationRecord.updated_at < cutoff,
+    ).all()
+    cleaned["orphaned_records"] = len(stale_records)
+    for rec in stale_records:
+        db.delete(rec)
 
-        # 3. 清理没有 content 的已完成记录（无效记录）
-        empty_completed = db.query(GenerationRecord).filter(
-            GenerationRecord.status == "completed",
-            GenerationRecord.novel_id.is_(None),
-        ).all()
-        cleaned["failed_novels"] += len(empty_completed)
-        for rec in empty_completed:
-            db.delete(rec)
+    # 2. 清理 title 为 "生成中..." 或包含 "生成中断" 的小说
+    bad_novels = db.query(Novel).filter(
+        (Novel.title == "生成中...") | (Novel.title.like("%生成中断%"))
+    ).all()
+    cleaned["orphaned_novels"] = len(bad_novels)
+    for novel in bad_novels:
+        db.query(GenerationRecord).filter(GenerationRecord.novel_id == novel.id).delete()
+        db.delete(novel)
 
-        db.commit()
-    finally:
-        db.close()
+    # 3. 清理没有 content 的已完成记录（无效记录）
+    empty_completed = db.query(GenerationRecord).filter(
+        GenerationRecord.status == "completed",
+        GenerationRecord.novel_id.is_(None),
+    ).all()
+    cleaned["failed_novels"] += len(empty_completed)
+    for rec in empty_completed:
+        db.delete(rec)
 
+    db.commit()
     _log(f"数据清理完成: {cleaned}")
     return {"status": "ok", "cleaned": cleaned}
 

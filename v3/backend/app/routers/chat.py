@@ -1,10 +1,11 @@
 """AI 对话式生成 — SSE 流式接口"""
 import json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
+from app.database import get_db
 from app.models.generation_record import GenerationRecord
 from app.llm.provider import get_llm_provider, get_provider_config_status
 from app.services.chat_service import ChatService
@@ -17,7 +18,7 @@ class ChatGenerateRequest(BaseModel):
 
 
 @router.post("/chat/generate")
-async def chat_generate(req: ChatGenerateRequest):
+async def chat_generate(req: ChatGenerateRequest, db: Session = Depends(get_db)):
     """AI 对话生成 — 输入一句话，自动完成全流程生成"""
     if not req.message.strip():
         return {"error": "消息不能为空"}
@@ -32,7 +33,6 @@ async def chat_generate(req: ChatGenerateRequest):
     service = ChatService(llm)
 
     # 创建生成记录
-    db = SessionLocal()
     record = GenerationRecord(
         params=json.dumps({"seed_text": req.message}, ensure_ascii=False),
         status="in_progress",
@@ -41,7 +41,6 @@ async def chat_generate(req: ChatGenerateRequest):
     db.add(record)
     db.commit()
     record_id = record.id
-    db.close()
 
     async def event_stream():
         try:
