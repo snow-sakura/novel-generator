@@ -34,8 +34,18 @@ novels_index.json
 v1/backend/*.db
 v2/backend/*.db
 v3/backend/*.db
+novel-build-system/v1/backend/*.db
+novel-build-system/v2/backend/*.db
+novel-build-system/v3/backend/*.db
 *.pytest_cache/
+
+# Python venv (multiple locations)
+.venv/
+backend/.venv/
+novel-build-system/*/backend/.venv/
+novel-build-test/.venv/
 
 # IDE / Tools
 .opencode/
 .mimocode/
+.idea/

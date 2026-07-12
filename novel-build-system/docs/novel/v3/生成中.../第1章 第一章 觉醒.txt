@@ -1,0 +1,9 @@
+第一章 觉醒
+
+{"outline": {"strategy": "一个普通青年获得异能后的成长故事", "characters": [{"name": "主角", "role": "主人公", "description": "普通青年"}], "worldview": "现代都市背景，存在隐藏的异能世界", "structure": "三幕式结构", "pacing": "前期轻松，后期紧张", "style_notes": "幽默风趣的叙述风格"}, "chapters": [{"index": 0, "title": "第一章 觉醒", "summary": "主角发现自己的异能"}, {"index": 1, "title": "第二章 初试", "summary": "主角第一次使用异能"}, {"index": 2, "title": "第三章 危机", "summary": "主角面临第一个挑战"}]}
+
+{"title": "异能觉醒：都市传奇"}
+
+{"title": "异能觉醒：都市传奇"}
+
+{"title": "异能觉醒：都市传奇"}

@@ -1,0 +1,75 @@
+[project]
+name = "novel-build-test"
+version = "0.1.0"
+description = "AI-driven multi-project test platform with full STLC lifecycle"
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "sse-starlette>=2.2.1",
+    "python-multipart>=0.0.18",
+
+    # Database
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14.0",
+    "aiosqlite>=0.20.0",
+
+    # Serialization
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+
+    # AI Agent Framework
+    "crewai>=0.100.0",
+    "langgraph>=0.2.0",
+    "langchain>=0.3.0",
+    "langchain-community>=0.3.0",
+
+    # Vector Knowledge Base
+    "chromadb>=0.6.0",
+    "sentence-transformers>=3.3.0",
+
+    # Document Parsing
+    "python-docx>=1.1.2",
+    "markdown>=3.7.0",
+
+    # HTTP / API
+    "httpx>=0.28.0",
+
+    # Testing
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+
+    # Utilities
+    "python-dateutil>=2.9.0",
+    "pyyaml>=6.0.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.13.0",
+    "ruff>=0.8.0",
+    "ipython>=8.30.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
