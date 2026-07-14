@@ -229,18 +229,20 @@
 |------|------|------|------|
 | page | int | 1 | |
 | page_size | int | 20 | |
-| project_id | int | - | 按项目筛选（空=全局） |
-| source_type | str | - | 按来源筛选 |
-| status | str | - | 按状态筛选 |
+| project_id | int | - | 按项目筛选 |
+| source | str | - | 按来源筛选 (manual/file/api) |
+| collection | str | - | 按向量集合筛选 |
 | search | str | - | 按标题搜索 |
 
 ### POST /api/v1/knowledge
 
-创建知识条目。
+创建知识条目（自动同步到 Qdrant 向量库）。
 
 ```json
 // Request
-{ "project_id": 1, "title": "API 接口文档", "content": "完整文档内容...", "source_type": "document", "tags": "API,文档" }
+{ "project_id": 1, "title": "API 接口文档", "content": "文档内容...", "source": "manual", "tags": "API,文档", "collection_name": "tech_doc_knowledge" }
+// Response 201
+{ "id": 1, "title": "API 接口文档", "vector_synced": true, "vector_id": "uuid...", ... }
 ```
 
 ### GET /api/v1/knowledge/{id}
@@ -249,65 +251,71 @@
 
 ### PUT /api/v1/knowledge/{id}
 
-更新知识。
-
-### DELETE /api/v1/knowledge/{id}
-
-删除知识。返回 204。
-
-### POST /api/v1/knowledge/search
-
-语义检索知识库。
+更新知识（自动重新同步到向量库）。
 
 ```json
 // Request
-{ "query": "登录测试方法", "project_id": 1, "limit": 5 }
-// Response 200
-{ "results": [{ "id": 1, "title": "登录测试用例", "content": "...", "score": 0.95, "source_type": "document" }], "total": 3 }
+{ "title": "新标题", "content": "新内容", "tags": "API,文档,更新" }
 ```
 
-### GET /api/v1/knowledge/collections
+### DELETE /api/v1/knowledge/{id}
 
-获取向量集合状态。
+删除知识（同时删除向量库中的对应点）。返回 204。
+
+### POST /api/v1/knowledge/search
+
+语义检索知识库（直接查询 Qdrant）。
 
 ```json
+// Request
+{ "query": "登录测试方法", "collection_name": "tech_doc_knowledge", "limit": 10, "score_threshold": 0.5 }
 // Response 200
-{ "collections": [{ "name": "project:1:knowledge", "status": "ready", "points_count": 120, "dimension": 384 }] }
+[{ "id": "uuid_point_id", "score": 0.95, "payload": { "title": "...", "content": "...", "doc_id": 1 } }]
 ```
+
+### POST /api/v1/knowledge/{id}/sync
+
+手动触发指定知识条目同步到向量库。
 
 ---
 
-## 七、设置
+## 七、系统设置（键值对）
 
 ### GET /api/v1/settings
 
-获取设置列表。
+获取所有设置项。
 
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
-| category | str | - | 按分类筛选 (model/prompt/tool/environment/skill) |
+| key | str | - | 按键名模糊筛选 |
 
-### PUT /api/v1/settings/{category}/{key}
+### POST /api/v1/settings
+
+创建设置项。
+
+```json
+// Request
+{ "key": "llm.default_model", "value": "deepseek-v3", "description": "默认 LLM 模型" }
+// Response 201
+{ "id": 1, "key": "llm.default_model", "value": "deepseek-v3", "description": "默认 LLM 模型", "updated_at": "..." }
+```
+
+### GET /api/v1/settings/{key}
+
+获取单个设置项。
+
+### PUT /api/v1/settings/{key}
 
 更新设置项。
 
 ```json
 // Request
-{ "value": { "api_key": "sk-xxx", "model": "deepseek-v3" }, "description": "DeepSeek 配置" }
+{ "value": "qwen-max", "description": "默认 LLM 模型（更新）" }
 ```
 
-### GET /api/v1/settings/{category}/{key}
+### DELETE /api/v1/settings/{key}
 
-获取单个设置项。
-
-### GET /api/v1/settings/categories
-
-获取所有分类列表。
-
-```json
-// Response 200
-{ "categories": ["model", "prompt", "tool", "environment", "skill"] }
-```
+删除设置项。返回 204。
 
 ---
 

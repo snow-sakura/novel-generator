@@ -10,7 +10,7 @@ AISQA（AI Software Quality Assurance）是一个基于国产大模型的 AI-Nat
 - **双引擎架构**：LangGraph 有状态工作流 + AutoGen 多模型辩论引擎
 - **4 层模型分级策略**：DeepSeek-V3(¥1/M) 处理 70% 常规任务，DeepSeek-R1(¥2/M) 负责推理审计，GLM-4(¥15/M) 结构化输出，Qwen-Max(¥20/M) 复杂决策
 - **AI-Native 4 支柱**：向量数据库(Qdrant) + 事件总线(Redis) + MCP 协议集成 + RAG 知识检索
-- **10 种测试类型全覆盖**：功能/性能/安全/兼容/回归/API/UI/集成/E2E/冒烟
+- **6 大公共模块全覆盖**：项目管理、需求管理、测试环境、测试资产、AI 知识库、系统设置
 - **暖白拍立得风格前端**：极简 Polaroid 卡片 UI + 交互动画
 - **人民币计价成本优化**：5 层优化策略（模型分级 + 缓存 + 批量 + 增量 + 结构化输出）
 - **JWT + RBAC 安全体系**：双因子认证 + 角色权限控制
@@ -78,10 +78,9 @@ novel-build-test/
 │   │   │   ├── execution_analyst.py    # 执行分析
 │   │   │   ├── quality_auditor.py      # 质量审计
 │   │   │   └── cost_optimizer.py       # 成本优化
-│   │   ├── models/              # SQLAlchemy ORM 模型
+│   │   ├── models/              # SQLAlchemy ORM 模型（10 个表）
 │   │   ├── schemas/             # Pydantic 请求/响应
-│   │   ├── routers/             # FastAPI 路由
-│   │   ├── services/            # 业务逻辑层
+│   │   ├── routers/             # FastAPI 路由（9 个模块）
 │   │   ├── vector_db/           # Qdrant 向量数据库
 │   │   ├── event_bus/           # Redis 事件总线
 │   │   ├── mcp_integration/     # MCP 协议集成
