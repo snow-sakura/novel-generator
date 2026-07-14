@@ -7,12 +7,9 @@ dist/
 *.db
 .env
 .venv/
-backend/.venv/
 
 # Node
 node_modules/
-frontend/dist/
-frontend/.vite/
 
 # IDE
 .idea/
@@ -21,31 +18,26 @@ frontend/.vite/
 *~
 .DS_Store
 
-# Vite
-frontend/dist/
-
 # Logs
 *.log
 
-# Generated data (user content)
+# Generated data
 novels_index.json
 
-# V1, V2, V3 databases
-v1/backend/*.db
-v2/backend/*.db
-v3/backend/*.db
-novel-build-system/v1/backend/*.db
-novel-build-system/v2/backend/*.db
-novel-build-system/v3/backend/*.db
-*.pytest_cache/
+# Test cache
+.pytest_cache/
 
-# Python venv (multiple locations)
-.venv/
-backend/.venv/
-novel-build-system/*/backend/.venv/
-novel-build-test/.venv/
+# Novel Build Test — AISQA
+novel-build-test/backend/.venv/
+novel-build-test/frontend/dist/
+novel-build-test/frontend/.vite/
+novel-build-test/frontend/.next/
 
-# IDE / Tools
+# Vector database data
+qdrant_storage/
+vector_db/
+.qdrant-initialized
+
+# Tools
 .opencode/
 .mimocode/
-.idea/

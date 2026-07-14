@@ -157,7 +157,7 @@ async def get_project_stats(
     from app.models.requirement import Requirement
     from app.models.environment import TestEnvironment
     from app.models.asset import TestAsset
-    from app.models.knowledge import KnowledgeEntry
+    from app.models.knowledge import KnowledgeDoc as KnowledgeEntry
 
     return {
         "total_requirements": await _safe_count(db, Requirement, Requirement.project_id, project_id),
