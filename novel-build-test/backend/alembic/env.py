@@ -5,6 +5,7 @@ from app.database import Base
 # 导入所有模型以触发 SQLAlchemy 元数据注册
 from app.models import (  # noqa: F401
     User, Project, AuditLog, AgentExecution, AgentDebateRecord,
+    Requirement,
 )
 
 config = context.config

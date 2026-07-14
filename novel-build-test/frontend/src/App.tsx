@@ -9,6 +9,7 @@ import DashboardPage from '@/pages/dashboard/DashboardPage'
 import ProjectListPage from '@/pages/projects/ProjectListPage'
 import ProjectDetailPage from '@/pages/projects/ProjectDetailPage'
 import RequirementsPage from '@/pages/requirements/RequirementsPage'
+import RequirementFormPage from '@/pages/requirements/RequirementFormPage'
 // 占位页面（后续批次实现完整 CRUD）
 import PlaceholderPage from '@/pages/_placeholder/PlaceholderPage'
 
@@ -34,6 +35,8 @@ export default function App() {
             <Route path="/projects" element={<ProjectListPage />} />
             <Route path="/projects/:id" element={<ProjectDetailPage />} />
             <Route path="/requirements" element={<RequirementsPage />} />
+            <Route path="/requirements/new" element={<RequirementFormPage />} />
+            <Route path="/requirements/:id" element={<RequirementFormPage />} />
             <Route path="/environments" element={<PlaceholderPage title="测试环境" />} />
             <Route path="/assets" element={<PlaceholderPage title="测试资产库" />} />
             <Route path="/knowledge" element={<PlaceholderPage title="AI 知识库" />} />

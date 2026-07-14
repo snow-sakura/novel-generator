@@ -69,6 +69,40 @@ export const projectApi = {
   }>(`/projects/${id}/stats`),
 }
 
+// ====== 需求 ======
+export interface RequirementItem {
+  id: number
+  project_id: number
+  title: string
+  description: string | null
+  module: string | null
+  priority: 'P0' | 'P1' | 'P2' | 'P3'
+  status: 'draft' | 'review' | 'approved' | 'implemented' | 'rejected'
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export const requirementApi = {
+  /** 获取需求列表 */
+  list: (params?: { page?: number; page_size?: number; project_id?: number; status?: string; priority?: string; search?: string }) =>
+    apiClient.get<PaginatedResponse<RequirementItem>>('/requirements', { params }),
+
+  /** 创建需求 */
+  create: (data: { project_id: number; title: string; description?: string; module?: string; priority?: string }) =>
+    apiClient.post<RequirementItem>('/requirements', data),
+
+  /** 获取需求详情 */
+  detail: (id: number) => apiClient.get<RequirementItem>(`/requirements/${id}`),
+
+  /** 更新需求 */
+  update: (id: number, data: Record<string, unknown>) =>
+    apiClient.put<RequirementItem>(`/requirements/${id}`, data),
+
+  /** 删除需求 */
+  delete: (id: number) => apiClient.delete(`/requirements/${id}`),
+}
+
 // ====== 审计日志 ======
 export interface AuditLogItem {
   id: number
