@@ -17,7 +17,7 @@ import AssetListPage from '@/pages/assets/AssetListPage'
 import AssetDetailPage from '@/pages/assets/AssetDetailPage'
 import KnowledgeListPage from '@/pages/knowledge/KnowledgeListPage'
 import KnowledgeDetailPage from '@/pages/knowledge/KnowledgeDetailPage'
-import PlaceholderPage from '@/pages/_placeholder/PlaceholderPage'
+import SettingsPage from '@/pages/settings/SettingsPage'
 
 /**
  * 应用根组件
@@ -54,7 +54,7 @@ export default function App() {
             <Route path="/knowledge/:id" element={<KnowledgeDetailPage />} />
 
             {/* 设置 */}
-            <Route path="/settings" element={<PlaceholderPage title="系统设置" />} />
+            <Route path="/settings" element={<SettingsPage />} />
 
             {/* 旧页面路由 — 保留但重定向到首页 */}
             <Route path="/test-cases" element={<Navigate to="/" replace />} />

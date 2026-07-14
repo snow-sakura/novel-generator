@@ -8,6 +8,7 @@ from app.models.requirement import Requirement
 from app.models.environment import TestEnvironment
 from app.models.asset import TestAsset
 from app.models.knowledge import KnowledgeDoc
+from app.models.setting import Setting
 
 __all__ = [
     "User",
@@ -19,4 +20,5 @@ __all__ = [
     "TestEnvironment",
     "TestAsset",
     "KnowledgeDoc",
+    "Setting",
 ]

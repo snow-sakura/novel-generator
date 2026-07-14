@@ -185,6 +185,34 @@ export const assetApi = {
   delete: (id: number) => apiClient.delete(`/assets/${id}`),
 }
 
+// ====== 系统设置 ======
+export interface SettingItem {
+  id: number
+  key: string
+  value: string
+  description: string | null
+  updated_at: string
+}
+
+export const settingsApi = {
+  /** 获取全部设置 */
+  list: () => apiClient.get<SettingItem[]>('/settings'),
+
+  /** 获取单项设置 */
+  getByKey: (key: string) => apiClient.get<SettingItem>(`/settings/${encodeURIComponent(key)}`),
+
+  /** 创建设置 */
+  create: (data: { key: string; value: string; description?: string }) =>
+    apiClient.post<SettingItem>('/settings', data),
+
+  /** 更新设置 */
+  update: (key: string, data: { value: string; description?: string }) =>
+    apiClient.put<SettingItem>(`/settings/${encodeURIComponent(key)}`, data),
+
+  /** 删除设置 */
+  delete: (key: string) => apiClient.delete(`/settings/${encodeURIComponent(key)}`),
+}
+
 // ====== AI 知识库 ======
 export interface KnowledgeItem {
   id: number
