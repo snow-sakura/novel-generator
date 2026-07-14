@@ -13,6 +13,8 @@ import RequirementFormPage from '@/pages/requirements/RequirementFormPage'
 // 占位页面（后续批次实现完整 CRUD）
 import EnvironmentListPage from '@/pages/environments/EnvironmentListPage'
 import EnvironmentConfigPage from '@/pages/environments/EnvironmentConfigPage'
+import AssetListPage from '@/pages/assets/AssetListPage'
+import AssetDetailPage from '@/pages/assets/AssetDetailPage'
 import PlaceholderPage from '@/pages/_placeholder/PlaceholderPage'
 
 /**
@@ -42,7 +44,9 @@ export default function App() {
             <Route path="/environments" element={<EnvironmentListPage />} />
             <Route path="/environments/new" element={<EnvironmentConfigPage />} />
             <Route path="/environments/:id" element={<EnvironmentConfigPage />} />
-            <Route path="/assets" element={<PlaceholderPage title="测试资产库" />} />
+            <Route path="/assets" element={<AssetListPage />} />
+            <Route path="/assets/new" element={<AssetDetailPage />} />
+            <Route path="/assets/:id" element={<AssetDetailPage />} />
             <Route path="/knowledge" element={<PlaceholderPage title="AI 知识库" />} />
 
             {/* 设置 */}

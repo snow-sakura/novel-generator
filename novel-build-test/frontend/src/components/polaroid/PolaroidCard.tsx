@@ -3,12 +3,14 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 export interface PolaroidCardProps {
+  /** 卡片子元素（用于自定义内容模式） */
+  children?: ReactNode
   /** 卡片图标/视觉元素 */
   icon?: ReactNode
   /** 卡片颜色标识（用于背景色块） */
   color?: string
   /** 标题 */
-  title: string
+  title?: string
   /** 副标题/描述 */
   subtitle?: string
   /** 主要统计数字（大字） */
@@ -39,6 +41,7 @@ export interface PolaroidCardProps {
  * - 悬浮动画：上移 + 回正 + 阴影加深
  */
 export default function PolaroidCard({
+  children,
   icon,
   color,
   title,
@@ -95,10 +98,15 @@ export default function PolaroidCard({
         </div>
       )}
 
+      {/* 自定义内容（children 模式，覆盖默认渲染） */}
+      {children ? (
+        <div>{children}</div>
+      ) : (
+        <>
       {/* 标题区 */}
       <div className="mb-1 text-center">
         <h3 className="text-base font-semibold text-[var(--polaroid-text)]">
-          {title}
+          {title ?? ""}
         </h3>
         {subtitle && (
           <p className="mt-0.5 text-xs text-[var(--polaroid-text-muted)]">
@@ -146,6 +154,9 @@ export default function PolaroidCard({
           </span>
         </div>
       )}
+      </>
+      )}
+
     </motion.div>
   )
 }

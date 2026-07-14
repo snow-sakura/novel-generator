@@ -142,6 +142,49 @@ export const environmentApi = {
   deploy: (id: number) => apiClient.post(`/environments/${id}/deploy`),
 }
 
+// ====== 测试资产 ======
+export interface AssetResponse {
+  id: number
+  project_id: number
+  name: string
+  type: 'file' | 'script' | 'data' | 'config' | 'image' | 'other'
+  tags: string | null
+  file_path: string | null
+  file_size: number
+  content: string | null
+  version: number
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export interface AssetUpdate {
+  name: string
+  type?: string
+  tags?: string
+  content?: string
+}
+
+export const assetApi = {
+  /** 获取资产列表 */
+  list: (params?: { page?: number; pageSize?: number; project_id?: number; type?: string; tags?: string; search?: string }) =>
+    apiClient.get<PaginatedResponse<AssetResponse>>('/assets', { params }),
+
+  /** 创建资产 */
+  create: (data: { project_id: number; name: string; type?: string; tags?: string | null; content?: string | null }) =>
+    apiClient.post<AssetResponse>('/assets', data),
+
+  /** 获取资产详情 */
+  getById: (id: number) => apiClient.get<AssetResponse>(`/assets/${id}`),
+
+  /** 更新资产 */
+  update: (id: number, data: AssetUpdate) =>
+    apiClient.put<AssetResponse>(`/assets/${id}`, data),
+
+  /** 删除资产 */
+  delete: (id: number) => apiClient.delete(`/assets/${id}`),
+}
+
 // ====== 审计日志 ======
 export interface AuditLogItem {
   id: number
