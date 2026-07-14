@@ -1,0 +1,42 @@
+# ===== Web框架 & 服务器 =====
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.12
+httpx==0.27.0
+
+# ===== 数据库 =====
+sqlalchemy==2.0.35
+aiomysql==0.2.0
+alembic==1.18.5
+PyMySQL==1.2.0
+
+# ===== 认证安全 =====
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ===== Pydantic配置 =====
+pydantic==2.13.4
+pydantic-settings==2.5.0
+python-dotenv==1.2.2
+
+# ===== 向量数据库 =====
+qdrant-client==1.13.0
+
+# ===== 消息队列 =====
+redis==5.2.1
+
+# ===== AI Agent框架 =====
+langgraph==0.4.0
+langchain==0.3.20
+pyautogen==0.8.0
+
+# ===== RAG管道 =====
+sentence-transformers==3.4.1
+
+# ===== MCP协议 =====
+mcp==1.3.0
+
+# ===== 工具 =====
+beautifulsoup4==4.13.3
+numpy==2.2.4
+aiofiles==24.1.0
