@@ -59,6 +59,14 @@ export const projectApi = {
 
   /** 删除项目 */
   delete: (id: number) => apiClient.delete(`/projects/${id}`),
+
+  /** 获取项目统计 */
+  stats: (id: number) => apiClient.get<{
+    total_requirements: number
+    total_environments: number
+    total_assets: number
+    total_knowledge: number
+  }>(`/projects/${id}/stats`),
 }
 
 // ====== 审计日志 ======
