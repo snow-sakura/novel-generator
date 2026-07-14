@@ -185,6 +185,49 @@ export const assetApi = {
   delete: (id: number) => apiClient.delete(`/assets/${id}`),
 }
 
+// ====== AI 知识库 ======
+export interface KnowledgeItem {
+  id: number
+  project_id: number
+  title: string
+  content: string | null
+  source: 'manual' | 'file' | 'api'
+  tags: string | null
+  collection_name: string
+  vector_id: string | null
+  vector_synced: boolean
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export const knowledgeApi = {
+  /** 获取知识列表 */
+  list: (params?: { page?: number; pageSize?: number; project_id?: number; collection?: string; source?: string; search?: string }) =>
+    apiClient.get<PaginatedResponse<KnowledgeItem>>('/knowledge', { params }),
+
+  /** 创建知识条目 */
+  create: (data: { project_id: number; title: string; content?: string | null; source?: string; tags?: string | null; collection_name?: string }) =>
+    apiClient.post<KnowledgeItem>('/knowledge', data),
+
+  /** 获取知识详情 */
+  getById: (id: number) => apiClient.get<KnowledgeItem>(`/knowledge/${id}`),
+
+  /** 更新知识 */
+  update: (id: number, data: { title?: string; content?: string | null; source?: string; tags?: string | null }) =>
+    apiClient.put<KnowledgeItem>(`/knowledge/${id}`, data),
+
+  /** 删除知识 */
+  delete: (id: number) => apiClient.delete(`/knowledge/${id}`),
+
+  /** 同步到向量库 */
+  sync: (id: number) => apiClient.post<KnowledgeItem>(`/knowledge/${id}/sync`),
+
+  /** 语义搜索 */
+  search: (params: { query: string; collection_name?: string; limit?: number }) =>
+    apiClient.post<Array<{ id: string; score: number; payload: Record<string, unknown> }>>('/knowledge/search', params),
+}
+
 // ====== 审计日志 ======
 export interface AuditLogItem {
   id: number

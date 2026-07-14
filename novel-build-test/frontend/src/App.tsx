@@ -15,6 +15,8 @@ import EnvironmentListPage from '@/pages/environments/EnvironmentListPage'
 import EnvironmentConfigPage from '@/pages/environments/EnvironmentConfigPage'
 import AssetListPage from '@/pages/assets/AssetListPage'
 import AssetDetailPage from '@/pages/assets/AssetDetailPage'
+import KnowledgeListPage from '@/pages/knowledge/KnowledgeListPage'
+import KnowledgeDetailPage from '@/pages/knowledge/KnowledgeDetailPage'
 import PlaceholderPage from '@/pages/_placeholder/PlaceholderPage'
 
 /**
@@ -47,7 +49,9 @@ export default function App() {
             <Route path="/assets" element={<AssetListPage />} />
             <Route path="/assets/new" element={<AssetDetailPage />} />
             <Route path="/assets/:id" element={<AssetDetailPage />} />
-            <Route path="/knowledge" element={<PlaceholderPage title="AI 知识库" />} />
+            <Route path="/knowledge" element={<KnowledgeListPage />} />
+            <Route path="/knowledge/new" element={<KnowledgeDetailPage />} />
+            <Route path="/knowledge/:id" element={<KnowledgeDetailPage />} />
 
             {/* 设置 */}
             <Route path="/settings" element={<PlaceholderPage title="系统设置" />} />

@@ -7,6 +7,7 @@ from app.models.agent import AgentExecution, AgentDebateRecord
 from app.models.requirement import Requirement
 from app.models.environment import TestEnvironment
 from app.models.asset import TestAsset
+from app.models.knowledge import KnowledgeDoc
 
 __all__ = [
     "User",
@@ -17,4 +18,5 @@ __all__ = [
     "Requirement",
     "TestEnvironment",
     "TestAsset",
+    "KnowledgeDoc",
 ]
