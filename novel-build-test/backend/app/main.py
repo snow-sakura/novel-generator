@@ -164,13 +164,14 @@ async def health_check():
 
 # ==================== 注册路由 ====================
 
-from app.routers import auth, projects, audit_logs, agents, requirements
+from app.routers import auth, projects, audit_logs, agents, requirements, environments
 
 app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(audit_logs.router)
 app.include_router(agents.router)
 app.include_router(requirements.router)
+app.include_router(environments.router)
 
 # ===== AI-Native API 路由 =====
 

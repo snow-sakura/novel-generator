@@ -103,6 +103,45 @@ export const requirementApi = {
   delete: (id: number) => apiClient.delete(`/requirements/${id}`),
 }
 
+// ====== 测试环境 ======
+export interface EnvironmentItem {
+  id: number
+  project_id: number
+  name: string
+  type: 'dev' | 'test' | 'staging' | 'production' | 'custom'
+  config: Record<string, string> | null
+  status: 'preparing' | 'ready' | 'in_use' | 'maintenance' | 'unavailable'
+  owner_id: number
+  created_at: string
+  updated_at: string
+}
+
+export const environmentApi = {
+  /** 获取环境列表 */
+  list: (params?: { page?: number; page_size?: number; project_id?: number; status?: string; type?: string }) =>
+    apiClient.get<PaginatedResponse<EnvironmentItem>>('/environments', { params }),
+
+  /** 创建环境 */
+  create: (data: { project_id: number; name: string; type?: string; config?: Record<string, string> }) =>
+    apiClient.post<EnvironmentItem>('/environments', data),
+
+  /** 获取环境详情 */
+  detail: (id: number) => apiClient.get<EnvironmentItem>(`/environments/${id}`),
+
+  /** 更新环境 */
+  update: (id: number, data: Record<string, unknown>) =>
+    apiClient.put<EnvironmentItem>(`/environments/${id}`, data),
+
+  /** 删除环境 */
+  delete: (id: number) => apiClient.delete(`/environments/${id}`),
+
+  /** 健康检查 */
+  healthCheck: (id: number) => apiClient.post(`/environments/${id}/health-check`),
+
+  /** 部署环境 */
+  deploy: (id: number) => apiClient.post(`/environments/${id}/deploy`),
+}
+
 // ====== 审计日志 ======
 export interface AuditLogItem {
   id: number

@@ -5,6 +5,7 @@ from app.models.project import Project
 from app.models.audit_log import AuditLog
 from app.models.agent import AgentExecution, AgentDebateRecord
 from app.models.requirement import Requirement
+from app.models.environment import TestEnvironment
 
 __all__ = [
     "User",
@@ -13,4 +14,5 @@ __all__ = [
     "AgentExecution",
     "AgentDebateRecord",
     "Requirement",
+    "TestEnvironment",
 ]

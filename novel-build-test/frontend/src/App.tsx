@@ -11,6 +11,8 @@ import ProjectDetailPage from '@/pages/projects/ProjectDetailPage'
 import RequirementsPage from '@/pages/requirements/RequirementsPage'
 import RequirementFormPage from '@/pages/requirements/RequirementFormPage'
 // 占位页面（后续批次实现完整 CRUD）
+import EnvironmentListPage from '@/pages/environments/EnvironmentListPage'
+import EnvironmentConfigPage from '@/pages/environments/EnvironmentConfigPage'
 import PlaceholderPage from '@/pages/_placeholder/PlaceholderPage'
 
 /**
@@ -37,7 +39,9 @@ export default function App() {
             <Route path="/requirements" element={<RequirementsPage />} />
             <Route path="/requirements/new" element={<RequirementFormPage />} />
             <Route path="/requirements/:id" element={<RequirementFormPage />} />
-            <Route path="/environments" element={<PlaceholderPage title="测试环境" />} />
+            <Route path="/environments" element={<EnvironmentListPage />} />
+            <Route path="/environments/new" element={<EnvironmentConfigPage />} />
+            <Route path="/environments/:id" element={<EnvironmentConfigPage />} />
             <Route path="/assets" element={<PlaceholderPage title="测试资产库" />} />
             <Route path="/knowledge" element={<PlaceholderPage title="AI 知识库" />} />
 
