@@ -1,0 +1,69 @@
+/* ===== AISQA 暖白拍立得主题 =====
+ * 暖色系 (amber/stone/rose) Polaroid 相纸风格
+ */
+
+:root {
+  /* 暖白基础色板 */
+  --polaroid-white: #FEFDFB;
+  --polaroid-cream: #FFF8F0;
+  --polaroid-warm: #FAF5F0;
+  --polaroid-border: #E8DDD0;
+  --polaroid-shadow: rgba(180, 120, 60, 0.12);
+  --polaroid-shadow-hover: rgba(180, 120, 60, 0.20);
+  --polaroid-text: #3D3229;
+  --polaroid-text-muted: #8B7D72;
+
+  /* 强调色 */
+  --amber-primary: #F59E0B;
+  --amber-hover: #D97706;
+  --amber-light: #FEF3C7;
+  --orange-secondary: #F97316;
+  --rose-accent: #E11D48;
+  --rose-light: #FFE4E6;
+
+  /* shadcn/ui 覆盖 — 暖白主题 */
+  --background: 48 100% 97%;
+  --foreground: 24 10% 20%;
+  --card: 48 100% 99%;
+  --card-foreground: 24 10% 20%;
+  --popover: 48 100% 99%;
+  --popover-foreground: 24 10% 20%;
+  --primary: 38 92% 50%;
+  --primary-foreground: 48 100% 97%;
+  --secondary: 24 95% 53%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 48 20% 92%;
+  --muted-foreground: 24 5% 45%;
+  --accent: 340 82% 52%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 38 30% 80%;
+  --input: 38 30% 80%;
+  --ring: 38 92% 50%;
+  --radius: 0.75rem;
+
+  /* 侧边栏 — 暖白深色变体 */
+  --sidebar-background: 30 20% 15%;
+  --sidebar-foreground: 30 10% 85%;
+  --sidebar-primary: 38 92% 50%;
+  --sidebar-primary-foreground: 30 20% 10%;
+  --sidebar-accent: 30 15% 22%;
+  --sidebar-accent-foreground: 30 10% 85%;
+  --sidebar-border: 30 15% 22%;
+}
+
+/* Pollaroid 卡片阴影 */
+.shadow-polaroid {
+  box-shadow:
+    0 2px 4px var(--polaroid-shadow),
+    0 8px 24px var(--polaroid-shadow),
+    0 0 0 1px var(--polaroid-border);
+}
+
+.shadow-polaroid-hover {
+  box-shadow:
+    0 4px 8px var(--polaroid-shadow-hover),
+    0 16px 48px var(--polaroid-shadow-hover),
+    0 0 0 1px var(--polaroid-border);
+}
