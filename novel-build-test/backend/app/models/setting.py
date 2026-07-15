@@ -1,14 +1,13 @@
 """系统设置模型 — AISQA 键值对配置存储"""
 
-import datetime
-
-from sqlalchemy import DateTime, Integer, String, Text, func
+from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from app.models.base import TimestampMixin
 
 
-class Setting(Base):
+class Setting(TimestampMixin, Base):
     """系统设置表（键值对存储）
 
     属性说明：
@@ -16,7 +15,6 @@ class Setting(Base):
         key: 设置键名（唯一）
         value: 设置值
         description: 设置说明
-        updated_at: 最后更新时间
     """
 
     __tablename__ = "settings"
@@ -28,9 +26,6 @@ class Setting(Base):
     value: Mapped[str] = mapped_column(Text, nullable=False, comment="设置值")
     description: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="设置说明"
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间"
     )
 
     def __repr__(self) -> str:

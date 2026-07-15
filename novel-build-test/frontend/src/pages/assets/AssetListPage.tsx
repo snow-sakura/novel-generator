@@ -86,8 +86,8 @@ export default function AssetListPage() {
       const data = {
         name: form.name,
         type: form.type,
-        tags: form.tags || null,
-        content: form.content || null,
+        tags: form.tags || undefined,
+        content: form.content || undefined,
       }
       if (editAsset) {
         await assetApi.update(editAsset.id, data)

@@ -2,13 +2,14 @@
 
 import datetime
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from app.models.base import TimestampMixin
 
 
-class TestExecution(Base):
+class TestExecution(TimestampMixin, Base):
     """测试执行表
 
     3.1.1: 记录每次测试执行的完整信息，包括状态、关联 Agent 执行、时间、摘要。
@@ -24,8 +25,6 @@ class TestExecution(Base):
         summary: 执行摘要 JSON（包含总用例/通过/失败/跳过/耗时等）
         error_message: 错误信息
         created_by: 创建者用户 ID
-        created_at: 创建时间
-        updated_at: 更新时间
     """
 
     __tablename__ = "test_executions"
@@ -56,12 +55,6 @@ class TestExecution(Base):
     )
     created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), comment="创建时间"
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间"
     )
 
     def __repr__(self) -> str:

@@ -29,6 +29,13 @@ async def get_db():
 async def init_db():
     """初始化数据库（自动建表）"""
     async with engine.begin() as conn:
-        # 延迟导入模型以触发注册
-        from app.models import user, project, audit_log, agent  # noqa: F401
+        # 导入所有模型以触发 SQLAlchemy 元数据注册
+        from app.models import (  # noqa: F401
+            user, role, project, audit_log, agent,
+            requirement, environment, asset, knowledge,
+            setting, test_execution, test_report,
+            model_provider, prompt, workflow_template, deai,
+            test_modules,
+            chat, hermes, skill, integration,
+        )
         await conn.run_sync(Base.metadata.create_all)

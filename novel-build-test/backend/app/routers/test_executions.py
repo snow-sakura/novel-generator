@@ -18,6 +18,7 @@ from app.schemas.test_execution import (
     ExecutionPage,
     ExecutionResponse,
     ExecutionUpdate,
+    execution_page_from_query,
 )
 from app.services.executor import (
     cancel_execution as _cancel_exec,
@@ -63,7 +64,7 @@ async def list_project_executions(
     result = await db.execute(query)
     items = list(result.scalars().all())
 
-    return ExecutionPage.from_query(items, total, page, page_size)
+    return execution_page_from_query(items, total, page, page_size)
 
 
 @router.post(

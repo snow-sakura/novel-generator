@@ -11,7 +11,6 @@ import {
   MessageSquare,
   Loader2,
   CheckCircle2,
-  XCircle,
   Scale,
   ArrowLeft,
   AlertTriangle,

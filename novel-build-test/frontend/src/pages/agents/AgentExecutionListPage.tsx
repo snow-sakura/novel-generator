@@ -33,10 +33,6 @@ import {
 } from '@/components/ui/pagination'
 import {
   Loader2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  AlertTriangle,
   RefreshCw,
   BrainCircuit,
   Search,
@@ -89,7 +85,7 @@ export default function AgentExecutionListPage() {
         project_id: projectIdFromRoute ? Number(projectIdFromRoute) : undefined,
         status: statusFilter || undefined,
       })
-      setExecutions(res.data.items)
+      setExecutions(res.data.items as unknown as ExecutionItem[])
       setTotal(res.data.total)
     } catch {
       setExecutions([])

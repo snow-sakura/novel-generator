@@ -50,14 +50,10 @@ class KnowledgeResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class KnowledgePage(BaseModel):
-    """知识条目分页响应"""
+# 泛型分页别名
+from app.schemas.base import Page
 
-    items: list[KnowledgeResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+KnowledgePage = Page[KnowledgeResponse]
 
 
 class KnowledgeSearchParams(BaseModel):

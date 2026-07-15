@@ -49,11 +49,7 @@ class AssetResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class AssetPage(BaseModel):
-    """资产分页响应"""
+# 泛型分页别名
+from app.schemas.base import Page
 
-    items: list[AssetResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+AssetPage = Page[AssetResponse]

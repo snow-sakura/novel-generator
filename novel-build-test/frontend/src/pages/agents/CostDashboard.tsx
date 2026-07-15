@@ -21,11 +21,9 @@ import {
 import {
   DollarSign,
   Cpu,
-  FileText,
   Activity,
   ArrowLeft,
   RefreshCw,
-  Loader2,
 } from 'lucide-react'
 import { agentApi, type CostStats } from '@/lib/api-service'
 
@@ -195,15 +193,15 @@ export default function CostDashboard() {
                       cx="50%"
                       cy="50%"
                       outerRadius={90}
-                      label={({ model, percent }) =>
-                        `${model} ${(percent * 100).toFixed(0)}%`
+                      label={(entry: any) =>
+                        `${entry.model || ''} ${(entry.percent * 100).toFixed(0)}%`
                       }
                     >
                       {modelData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => `¥${value.toFixed(4)}`} />
+                    <Tooltip formatter={(value: any) => `¥${Number(value).toFixed(4)}`} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -223,7 +221,7 @@ export default function CostDashboard() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" fontSize={12} />
                     <YAxis fontSize={12} />
-                    <Tooltip formatter={(value: number) => `¥${value.toFixed(4)}`} />
+                    <Tooltip formatter={(value: any) => `¥${Number(value).toFixed(4)}`} />
                     <Bar dataKey="cost" fill={COLORS[0]} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

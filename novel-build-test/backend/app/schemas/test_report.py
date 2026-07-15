@@ -1,7 +1,6 @@
 """测试报告相关 Pydantic 模型 — 请求与响应"""
 
 import datetime
-import math
 
 from pydantic import BaseModel, Field
 
@@ -38,21 +37,12 @@ class ReportResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ReportPage(BaseModel):
-    """报告列表分页响应"""
+# 泛型分页别名
+from app.schemas.base import Page, page_from_query
 
-    items: list[ReportResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+ReportPage = Page["ReportResponse"]
 
-    @classmethod
-    def from_query(cls, items: list, total: int, page: int, page_size: int) -> "ReportPage":
-        return cls(
-            items=[ReportResponse.model_validate(e) for e in items],
-            total=total,
-            page=page,
-            page_size=page_size,
-            total_pages=math.ceil(total / page_size) if total > 0 else 0,
-        )
+
+def report_page_from_query(items: list, total: int, page: int, page_size: int) -> ReportPage:
+    """构造报告分页响应"""
+    return page_from_query(ReportResponse, items, total, page, page_size)

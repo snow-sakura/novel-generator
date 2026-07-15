@@ -1,7 +1,6 @@
 """测试执行相关 Pydantic 模型 — 请求与响应"""
 
 import datetime
-import math
 
 from pydantic import BaseModel, Field
 
@@ -42,21 +41,12 @@ class ExecutionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ExecutionPage(BaseModel):
-    """执行列表分页响应"""
+# 泛型分页别名
+from app.schemas.base import Page, page_from_query
 
-    items: list[ExecutionResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+ExecutionPage = Page["ExecutionResponse"]
 
-    @classmethod
-    def from_query(cls, items: list, total: int, page: int, page_size: int) -> "ExecutionPage":
-        return cls(
-            items=[ExecutionResponse.model_validate(e) for e in items],
-            total=total,
-            page=page,
-            page_size=page_size,
-            total_pages=math.ceil(total / page_size) if total > 0 else 0,
-        )
+
+def execution_page_from_query(items: list, total: int, page: int, page_size: int) -> ExecutionPage:
+    """构造执行记录分页响应"""
+    return page_from_query(ExecutionResponse, items, total, page, page_size)

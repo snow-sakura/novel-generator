@@ -45,11 +45,7 @@ class RequirementResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class RequirementPage(BaseModel):
-    """需求分页响应"""
+# 泛型分页别名
+from app.schemas.base import Page
 
-    items: list[RequirementResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+RequirementPage = Page[RequirementResponse]

@@ -462,6 +462,101 @@ export const agentApi = {
     智能体?: string;
     输入?: Record<string, unknown>;
   }) => apiClient.post('/agents/execute-single', data),
+
+  // ====== 需求分析智能体 ======
+  /** 触发需求分析 */
+  requirementsAnalyze: (data: { requirement_text: string; project_id?: number }) =>
+    apiClient.post<{ execution_id: number; status: string }>('/agents/requirements/analyze', data),
+
+  /** 需求分析状态 */
+  requirementsStatus: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string }>(`/agents/requirements/${execution_id}/status`),
+
+  /** 需求分析结果 */
+  requirementsResult: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string; result: unknown }>(`/agents/requirements/${execution_id}/result`),
+
+  // ====== 测试架构智能体 ======
+  /** 触发架构设计 */
+  architectDesign: (data: { requirement_id?: number; requirement_text?: string }) =>
+    apiClient.post<{ execution_id: number; status: string }>('/agents/architect/design', data),
+
+  /** 架构设计状态 */
+  architectStatus: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string }>(`/agents/architect/${execution_id}/status`),
+
+  /** 架构设计结果 */
+  architectResult: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string; result: unknown }>(`/agents/architect/${execution_id}/result`),
+
+  // ====== 测试设计智能体 ======
+  /** 触发场景设计 */
+  designerDesign: (data: { architecture_id?: number; requirement_text?: string }) =>
+    apiClient.post<{ execution_id: number; status: string }>('/agents/designer/design', data),
+
+  /** 场景设计状态 */
+  designerStatus: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string }>(`/agents/designer/${execution_id}/status`),
+
+  /** 场景设计结果 */
+  designerResult: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string; result: unknown }>(`/agents/designer/${execution_id}/result`),
+
+  // ====== 用例编写智能体 ======
+  /** 触发用例生成 */
+  casewriterGenerate: (data: { design_id?: number; scenario_text?: string }) =>
+    apiClient.post<{ execution_id: number; status: string }>('/agents/casewriter/generate', data),
+
+  /** 用例生成状态 */
+  casewriterStatus: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string }>(`/agents/casewriter/${execution_id}/status`),
+
+  /** 用例生成结果 */
+  casewriterResult: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string; result: unknown }>(`/agents/casewriter/${execution_id}/result`),
+
+  /** 导入测试用例 */
+  casewriterImport: (execution_id: number) =>
+    apiClient.post<{ message: string }>(`/agents/casewriter/${execution_id}/import`),
+
+  // ====== 执行分析智能体 ======
+  /** 触发执行分析 */
+  executionAnalyze: (data: { execution_id?: number; log_text?: string }) =>
+    apiClient.post<{ execution_id: number; status: string }>('/agents/execution/analyze', data),
+
+  /** 执行分析状态 */
+  executionStatus: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string }>(`/agents/execution/${execution_id}/status`),
+
+  /** 执行分析结果 */
+  executionResult: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string; result: unknown }>(`/agents/execution/${execution_id}/result`),
+
+  // ====== 质量审计智能体 ======
+  /** 触发质量审计 */
+  qualityAudit: (data: { execution_id?: number; project_id?: number }) =>
+    apiClient.post<{ execution_id: number; status: string }>('/agents/quality/audit', data),
+
+  /** 质量审计状态 */
+  qualityStatus: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string }>(`/agents/quality/${execution_id}/status`),
+
+  /** 质量审计结果 */
+  qualityResult: (execution_id: number) =>
+    apiClient.get<{ execution_id: number; status: string; result: unknown }>(`/agents/quality/${execution_id}/result`),
+
+  // ====== 成本相关 ======
+  /** 成本概览 */
+  costOverview: () => apiClient.get('/agents/cost/overview'),
+
+  /** 成本趋势 */
+  costTrend: () => apiClient.get('/agents/cost/trend'),
+
+  /** 成本分布 */
+  costDistribution: () => apiClient.get('/agents/cost/distribution'),
+
+  /** 成本优化建议 */
+  costSuggestions: () => apiClient.get('/agents/cost/suggestions'),
 }
 
 // ====== 测试执行 ======
@@ -539,6 +634,41 @@ export const reportApi = {
     apiClient.get<ReportItem>(`/reports/${reportId}`),
 }
 
+// ====== AI 助手 ======
+export interface QuickActionItem {
+  key: string
+  label: string
+  icon: string
+}
+
+export interface AssistantOverviewData {
+  project_count: number
+  execution_count: number
+  pass_rate: number
+  recent_activities: Array<{
+    id: number
+    action: string
+    entity_type: string
+    entity_id: number
+    actor_name: string
+    created_at: string
+  }>
+}
+
+export const aiAssistantApi = {
+  /** 获取快捷操作列表 */
+  quickActions: () =>
+    apiClient.get<QuickActionItem[]>('/ai-assistant/quick-actions'),
+
+  /** 获取概览数据 */
+  overview: () =>
+    apiClient.get<AssistantOverviewData>('/ai-assistant/overview'),
+
+  /** 发送聊天消息 */
+  chat: (message: string) =>
+    apiClient.post<{ reply: string }>('/ai-assistant/chat', { message }),
+}
+
 // ====== AI-Native 子系统 ======
 export const aiNativeApi = {
   /** 系统健康状态 */
@@ -559,4 +689,355 @@ export const aiNativeApi = {
   /** 语义检索 */
   searchVectorDb: (data: { query?: string; collection_name?: string; limit?: number; 文本?: string; 集合?: string; 限制?: number }) =>
     apiClient.post('/vector-db/search', data),
+}
+
+// ====== 功能测试 ======
+export interface FunctionalTestCaseItem {
+  id: number
+  project_id: number
+  title: string
+  module: string | null
+  priority: 'P0' | 'P1' | 'P2' | 'P3'
+  status: 'draft' | 'ready' | 'passed' | 'failed' | 'blocked'
+  precondition: string | null
+  steps: string | null
+  expected: string | null
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export const functionalTestApi = {
+  /** 获取功能测试用例列表 */
+  list: (params?: { page?: number; page_size?: number; project_id?: number; status?: string; search?: string }) =>
+    apiClient.get<PaginatedResponse<FunctionalTestCaseItem>>('/test-functional/cases', { params }),
+
+  /** 创建功能测试用例 */
+  create: (data: Partial<FunctionalTestCaseItem>) =>
+    apiClient.post<FunctionalTestCaseItem>('/test-functional/cases', data),
+
+  /** 获取用例详情 */
+  detail: (id: number) => apiClient.get<FunctionalTestCaseItem>(`/test-functional/cases/${id}`),
+
+  /** 更新用例 */
+  update: (id: number, data: Partial<FunctionalTestCaseItem>) =>
+    apiClient.put<FunctionalTestCaseItem>(`/test-functional/cases/${id}`, data),
+
+  /** 删除用例 */
+  delete: (id: number) => apiClient.delete(`/test-functional/cases/${id}`),
+
+  /** 批量导入 */
+  importCases: (data: { cases: Partial<FunctionalTestCaseItem>[] }) =>
+    apiClient.post<{ imported: number }>('/test-functional/cases/import', data),
+
+  /** 执行用例 */
+  run: (id: number) => apiClient.post<{ execution_id: number }>(`/test-functional/cases/${id}/run`),
+}
+
+// ====== 接口测试 ======
+export interface ApiTestCaseItem {
+  id: number
+  project_id: number
+  name: string
+  url: string
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  headers: Record<string, string> | null
+  body: string | null
+  expected_status: number
+  expected_body: string | null
+  auto_test: boolean
+  status: 'draft' | 'ready' | 'passed' | 'failed'
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export const apiTestApi = {
+  /** 获取接口测试用例列表 */
+  list: (params?: { page?: number; page_size?: number; project_id?: number; search?: string }) =>
+    apiClient.get<PaginatedResponse<ApiTestCaseItem>>('/test-api/cases', { params }),
+
+  /** 创建接口测试用例 */
+  create: (data: Partial<ApiTestCaseItem>) =>
+    apiClient.post<ApiTestCaseItem>('/test-api/cases', data),
+
+  /** 获取用例详情 */
+  detail: (id: number) => apiClient.get<ApiTestCaseItem>(`/test-api/cases/${id}`),
+
+  /** 更新用例 */
+  update: (id: number, data: Partial<ApiTestCaseItem>) =>
+    apiClient.put<ApiTestCaseItem>(`/test-api/cases/${id}`, data),
+
+  /** 删除用例 */
+  delete: (id: number) => apiClient.delete(`/test-api/cases/${id}`),
+
+  /** 切换自动化开关 */
+  toggleAuto: (id: number, auto_test: boolean) =>
+    apiClient.put<ApiTestCaseItem>(`/test-api/cases/${id}/auto`, { auto_test }),
+
+  /** 执行用例 */
+  run: (id: number) => apiClient.post<{ execution_id: number }>(`/test-api/cases/${id}/run`),
+}
+
+// ====== Web自动化测试 ======
+export interface WebScriptItem {
+  id: number
+  project_id: number
+  name: string
+  description: string | null
+  type: 'selenium' | 'playwright' | 'cypress'
+  content: string | null
+  status: 'draft' | 'ready' | 'passed' | 'failed'
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export const webTestApi = {
+  /** 获取 Web 自动化脚本列表 */
+  list: (params?: { page?: number; page_size?: number; project_id?: number; search?: string }) =>
+    apiClient.get<PaginatedResponse<WebScriptItem>>('/test-web/scripts', { params }),
+
+  /** 获取脚本详情 */
+  detail: (id: number) => apiClient.get<WebScriptItem>(`/test-web/scripts/${id}`),
+
+  /** 创建脚本 */
+  create: (data: Partial<WebScriptItem>) =>
+    apiClient.post<WebScriptItem>('/test-web/scripts', data),
+
+  /** 更新脚本 */
+  update: (id: number, data: Partial<WebScriptItem>) =>
+    apiClient.put<WebScriptItem>(`/test-web/scripts/${id}`, data),
+
+  /** 删除脚本 */
+  delete: (id: number) => apiClient.delete(`/test-web/scripts/${id}`),
+
+  /** 执行脚本 */
+  run: (id: number) => apiClient.post<{ execution_id: number }>(`/test-web/scripts/${id}/run`),
+
+  /** 获取执行结果 */
+  result: (id: number) => apiClient.get<{ status: string; output: string }>(`/test-web/scripts/${id}/result`),
+}
+
+// ====== App自动化测试 ======
+export interface AppScriptItem {
+  id: number
+  project_id: number
+  name: string
+  description: string | null
+  platform: 'android' | 'ios' | 'both'
+  content: string | null
+  status: 'draft' | 'ready' | 'passed' | 'failed'
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export interface AppDeviceItem {
+  id: number
+  name: string
+  platform: 'android' | 'ios'
+  version: string
+  status: 'online' | 'offline' | 'busy'
+  udid: string
+  created_at: string
+}
+
+export const appTestApi = {
+  /** 获取 App 自动化脚本列表 */
+  listScripts: (params?: { page?: number; page_size?: number; project_id?: number; search?: string }) =>
+    apiClient.get<PaginatedResponse<AppScriptItem>>('/test-app/scripts', { params }),
+
+  /** 创建脚本 */
+  createScript: (data: Partial<AppScriptItem>) =>
+    apiClient.post<AppScriptItem>('/test-app/scripts', data),
+
+  /** 更新脚本 */
+  updateScript: (id: number, data: Partial<AppScriptItem>) =>
+    apiClient.put<AppScriptItem>(`/test-app/scripts/${id}`, data),
+
+  /** 删除脚本 */
+  deleteScript: (id: number) => apiClient.delete(`/test-app/scripts/${id}`),
+
+  /** 执行脚本 */
+  runScript: (id: number) => apiClient.post<{ execution_id: number }>(`/test-app/scripts/${id}/run`),
+
+  /** 获取设备列表 */
+  listDevices: (params?: { page?: number; page_size?: number; status?: string }) =>
+    apiClient.get<PaginatedResponse<AppDeviceItem>>('/test-app/devices', { params }),
+
+  /** 创建设备 */
+  createDevice: (data: Partial<AppDeviceItem>) =>
+    apiClient.post<AppDeviceItem>('/test-app/devices', data),
+
+  /** 更新设备 */
+  updateDevice: (id: number, data: Partial<AppDeviceItem>) =>
+    apiClient.put<AppDeviceItem>(`/test-app/devices/${id}`, data),
+
+  /** 删除设备 */
+  deleteDevice: (id: number) => apiClient.delete(`/test-app/devices/${id}`),
+}
+
+// ====== 性能测试 ======
+export interface PerfScriptItem {
+  id: number
+  project_id: number
+  name: string
+  description: string | null
+  type: 'jmeter' | 'locust' | 'k6' | 'custom'
+  content: string | null
+  config: Record<string, unknown> | null
+  status: 'draft' | 'ready' | 'running' | 'passed' | 'failed'
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export interface PerfMonitorItem {
+  id: number
+  script_id: number
+  timestamp: string
+  tps: number
+  avg_response_time: number
+  error_rate: number
+  cpu_usage: number
+  memory_usage: number
+}
+
+export const perfTestApi = {
+  /** 获取性能测试脚本列表 */
+  list: (params?: { page?: number; page_size?: number; project_id?: number; search?: string }) =>
+    apiClient.get<PaginatedResponse<PerfScriptItem>>('/test-perf/scripts', { params }),
+
+  /** 创建脚本 */
+  create: (data: Partial<PerfScriptItem>) =>
+    apiClient.post<PerfScriptItem>('/test-perf/scripts', data),
+
+  /** 更新脚本 */
+  update: (id: number, data: Partial<PerfScriptItem>) =>
+    apiClient.put<PerfScriptItem>(`/test-perf/scripts/${id}`, data),
+
+  /** 删除脚本 */
+  delete: (id: number) => apiClient.delete(`/test-perf/scripts/${id}`),
+
+  /** 执行脚本 */
+  run: (id: number) => apiClient.post<{ execution_id: number }>(`/test-perf/scripts/${id}/run`),
+
+  /** 获取脚本监控 */
+  monitor: (script_id: number) => apiClient.get<PerfMonitorItem>(`/test-perf/monitor/${script_id}`),
+
+  /** 获取监控历史 */
+  monitorHistory: (script_id: number) => apiClient.get<PerfMonitorItem[]>(`/test-perf/monitor/${script_id}/history`),
+}
+
+// ====== 安全测试 ======
+export interface SecurityScanItem {
+  id: number
+  project_id: number
+  name: string
+  type: 'vulnerability' | 'dependency' | 'code_scan' | 'compliance'
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  severity: 'critical' | 'high' | 'medium' | 'low' | null
+  result_summary: string | null
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export const securityTestApi = {
+  /** 获取安全扫描列表 */
+  list: (params?: { page?: number; page_size?: number; project_id?: number; status?: string }) =>
+    apiClient.get<PaginatedResponse<SecurityScanItem>>('/test-security/scans', { params }),
+
+  /** 创建扫描 */
+  create: (data: Partial<SecurityScanItem>) =>
+    apiClient.post<SecurityScanItem>('/test-security/scans', data),
+
+  /** 获取扫描详情 */
+  detail: (id: number) => apiClient.get<SecurityScanItem>(`/test-security/scans/${id}`),
+
+  /** 删除扫描 */
+  delete: (id: number) => apiClient.delete(`/test-security/scans/${id}`),
+
+  /** 运行扫描 */
+  run: (id: number) => apiClient.post<{ execution_id: number }>(`/test-security/scans/${id}/run`),
+
+  /** 获取扫描结果 */
+  result: (id: number) => apiClient.get<{ scan_id: number; status: string; findings: unknown[] }>(`/test-security/scans/${id}/result`),
+}
+
+// ====== UI测试 ======
+export interface UIBaselineItem {
+  id: number
+  project_id: number
+  name: string
+  url: string
+  viewport: string
+  image_url: string
+  diff_threshold: number
+  created_by: number
+  created_at: string
+}
+
+export const uiTestApi = {
+  /** 获取视觉基线列表 */
+  listBaselines: (params?: { page?: number; page_size?: number; project_id?: number }) =>
+    apiClient.get<PaginatedResponse<UIBaselineItem>>('/test-ui/baselines', { params }),
+
+  /** 创建基线 */
+  createBaseline: (data: Partial<UIBaselineItem>) =>
+    apiClient.post<UIBaselineItem>('/test-ui/baselines', data),
+
+  /** 获取基线详情 */
+  baselineDetail: (id: number) => apiClient.get<UIBaselineItem>(`/test-ui/baselines/${id}`),
+
+  /** 删除基线 */
+  deleteBaseline: (id: number) => apiClient.delete(`/test-ui/baselines/${id}`),
+
+  /** 视觉差异对比 */
+  visualDiff: (data: { baseline_id: number; screenshot_url: string }) =>
+    apiClient.post<{ diff_percent: number; diff_image_url: string }>('/test-ui/visual-diff', data),
+}
+
+// ====== 冒烟测试 ======
+export interface SmokeSuiteItem {
+  id: number
+  project_id: number
+  name: string
+  description: string | null
+  status: 'draft' | 'ready' | 'passed' | 'failed'
+  auto_trigger: boolean
+  trigger_config: Record<string, unknown> | null
+  last_run_at: string | null
+  last_run_status: string | null
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export const smokeTestApi = {
+  /** 获取冒烟测试套件列表 */
+  list: (params?: { page?: number; page_size?: number; project_id?: number; search?: string }) =>
+    apiClient.get<PaginatedResponse<SmokeSuiteItem>>('/test-smoke/suites', { params }),
+
+  /** 创建套件 */
+  create: (data: Partial<SmokeSuiteItem>) =>
+    apiClient.post<SmokeSuiteItem>('/test-smoke/suites', data),
+
+  /** 获取套件详情 */
+  detail: (id: number) => apiClient.get<SmokeSuiteItem>(`/test-smoke/suites/${id}`),
+
+  /** 更新套件 */
+  update: (id: number, data: Partial<SmokeSuiteItem>) =>
+    apiClient.put<SmokeSuiteItem>(`/test-smoke/suites/${id}`, data),
+
+  /** 删除套件 */
+  delete: (id: number) => apiClient.delete(`/test-smoke/suites/${id}`),
+
+  /** 运行套件 */
+  run: (id: number) => apiClient.post<{ execution_id: number }>(`/test-smoke/suites/${id}/run`),
+
+  /** 更新自动触发配置 */
+  updateAutoTrigger: (id: number, config: { auto_trigger: boolean; trigger_config?: Record<string, unknown> }) =>
+    apiClient.put<SmokeSuiteItem>(`/test-smoke/suites/${id}/auto`, config),
 }

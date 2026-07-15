@@ -1,14 +1,13 @@
 """测试资产模型 — AISQA 测试资产库"""
 
-import datetime
-
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.base import TimestampMixin
 
 
-class TestAsset(Base):
+class TestAsset(TimestampMixin, Base):
     """测试资产表
 
     属性说明：
@@ -22,8 +21,6 @@ class TestAsset(Base):
         content: 文本内容（小文件直接存储）
         version: 版本号
         created_by: 创建者用户 ID
-        created_at: 创建时间
-        updated_at: 更新时间
     """
 
     __tablename__ = "test_assets"
@@ -44,12 +41,6 @@ class TestAsset(Base):
     version: Mapped[int] = mapped_column(Integer, default=1, comment="版本号")
     created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), comment="创建时间"
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间"
     )
 
     # 关联

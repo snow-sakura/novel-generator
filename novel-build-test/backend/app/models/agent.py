@@ -2,7 +2,7 @@
 
 import datetime
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, JSON, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -85,7 +85,7 @@ class AgentDebateRecord(Base):
     stance: Mapped[str] = mapped_column(String(200), nullable=True, comment="立场说明")
     content: Mapped[str] = mapped_column(Text, nullable=False, comment="辩论内容")
     consensus_reached: Mapped[bool] = mapped_column(
-        type_=Integer, default=False, comment="是否达成共识"
+        Boolean, default=False, comment="是否达成共识"
     )
     final_decision: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="最终决策")
     arbitrator_notes: Mapped[str] = mapped_column(Text, nullable=True, comment="仲裁者备注")

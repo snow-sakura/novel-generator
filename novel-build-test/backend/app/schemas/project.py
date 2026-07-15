@@ -37,11 +37,7 @@ class ProjectResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ProjectPage(BaseModel):
-    """项目分页响应"""
+# 泛型分页别名 — 保持与路由导入兼容
+from app.schemas.base import Page
 
-    items: list[ProjectResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+ProjectPage = Page[ProjectResponse]

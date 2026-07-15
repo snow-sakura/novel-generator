@@ -1,15 +1,14 @@
 """测试环境模型 — AISQA 测试环境"""
 
-import datetime
-
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.base import TimestampMixin
 
 
-class TestEnvironment(Base):
+class TestEnvironment(TimestampMixin, Base):
     """测试环境表
 
     属性说明：
@@ -20,8 +19,6 @@ class TestEnvironment(Base):
         config: 配置信息（JSON，如 {"url":"...", "db":"..."}）
         status: 状态（preparing/ready/in_use/maintenance/unavailable）
         owner_id: 负责人用户 ID
-        created_at: 创建时间
-        updated_at: 更新时间
     """
 
     __tablename__ = "test_environments"
@@ -42,12 +39,6 @@ class TestEnvironment(Base):
     )
     owner_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, comment="负责人"
-    )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), comment="创建时间"
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间"
     )
 
     # 关联

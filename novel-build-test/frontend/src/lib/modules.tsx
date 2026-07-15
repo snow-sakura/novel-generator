@@ -62,11 +62,6 @@ export interface Module {
   lastRunTime?: string
 }
 
-/** 占位页面懒加载 */
-function ph(title: string): ComponentType {
-  const C = lazy(() => import('@/components/PlaceholderPage').then(m => ({ default: () => <m.default title={title} /> })))
-  return C as unknown as ComponentType
-}
 
 /** 所有大模块配置 — 按 7 个分组排列 */
 export const modules: Module[] = [
@@ -95,7 +90,7 @@ export const modules: Module[] = [
     signature: 'Audit Logs',
     group: '公共模块',
     subFeatures: [
-      { key: 'audit-list', title: '日志列表', subtitle: '分页查看操作记录', icon: ScrollText, color: '#78716C', component: ph('审计日志') },
+      { key: 'audit-list', title: '日志列表', subtitle: '分页查看操作记录', icon: ScrollText, color: '#78716C', component: lazy(() => import('@/pages/audit/AuditLogPage')) },
     ],
   },
   {
@@ -107,7 +102,7 @@ export const modules: Module[] = [
     signature: 'Auth & Security',
     group: '公共模块',
     subFeatures: [
-      { key: 'auth-users', title: '用户管理', subtitle: '注册、登录与权限控制', icon: Users, color: '#DC2626', component: ph('认证与安全') },
+      { key: 'auth-users', title: '用户管理', subtitle: '注册、登录与权限控制', icon: Users, color: '#DC2626', component: lazy(() => import('@/pages/auth/AuthSecurityPage')) },
     ],
   },
   {
@@ -119,10 +114,10 @@ export const modules: Module[] = [
     signature: 'Integration',
     group: '公共模块',
     subFeatures: [
-      { key: 'int-cicd', title: 'CI/CD 集成', subtitle: 'Jenkins/GitHub Actions Webhook', icon: Workflow, color: '#059669', component: ph('集成 - CI/CD') },
-      { key: 'int-notify', title: '通知渠道', subtitle: '邮件/钉钉/飞书/Slack 推送', icon: Bell, color: '#F59E0B', component: ph('集成 - 通知渠道') },
-      { key: 'int-tools', title: '外部工具对接', subtitle: 'Jira/禅道缺陷同步、Git 仓库', icon: Plug, color: '#3B82F6', component: ph('集成 - 外部工具') },
-      { key: 'int-device', title: '设备云连接', subtitle: 'BrowserStack/Sauce Labs 配置', icon: Globe, color: '#0891B2', component: ph('集成 - 设备云') },
+      { key: 'int-cicd', title: 'CI/CD 集成', subtitle: 'Jenkins/GitHub Actions Webhook', icon: Workflow, color: '#059669', component: lazy(() => import('@/pages/integration/IntegrationPage')) },
+      { key: 'int-notify', title: '通知渠道', subtitle: '邮件/钉钉/飞书/Slack 推送', icon: Bell, color: '#F59E0B', component: lazy(() => import('@/pages/integration/IntegrationPage')) },
+      { key: 'int-tools', title: '外部工具对接', subtitle: 'Jira/禅道缺陷同步、Git 仓库', icon: Plug, color: '#3B82F6', component: lazy(() => import('@/pages/integration/IntegrationPage')) },
+      { key: 'int-device', title: '设备云连接', subtitle: 'BrowserStack/Sauce Labs 配置', icon: Globe, color: '#0891B2', component: lazy(() => import('@/pages/integration/IntegrationPage')) },
     ],
   },
 
@@ -199,27 +194,27 @@ export const modules: Module[] = [
   },
   {
     key: 'agent-requirements', title: '需求分析', subtitle: '解析 PRD · 提取功能点/边界条件/风险点', icon: FileText, color: '#3B82F6', signature: 'RequirementsAnalyst', group: 'AI 智能体', status: 'pending',
-    subFeatures: [{ key: 'req-analyze', title: '需求解析', subtitle: 'deepseek-v4-flash · 结构化输出', icon: FileText, color: '#3B82F6', component: ph('需求分析智能体') }],
+    subFeatures: [{ key: 'req-analyze', title: '需求解析', subtitle: 'deepseek-v4-flash · 结构化输出', icon: FileText, color: '#3B82F6', component: lazy(() => import('@/pages/agent-requirements/RequirementsAgentPage')) }],
   },
   {
     key: 'agent-architect', title: '测试架构', subtitle: '设计测试架构 · 策略 · 技术选型', icon: Cpu, color: '#0891B2', signature: 'TestArchitect', group: 'AI 智能体', status: 'pending',
-    subFeatures: [{ key: 'arch-design', title: '架构设计', subtitle: 'qwen3-max · 测试层级与技术栈', icon: Cpu, color: '#0891B2', component: ph('测试架构智能体') }],
+    subFeatures: [{ key: 'arch-design', title: '架构设计', subtitle: 'qwen3-max · 测试层级与技术栈', icon: Cpu, color: '#0891B2', component: lazy(() => import('@/pages/agent-architect/ArchitectAgentPage')) }],
   },
   {
     key: 'agent-designer', title: '测试设计', subtitle: '设计测试场景 · 用例大纲 · 数据策略', icon: PenTool, color: '#0D9488', signature: 'TestDesigner', group: 'AI 智能体', status: 'pending',
-    subFeatures: [{ key: 'design-scenario', title: '场景设计', subtitle: 'glm-5 · 功能/边界/异常/性能覆盖', icon: PenTool, color: '#0D9488', component: ph('测试设计智能体') }],
+    subFeatures: [{ key: 'design-scenario', title: '场景设计', subtitle: 'glm-5 · 功能/边界/异常/性能覆盖', icon: PenTool, color: '#0D9488', component: lazy(() => import('@/pages/agent-designer/DesignerAgentPage')) }],
   },
   {
     key: 'agent-casewriter', title: '用例编写', subtitle: '生成详细测试用例 · 前置/步骤/预期', icon: ScrollText, color: '#059669', signature: 'TestCaseWriter', group: 'AI 智能体', status: 'pending',
-    subFeatures: [{ key: 'case-write', title: '用例生成', subtitle: 'glm-5 · 结构化可执行用例', icon: ScrollText, color: '#059669', component: ph('用例编写智能体') }],
+    subFeatures: [{ key: 'case-write', title: '用例生成', subtitle: 'glm-5 · 结构化可执行用例', icon: ScrollText, color: '#059669', component: lazy(() => import('@/pages/agent-casewriter/CasewriterAgentPage')) }],
   },
   {
     key: 'agent-execution', title: '执行分析', subtitle: '分析执行结果 · 识别失败根因 · 缺陷报告', icon: BarChart3, color: '#EA580C', signature: 'ExecutionAnalyst', group: 'AI 智能体', status: 'pending',
-    subFeatures: [{ key: 'exec-analyze', title: '结果分析', subtitle: 'deepseek-v4-flash · 通过率/失败原因/趋势', icon: BarChart3, color: '#EA580C', component: ph('执行分析智能体') }],
+    subFeatures: [{ key: 'exec-analyze', title: '结果分析', subtitle: 'deepseek-v4-flash · 通过率/失败原因/趋势', icon: BarChart3, color: '#EA580C', component: lazy(() => import('@/pages/agent-execution/ExecutionAgentPage')) }],
   },
   {
     key: 'agent-quality', title: '质量审计', subtitle: '质量评分(0-100) · 合规检查 · 改进建议', icon: Shield, color: '#DC2626', signature: 'QualityAuditor', group: 'AI 智能体', status: 'pending',
-    subFeatures: [{ key: 'quality-audit', title: '质量评分', subtitle: 'deepseek-v4-pro · 多维度审计', icon: Shield, color: '#DC2626', component: ph('质量审计智能体') }],
+    subFeatures: [{ key: 'quality-audit', title: '质量评分', subtitle: 'deepseek-v4-pro · 多维度审计', icon: Shield, color: '#DC2626', component: lazy(() => import('@/pages/agent-quality/QualityAgentPage')) }],
   },
   {
     key: 'agent-cost', title: '成本优化', subtitle: '5 层优化策略 · 模型分级 · 预算控制', icon: DollarSign, color: '#10B981', signature: 'CostOptimizer', group: 'AI 智能体', status: 'active', lastRunTime: '2026-07-14 09:15',
@@ -239,57 +234,57 @@ export const modules: Module[] = [
   {
     key: 'test-functional', title: '功能测试', subtitle: '业务功能点验证与用例管理', icon: TestTube2, color: '#2563EB', signature: 'Functional Testing', group: 'AI 测试',
     subFeatures: [
-      { key: 'func-cases', title: '用例管理', subtitle: '功能测试用例的增删改查', icon: TestTube2, color: '#2563EB', component: ph('功能测试 - 用例管理') },
-      { key: 'func-execution', title: '用例执行', subtitle: '手动/自动执行功能测试', icon: Zap, color: '#F59E0B', component: ph('功能测试 - 用例执行') },
+      { key: 'func-cases', title: '用例管理', subtitle: '功能测试用例的增删改查', icon: TestTube2, color: '#2563EB', component: lazy(() => import('@/pages/test-functional/FunctionalTestPage')) },
+      { key: 'func-execution', title: '用例执行', subtitle: '手动/自动执行功能测试', icon: Zap, color: '#F59E0B', component: lazy(() => import('@/pages/test-functional/FunctionalTestPage')) },
     ],
   },
   {
     key: 'test-api', title: '接口测试', subtitle: 'API 接口验证与自动化测试', icon: Plug, color: '#0891B2', signature: 'API Testing', group: 'AI 测试',
     subFeatures: [
-      { key: 'api-cases', title: '接口用例', subtitle: '接口测试用例管理', icon: Plug, color: '#0891B2', component: ph('接口测试 - 用例管理') },
-      { key: 'api-auto', title: '接口自动化', subtitle: '批量执行/定时/断言配置', icon: Zap, color: '#F59E0B', component: ph('接口测试 - 自动化') },
+      { key: 'api-cases', title: '接口用例', subtitle: '接口测试用例管理', icon: Plug, color: '#0891B2', component: lazy(() => import('@/pages/test-api/ApiTestPage')) },
+      { key: 'api-auto', title: '接口自动化', subtitle: '批量执行/定时/断言配置', icon: Zap, color: '#F59E0B', component: lazy(() => import('@/pages/test-api/ApiTestPage')) },
     ],
   },
   {
     key: 'test-web-auto', title: 'Web 自动化测试', subtitle: 'Playwright/Selenium 脚本管理', icon: Globe, color: '#059669', signature: 'Web Automation', group: 'AI 测试',
     subFeatures: [
-      { key: 'web-scripts', title: '脚本管理', subtitle: '自动化脚本的创建与维护', icon: Globe, color: '#059669', component: ph('Web自动化 - 脚本管理') },
-      { key: 'web-execution', title: '脚本执行', subtitle: '执行自动化测试并查看结果', icon: Zap, color: '#F59E0B', component: ph('Web自动化 - 执行') },
+      { key: 'web-scripts', title: '脚本管理', subtitle: '自动化脚本的创建与维护', icon: Globe, color: '#059669', component: lazy(() => import('@/pages/test-web-auto/WebAutoTestPage')) },
+      { key: 'web-execution', title: '脚本执行', subtitle: '执行自动化测试并查看结果', icon: Zap, color: '#F59E0B', component: lazy(() => import('@/pages/test-web-auto/WebAutoTestPage')) },
     ],
   },
   {
     key: 'test-app-auto', title: 'App 自动化测试', subtitle: 'Appium 脚本管理（iOS/Android）', icon: Smartphone, color: '#D946EF', signature: 'App Automation', group: 'AI 测试',
     subFeatures: [
-      { key: 'app-scripts', title: '脚本管理', subtitle: '移动端自动化脚本管理', icon: Smartphone, color: '#D946EF', component: ph('App自动化 - 脚本管理') },
-      { key: 'app-devices', title: '设备管理', subtitle: 'iOS/Android 设备池配置', icon: Server, color: '#8B5CF6', component: ph('App自动化 - 设备管理') },
+      { key: 'app-scripts', title: '脚本管理', subtitle: '移动端自动化脚本管理', icon: Smartphone, color: '#D946EF', component: lazy(() => import('@/pages/test-app-auto/AppAutoTestPage')) },
+      { key: 'app-devices', title: '设备管理', subtitle: 'iOS/Android 设备池配置', icon: Server, color: '#8B5CF6', component: lazy(() => import('@/pages/test-app-auto/AppAutoTestPage')) },
     ],
   },
   {
     key: 'test-performance', title: '性能测试', subtitle: '压测脚本与并发/TPS 监控', icon: Gauge, color: '#EA580C', signature: 'Performance Testing', group: 'AI 测试',
     subFeatures: [
-      { key: 'perf-scripts', title: '压测脚本', subtitle: 'JMeter/k6 脚本管理', icon: Gauge, color: '#EA580C', component: ph('性能测试 - 压测脚本') },
-      { key: 'perf-monitor', title: '实时监控', subtitle: '并发数/TPS/响应时间看板', icon: BarChart3, color: '#3B82F6', component: ph('性能测试 - 实时监控') },
+      { key: 'perf-scripts', title: '压测脚本', subtitle: 'JMeter/k6 脚本管理', icon: Gauge, color: '#EA580C', component: lazy(() => import('@/pages/test-performance/PerformanceTestPage')) },
+      { key: 'perf-monitor', title: '实时监控', subtitle: '并发数/TPS/响应时间看板', icon: BarChart3, color: '#3B82F6', component: lazy(() => import('@/pages/test-performance/PerformanceTestPage')) },
     ],
   },
   {
     key: 'test-security', title: '安全测试', subtitle: '漏洞扫描与 OWASP 检查', icon: Shield, color: '#DC2626', signature: 'Security Testing', group: 'AI 测试',
     subFeatures: [
-      { key: 'sec-scan', title: '漏洞扫描', subtitle: '自动化安全漏洞扫描', icon: Shield, color: '#DC2626', component: ph('安全测试 - 漏洞扫描') },
-      { key: 'sec-report', title: '安全报告', subtitle: 'OWASP Top 10 检查报告', icon: FileText, color: '#F59E0B', component: ph('安全测试 - 安全报告') },
+      { key: 'sec-scan', title: '漏洞扫描', subtitle: '自动化安全漏洞扫描', icon: Shield, color: '#DC2626', component: lazy(() => import('@/pages/test-security/SecurityTestPage')) },
+      { key: 'sec-report', title: '安全报告', subtitle: 'OWASP Top 10 检查报告', icon: FileText, color: '#F59E0B', component: lazy(() => import('@/pages/test-security/SecurityTestPage')) },
     ],
   },
   {
     key: 'test-ui', title: 'UI 测试', subtitle: '界面一致性与视觉回归', icon: Paintbrush, color: '#7C3AED', signature: 'UI Testing', group: 'AI 测试',
     subFeatures: [
-      { key: 'ui-visual', title: '视觉回归', subtitle: '截图对比与像素级检测', icon: Paintbrush, color: '#7C3AED', component: ph('UI测试 - 视觉回归') },
-      { key: 'ui-responsive', title: '响应式测试', subtitle: '多端适配与布局验证', icon: Smartphone, color: '#D946EF', component: ph('UI测试 - 响应式') },
+      { key: 'ui-visual', title: '视觉回归', subtitle: '截图对比与像素级检测', icon: Paintbrush, color: '#7C3AED', component: lazy(() => import('@/pages/test-ui/UITestPage')) },
+      { key: 'ui-responsive', title: '响应式测试', subtitle: '多端适配与布局验证', icon: Smartphone, color: '#D946EF', component: lazy(() => import('@/pages/test-ui/UITestPage')) },
     ],
   },
   {
     key: 'test-smoke', title: '冒烟测试', subtitle: '核心链路快速验证', icon: Zap, color: '#F59E0B', signature: 'Smoke Testing', group: 'AI 测试',
     subFeatures: [
-      { key: 'smoke-cases', title: '冒烟用例', subtitle: '核心链路用例集管理', icon: Zap, color: '#F59E0B', component: ph('冒烟测试 - 用例集') },
-      { key: 'smoke-auto', title: '自动触发', subtitle: '部署后自动执行冒烟验证', icon: Workflow, color: '#059669', component: ph('冒烟测试 - 自动触发') },
+      { key: 'smoke-cases', title: '冒烟用例', subtitle: '核心链路用例集管理', icon: Zap, color: '#F59E0B', component: lazy(() => import('@/pages/test-smoke/SmokeTestPage')) },
+      { key: 'smoke-auto', title: '自动触发', subtitle: '部署后自动执行冒烟验证', icon: Workflow, color: '#059669', component: lazy(() => import('@/pages/test-smoke/SmokeTestPage')) },
     ],
   },
   {
@@ -323,88 +318,88 @@ export const modules: Module[] = [
   {
     key: 'model-config', title: '模型配置', subtitle: 'LLM Provider、分级策略与成本监控', icon: Cpu, color: '#2563EB', signature: 'Model Config', group: 'AI 配置',
     subFeatures: [
-      { key: 'model-providers', title: 'Provider 管理', subtitle: 'LLM 提供商与 API Key 配置', icon: Cpu, color: '#2563EB', component: ph('模型配置 - Provider') },
-      { key: 'model-list', title: '模型列表', subtitle: '可用模型、价格与状态', icon: ListChecks, color: '#3B82F6', component: ph('模型配置 - 模型列表') },
-      { key: 'model-tier', title: '分级策略', subtitle: 'L1~L5 模型分级与路由规则', icon: Workflow, color: '#7C3AED', component: ph('模型配置 - 分级策略') },
-      { key: 'model-cost', title: '成本监控', subtitle: 'Token 消耗与费用统计', icon: DollarSign, color: '#10B981', component: ph('模型配置 - 成本监控') },
+      { key: 'model-providers', title: 'Provider 管理', subtitle: 'LLM 提供商与 API Key 配置', icon: Cpu, color: '#2563EB', component: lazy(() => import('@/pages/model-config/ModelConfigPage')) },
+      { key: 'model-list', title: '模型列表', subtitle: '可用模型、价格与状态', icon: ListChecks, color: '#3B82F6', component: lazy(() => import('@/pages/model-config/ModelConfigPage')) },
+      { key: 'model-tier', title: '分级策略', subtitle: 'L1~L5 模型分级与路由规则', icon: Workflow, color: '#7C3AED', component: lazy(() => import('@/pages/model-config/ModelConfigPage')) },
+      { key: 'model-cost', title: '成本监控', subtitle: 'Token 消耗与费用统计', icon: DollarSign, color: '#10B981', component: lazy(() => import('@/pages/model-config/ModelConfigPage')) },
     ],
   },
   {
     key: 'prompt-engineering', title: '提示词工程', subtitle: 'Agent 提示词编辑、模板与调试', icon: PenTool, color: '#EA580C', signature: 'Prompt Engineering', group: 'AI 配置',
     subFeatures: [
-      { key: 'prompt-agents', title: 'Agent 提示词', subtitle: '7 个 Agent 的 System Prompt 编辑', icon: PenTool, color: '#EA580C', component: ph('提示词工程 - Agent提示词') },
-      { key: 'prompt-templates', title: '模板库', subtitle: '预置提示词模板，按测试类型分类', icon: ScrollText, color: '#F59E0B', component: ph('提示词工程 - 模板库') },
-      { key: 'prompt-versions', title: '版本管理', subtitle: '修改历史、A/B 对比、回滚', icon: GitCompareArrows, color: '#3B82F6', component: ph('提示词工程 - 版本管理') },
-      { key: 'prompt-debug', title: '在线调试', subtitle: '输入样本数据预览 Agent 输出', icon: Zap, color: '#10B981', component: ph('提示词工程 - 在线调试') },
-      { key: 'prompt-fewshot', title: 'Few-shot 示例', subtitle: '为 Agent 配置示例输入输出对', icon: FileText, color: '#8B5CF6', component: ph('提示词工程 - Few-shot') },
+      { key: 'prompt-agents', title: 'Agent 提示词', subtitle: '7 个 Agent 的 System Prompt 编辑', icon: PenTool, color: '#EA580C', component: lazy(() => import('@/pages/prompts/PromptEngineerPage')) },
+      { key: 'prompt-templates', title: '模板库', subtitle: '预置提示词模板，按测试类型分类', icon: ScrollText, color: '#F59E0B', component: lazy(() => import('@/pages/prompts/PromptEngineerPage')) },
+      { key: 'prompt-versions', title: '版本管理', subtitle: '修改历史、A/B 对比、回滚', icon: GitCompareArrows, color: '#3B82F6', component: lazy(() => import('@/pages/prompts/PromptEngineerPage')) },
+      { key: 'prompt-debug', title: '在线调试', subtitle: '输入样本数据预览 Agent 输出', icon: Zap, color: '#10B981', component: lazy(() => import('@/pages/prompts/PromptEngineerPage')) },
+      { key: 'prompt-fewshot', title: 'Few-shot 示例', subtitle: '为 Agent 配置示例输入输出对', icon: FileText, color: '#8B5CF6', component: lazy(() => import('@/pages/prompts/PromptEngineerPage')) },
     ],
   },
   {
     key: 'de-ai', title: '去AI味配置', subtitle: 'AI 输出风格控制与人性化处理', icon: Mic, color: '#E11D48', signature: 'De-AI Config', group: 'AI 配置',
     subFeatures: [
-      { key: 'deai-style', title: '语言风格控制', subtitle: '专业正式 / 口语化 / 中性默认', icon: Mic, color: '#E11D48', component: ph('去AI味 - 语言风格') },
-      { key: 'deai-variety', title: '句式多样性', subtitle: '长短句交替、主被动切换、倒装省略', icon: Workflow, color: '#7C3AED', component: ph('去AI味 - 句式多样性') },
-      { key: 'deai-terms', title: '领域术语注入', subtitle: '自动注入项目/行业专属术语', icon: BookOpen, color: '#2563EB', component: ph('去AI味 - 领域术语') },
-      { key: 'deai-humanize', title: '人性化细节', subtitle: '口语化连接词、非标准缩写，增强真人感', icon: Users, color: '#059669', component: ph('去AI味 - 人性化') },
-      { key: 'deai-template', title: '输出模板约束', subtitle: '强制格式模板，禁止 AI 八股模式', icon: ScrollText, color: '#F59E0B', component: ph('去AI味 - 输出模板') },
-      { key: 'deai-intensity', title: '去AI味强度', subtitle: '关闭 / 轻度 / 中度 / 重度', icon: Gauge, color: '#EA580C', component: ph('去AI味 - 强度控制') },
-      { key: 'deai-blacklist', title: '词频黑名单', subtitle: '"值得注意的是"等禁用词配置', icon: Shield, color: '#DC2626', component: ph('去AI味 - 词频黑名单') },
+      { key: 'deai-style', title: '语言风格控制', subtitle: '专业正式 / 口语化 / 中性默认', icon: Mic, color: '#E11D48', component: lazy(() => import('@/pages/deai-config/DeaiConfigPage')) },
+      { key: 'deai-variety', title: '句式多样性', subtitle: '长短句交替、主被动切换、倒装省略', icon: Workflow, color: '#7C3AED', component: lazy(() => import('@/pages/deai-config/DeaiConfigPage')) },
+      { key: 'deai-terms', title: '领域术语注入', subtitle: '自动注入项目/行业专属术语', icon: BookOpen, color: '#2563EB', component: lazy(() => import('@/pages/deai-config/DeaiConfigPage')) },
+      { key: 'deai-humanize', title: '人性化细节', subtitle: '口语化连接词、非标准缩写，增强真人感', icon: Users, color: '#059669', component: lazy(() => import('@/pages/deai-config/DeaiConfigPage')) },
+      { key: 'deai-template', title: '输出模板约束', subtitle: '强制格式模板，禁止 AI 八股模式', icon: ScrollText, color: '#F59E0B', component: lazy(() => import('@/pages/deai-config/DeaiConfigPage')) },
+      { key: 'deai-intensity', title: '去AI味强度', subtitle: '关闭 / 轻度 / 中度 / 重度', icon: Gauge, color: '#EA580C', component: lazy(() => import('@/pages/deai-config/DeaiConfigPage')) },
+      { key: 'deai-blacklist', title: '词频黑名单', subtitle: '"值得注意的是"等禁用词配置', icon: Shield, color: '#DC2626', component: lazy(() => import('@/pages/deai-config/DeaiConfigPage')) },
     ],
   },
   {
     key: 'skill-config', title: '技能配置', subtitle: 'Agent 工具注册与 MCP 管理', icon: Plug, color: '#0891B2', signature: 'Skill Config', group: 'AI 配置',
     subFeatures: [
-      { key: 'skill-register', title: 'Agent 技能注册', subtitle: '定义 Agent 可用的工具和能力', icon: Plug, color: '#0891B2', component: ph('技能配置 - 技能注册') },
-      { key: 'skill-mcp', title: 'MCP 工具管理', subtitle: 'Playwright/Appium/Postman 工具配置', icon: Globe, color: '#059669', component: ph('技能配置 - MCP工具') },
-      { key: 'skill-permission', title: '工具权限控制', subtitle: '按 Agent 角色分配工具使用权限', icon: Shield, color: '#DC2626', component: ph('技能配置 - 权限控制') },
-      { key: 'skill-market', title: '技能市场', subtitle: '预置技能包，一键启用', icon: Package, color: '#8B5CF6', component: ph('技能配置 - 技能市场') },
+      { key: 'skill-register', title: 'Agent 技能注册', subtitle: '定义 Agent 可用的工具和能力', icon: Plug, color: '#0891B2', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'skill-mcp', title: 'MCP 工具管理', subtitle: 'Playwright/Appium/Postman 工具配置', icon: Globe, color: '#059669', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'skill-permission', title: '工具权限控制', subtitle: '按 Agent 角色分配工具使用权限', icon: Shield, color: '#DC2626', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'skill-market', title: '技能市场', subtitle: '预置技能包，一键启用', icon: Package, color: '#8B5CF6', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
     ],
   },
   {
     key: 'workflow-config', title: '工作流配置', subtitle: '流程模板编排与断点续跑', icon: Workflow, color: '#7C3AED', signature: 'Workflow Config', group: 'AI 配置',
     subFeatures: [
-      { key: 'wf-templates', title: '流程模板管理', subtitle: '预置/自定义工作流模板', icon: Workflow, color: '#7C3AED', component: ph('工作流 - 流程模板') },
-      { key: 'wf-orchestrate', title: '步骤编排', subtitle: '可视化编排 Agent 执行顺序', icon: ListChecks, color: '#3B82F6', component: ph('工作流 - 步骤编排') },
-      { key: 'wf-retry', title: '超时与重试', subtitle: '单步超时、总超时、失败重试策略', icon: Gauge, color: '#EA580C', component: ph('工作流 - 超时重试') },
-      { key: 'wf-checkpoint', title: '断点续跑', subtitle: '检查点保存策略，失败后恢复', icon: Zap, color: '#F59E0B', component: ph('工作流 - 断点续跑') },
+      { key: 'wf-templates', title: '流程模板管理', subtitle: '预置/自定义工作流模板', icon: Workflow, color: '#7C3AED', component: lazy(() => import('@/pages/workflow-config/WorkflowConfigPage')) },
+      { key: 'wf-orchestrate', title: '步骤编排', subtitle: '可视化编排 Agent 执行顺序', icon: ListChecks, color: '#3B82F6', component: lazy(() => import('@/pages/workflow-config/WorkflowConfigPage')) },
+      { key: 'wf-retry', title: '超时与重试', subtitle: '单步超时、总超时、失败重试策略', icon: Gauge, color: '#EA580C', component: lazy(() => import('@/pages/workflow-config/WorkflowConfigPage')) },
+      { key: 'wf-checkpoint', title: '断点续跑', subtitle: '检查点保存策略，失败后恢复', icon: Zap, color: '#F59E0B', component: lazy(() => import('@/pages/workflow-config/WorkflowConfigPage')) },
     ],
   },
   {
     key: 'test-data', title: '测试数据配置', subtitle: '数据源、AI 生成、脱敏与 Mock', icon: Database, color: '#0D9488', signature: 'Test Data Config', group: 'AI 配置',
     subFeatures: [
-      { key: 'data-source', title: '数据源管理', subtitle: '数据库/CSV/API/Mock 数据源配置', icon: Database, color: '#0D9488', component: ph('测试数据 - 数据源') },
-      { key: 'data-ai-gen', title: 'AI 数据生成', subtitle: 'LLM 生成边界值、异常数据', icon: BrainCircuit, color: '#7C3AED', component: ph('测试数据 - AI生成') },
-      { key: 'data-masking', title: '数据脱敏', subtitle: '手机号/身份证/密码脱敏策略', icon: Shield, color: '#DC2626', component: ph('测试数据 - 数据脱敏') },
-      { key: 'data-mock', title: 'Mock 服务', subtitle: 'WireMock/Mountebank 录制回放', icon: Server, color: '#6B7280', component: ph('测试数据 - Mock服务') },
+      { key: 'data-source', title: '数据源管理', subtitle: '数据库/CSV/API/Mock 数据源配置', icon: Database, color: '#0D9488', component: lazy(() => import('@/pages/test-data/TestDataConfigPage')) },
+      { key: 'data-ai-gen', title: 'AI 数据生成', subtitle: 'LLM 生成边界值、异常数据', icon: BrainCircuit, color: '#7C3AED', component: lazy(() => import('@/pages/test-data/TestDataConfigPage')) },
+      { key: 'data-masking', title: '数据脱敏', subtitle: '手机号/身份证/密码脱敏策略', icon: Shield, color: '#DC2626', component: lazy(() => import('@/pages/test-data/TestDataConfigPage')) },
+      { key: 'data-mock', title: 'Mock 服务', subtitle: 'WireMock/Mountebank 录制回放', icon: Server, color: '#6B7280', component: lazy(() => import('@/pages/test-data/TestDataConfigPage')) },
     ],
   },
   {
     key: 'mcp', title: 'MCP 工具集成', subtitle: 'MCP 协议工具发现与执行', icon: Plug, color: '#7C3AED', signature: 'MCP Integration', group: 'AI 配置',
     subFeatures: [
-      { key: 'mcp-tools', title: '工具列表', subtitle: '列出可用 MCP 工具', icon: Plug, color: '#7C3AED', component: ph('MCP - 工具列表') },
-      { key: 'mcp-execute', title: '工具执行', subtitle: '调用指定工具并返回结果', icon: Zap, color: '#F59E0B', component: ph('MCP - 工具执行') },
+      { key: 'mcp-tools', title: '工具列表', subtitle: '列出可用 MCP 工具', icon: Plug, color: '#7C3AED', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'mcp-execute', title: '工具执行', subtitle: '调用指定工具并返回结果', icon: Zap, color: '#F59E0B', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
     ],
   },
   {
     key: 'hermes-config', title: 'Hermes智能体配置', subtitle: '消息桥接 · 会话管理 · 通道与权限配置', icon: MessageSquare, color: '#0D9488', signature: 'Hermes Config', group: 'AI 配置',
     subFeatures: [
-      { key: 'hermes-conversations', title: '会话管理', subtitle: '列出/查询活跃对话会话', icon: MessageSquare, color: '#0D9488', component: ph('Hermes - 会话管理') },
-      { key: 'hermes-messages', title: '消息读写', subtitle: '读取/发送会话消息', icon: Send, color: '#3B82F6', component: ph('Hermes - 消息读写') },
-      { key: 'hermes-channels', title: '通道列表', subtitle: 'Telegram/Discord/Slack 通道配置', icon: Globe, color: '#7C3AED', component: ph('Hermes - 通道配置') },
-      { key: 'hermes-events', title: '事件轮询', subtitle: '实时事件监听与消息等待', icon: Zap, color: '#F59E0B', component: ph('Hermes - 事件轮询') },
-      { key: 'hermes-attachments', title: '附件管理', subtitle: '图片/媒体文件获取与处理', icon: FileText, color: '#EA580C', component: ph('Hermes - 附件管理') },
-      { key: 'hermes-permissions', title: '权限审批', subtitle: '执行请求审批与权限控制', icon: Shield, color: '#DC2626', component: ph('Hermes - 权限审批') },
+      { key: 'hermes-conversations', title: '会话管理', subtitle: '列出/查询活跃对话会话', icon: MessageSquare, color: '#0D9488', component: lazy(() => import('@/pages/hermes-config/HermesConfigPage')) },
+      { key: 'hermes-messages', title: '消息读写', subtitle: '读取/发送会话消息', icon: Send, color: '#3B82F6', component: lazy(() => import('@/pages/hermes-config/HermesConfigPage')) },
+      { key: 'hermes-channels', title: '通道列表', subtitle: 'Telegram/Discord/Slack 通道配置', icon: Globe, color: '#7C3AED', component: lazy(() => import('@/pages/hermes-config/HermesConfigPage')) },
+      { key: 'hermes-events', title: '事件轮询', subtitle: '实时事件监听与消息等待', icon: Zap, color: '#F59E0B', component: lazy(() => import('@/pages/hermes-config/HermesConfigPage')) },
+      { key: 'hermes-attachments', title: '附件管理', subtitle: '图片/媒体文件获取与处理', icon: FileText, color: '#EA580C', component: lazy(() => import('@/pages/hermes-config/HermesConfigPage')) },
+      { key: 'hermes-permissions', title: '权限审批', subtitle: '执行请求审批与权限控制', icon: Shield, color: '#DC2626', component: lazy(() => import('@/pages/hermes-config/HermesConfigPage')) },
     ],
   },
   {
     key: 'skills-center', title: 'Skills技能中心', subtitle: '技能注册 · MCP工具 · 权限管理 · 技能市场', icon: Puzzle, color: '#8B5CF6', signature: 'Skills Center', group: 'AI 配置',
     subFeatures: [
-      { key: 'skills-registry', title: '技能注册', subtitle: '定义Agent可用的工具和能力', icon: Plug, color: '#0891B2', component: ph('技能中心 - 技能注册') },
-      { key: 'skills-mcp', title: 'MCP工具管理', subtitle: 'Playwright/Appium/Postman工具配置', icon: Globe, color: '#059669', component: ph('技能中心 - MCP工具') },
-      { key: 'skills-permission', title: '工具权限控制', subtitle: '按Agent角色分配工具使用权限', icon: Shield, color: '#DC2626', component: ph('技能中心 - 权限控制') },
-      { key: 'skills-market', title: '技能市场', subtitle: '预置技能包，一键启用', icon: Package, color: '#8B5CF6', component: ph('技能中心 - 技能市场') },
-      { key: 'skills-test', title: '技能测试', subtitle: '在线测试已注册技能的执行效果', icon: Zap, color: '#F59E0B', component: ph('技能中心 - 技能测试') },
-      { key: 'skills-logs', title: '调用日志', subtitle: '技能调用记录与性能统计', icon: ScrollText, color: '#EA580C', component: ph('技能中心 - 调用日志') },
+      { key: 'skills-registry', title: '技能注册', subtitle: '定义Agent可用的工具和能力', icon: Plug, color: '#0891B2', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'skills-mcp', title: 'MCP工具管理', subtitle: 'Playwright/Appium/Postman工具配置', icon: Globe, color: '#059669', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'skills-permission', title: '工具权限控制', subtitle: '按Agent角色分配工具使用权限', icon: Shield, color: '#DC2626', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'skills-market', title: '技能市场', subtitle: '预置技能包，一键启用', icon: Package, color: '#8B5CF6', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'skills-test', title: '技能测试', subtitle: '在线测试已注册技能的执行效果', icon: Zap, color: '#F59E0B', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
+      { key: 'skills-logs', title: '调用日志', subtitle: '技能调用记录与性能统计', icon: ScrollText, color: '#EA580C', component: lazy(() => import('@/pages/skills-center/SkillsCenterPage')) },
     ],
   },
 

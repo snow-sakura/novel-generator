@@ -1,7 +1,6 @@
 """测试报告路由 — 报告的创建、查询与 AI 分析"""
 
 import logging
-import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func, desc
@@ -10,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.test_execution import TestExecution
 from app.models.test_report import TestReport
-from app.schemas.test_report import ReportCreate, ReportPage, ReportResponse
+from app.schemas.test_report import ReportCreate, ReportPage, ReportResponse, report_page_from_query
 from app.utils.rbac import 操作, 检查权限
 
 logger = logging.getLogger(__name__)
@@ -107,7 +106,7 @@ async def list_reports(
     result = await db.execute(query)
     items = list(result.scalars().all())
 
-    return ReportPage.from_query(items, total, page, page_size)
+    return report_page_from_query(items, total, page, page_size)
 
 
 @router.get("/reports/{report_id}", response_model=ReportResponse)

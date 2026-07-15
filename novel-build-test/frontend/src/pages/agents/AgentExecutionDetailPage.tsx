@@ -9,10 +9,7 @@ import {
   Loader2,
   ArrowLeft,
   BrainCircuit,
-  CheckCircle2,
   XCircle,
-  Clock,
-  DollarSign,
   FileText,
   AlertTriangle,
 } from 'lucide-react'
@@ -57,7 +54,7 @@ export default function AgentExecutionDetailPage() {
     if (!eid) return
     setLoading(true)
     agentApi.executionDetail(Number(eid))
-      .then((res) => setDetail(res.data))
+      .then((res) => setDetail(res.data as unknown as ExecutionDetail))
       .catch(() => setDetail(null))
       .finally(() => setLoading(false))
   }, [eid])

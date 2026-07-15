@@ -196,6 +196,16 @@ from app.routers import settings as settings_router
 from app.routers import test_executions
 from app.routers import test_reports
 from app.routers import mcp_tools
+from app.routers import model_providers
+from app.routers import prompts
+from app.routers import workflow_templates
+from app.routers import deai
+from app.routers import test_functional, test_api, test_web, test_app, test_perf
+from app.routers import test_security, test_ui, test_smoke, test_data
+from app.routers import chat, ai_db_tuning, ai_assistant
+from app.routers import hermes, skills
+from app.routers import integration, mcp_management
+from app.routers import agent_endpoints, debate_records
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -211,6 +221,31 @@ app.include_router(settings_router.router)
 app.include_router(test_executions.router)
 app.include_router(test_reports.router)
 app.include_router(mcp_tools.router)
+app.include_router(model_providers.router)
+app.include_router(prompts.router)
+app.include_router(workflow_templates.router)
+app.include_router(deai.router)
+app.include_router(test_functional.router)
+app.include_router(test_api.router)
+app.include_router(test_web.router)
+app.include_router(test_app.router)
+app.include_router(test_perf.router)
+app.include_router(test_security.router)
+app.include_router(test_ui.router)
+app.include_router(test_smoke.router)
+app.include_router(test_data.router)
+
+# ===== Phase 3 路由 =====
+
+app.include_router(chat.router)
+app.include_router(ai_db_tuning.router)
+app.include_router(ai_assistant.router)
+app.include_router(hermes.router)
+app.include_router(skills.router)
+app.include_router(integration.router)
+app.include_router(mcp_management.router)
+app.include_router(agent_endpoints.router)
+app.include_router(debate_records.router)
 
 # ===== AI-Native API 路由 =====
 
@@ -222,8 +257,11 @@ async def get_collections():
         from app.vector_db.collection_manager import global_collection_manager
         collections = await global_collection_manager.list_all_collections()
         return {"status": "ok", "collections": collections}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except ImportError:
+        return {"status": "error", "message": "向量数据库模块未就绪"}
+    except Exception:
+        logger.exception("获取向量集合失败")
+        return {"status": "error", "message": "向量数据库查询异常，请稍后重试"}
 
 
 @app.post("/api/v1/vector-db/search", tags=["AI-Native"])
@@ -243,8 +281,11 @@ async def semantic_search(query: dict):
             limit=query.get("limit") or query.get("限制", 5),
         )
         return {"status": "ok", "results": results}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except ImportError:
+        return {"status": "error", "message": "语义检索模块未就绪"}
+    except Exception:
+        logger.exception("语义检索失败")
+        return {"status": "error", "message": "检索服务异常，请稍后重试"}
 
 
 @app.post("/api/v1/agents/dispatch", tags=["AI-Native"])
@@ -270,8 +311,9 @@ async def dispatch_execution(request: dict):
         }
         result = await controller.execute(context)
         return {"status": "ok", "result": result}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception:
+        logger.exception("调度执行失败")
+        return {"status": "error", "message": "智能体调度执行异常，请检查配置后重试"}
 
 
 @app.post("/api/v1/agents/debate", tags=["AI-Native"])
@@ -298,8 +340,9 @@ async def start_debate(request: dict):
         }
         result = await engine.execute(context)
         return {"status": "ok", "result": result}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception:
+        logger.exception("辩论执行失败")
+        return {"status": "error", "message": "多模型辩论服务异常，请稍后重试"}
 
 
 @app.post("/api/v1/agents/execute-single", tags=["AI-Native"])
@@ -334,10 +377,13 @@ async def execute_single_agent(request: dict):
         module = importlib.import_module(f"app.agents.{class_name.lower()}")
         agent_class = getattr(module, class_name, None)
         if not agent_class:
-            return {"status": "error", "message": f"未找到类: {class_name}"}
+            return {"status": "error", "message": f"未找到智能体类: {class_name}"}
 
         instance = agent_class()
         result = await instance.execute(agent_input)
         return {"status": "ok", "result": result}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except ImportError:
+        return {"status": "error", "message": "智能体模块加载失败，请检查配置"}
+    except Exception:
+        logger.exception("单智能体执行失败")
+        return {"status": "error", "message": "智能体执行异常，请稍后重试"}

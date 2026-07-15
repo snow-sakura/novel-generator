@@ -199,7 +199,7 @@ export default function ExecutionDetailPage() {
             <div className="rounded-lg bg-blue-50 p-3 text-center">
               <div className="text-xs text-blue-600">耗时</div>
               <div className="text-xl font-bold mt-1 text-blue-700">
-                {detail.summary?.duration ? `${detail.summary.duration}s` : '-'}
+                {detail.summary?.duration_ms ? `${(detail.summary.duration_ms / 1000).toFixed(1)}s` : '-'}
               </div>
             </div>
           </div>

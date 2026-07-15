@@ -1,4 +1,10 @@
-"""应用配置 — 使用 pydantic-settings 加载环境变量"""
+"""应用配置 — 使用 pydantic-settings 加载环境变量
+
+安全说明：
+    - 所有敏感信息（数据库密码、JWT密钥、API密钥）必须通过 .env 文件传入
+    - .env 文件已加入 .gitignore，不会被提交到仓库
+    - 默认值仅为开发环境调试使用，生产环境必须通过环境变量覆盖
+"""
 
 from pathlib import Path
 
@@ -10,6 +16,7 @@ _env_file = Path(__file__).resolve().parent.parent / ".env"
 class Settings(BaseSettings):
     """全局应用配置
 
+    安全提醒：所有密码、密钥仅作类型占位，实际值必须通过 .env 提供。
     配置项说明：
         app_name: 应用名称
         debug: 调试模式（开启后 SQLAlchemy 会输出 SQL 语句）
@@ -35,14 +42,18 @@ class Settings(BaseSettings):
 
     app_name: str = "AISQA"
     debug: bool = False
-    database_url: str = "mysql+aiomysql://root:password@127.0.0.1:3306/aisqa"
-    jwt_secret_key: str = "change-me-in-production"
+
+    # ===== 数据库（强制通过环境变量配置，无默认密码！）=====
+    database_url: str = ""
+
+    # ===== JWT 认证（生产环境必须修改密钥）=====
+    jwt_secret_key: str = ""
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
     cors_origins: list[str] = ["http://localhost:5173"]
 
-    # 国产大模型配置
+    # ===== 国产大模型配置 =====
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com/v1"
     qwen_api_key: str = ""

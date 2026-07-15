@@ -1,14 +1,13 @@
 """测试报告模型 — 记录一次测试执行的完整报告"""
 
-import datetime
-
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from app.models.base import TimestampMixin
 
 
-class TestReport(Base):
+class TestReport(TimestampMixin, Base):
     """测试报告表
 
     3.2.1: 记录测试执行的结果报告，包含统计汇总和执行详情。
@@ -26,7 +25,6 @@ class TestReport(Base):
         details: 用例级详细结果 JSON
         quality_score: AI 质量评分（0-100，由 report_analyzer 生成）
         created_by: 创建者用户 ID
-        created_at: 创建时间
     """
 
     __tablename__ = "test_reports"
@@ -46,9 +44,6 @@ class TestReport(Base):
     quality_score: Mapped[float | None] = mapped_column(Float, nullable=True, comment="AI质量评分(0-100)")
     created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), comment="创建时间"
     )
 
     def __repr__(self) -> str:

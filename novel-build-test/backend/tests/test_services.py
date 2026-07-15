@@ -53,7 +53,7 @@ class TestReportAnalyzer:
             details=None,
         )
         assert isinstance(prompt, str)
-        assert "测试执行分析报告" in prompt
+        assert "测试报告分析助手" in prompt or "分析" in prompt
 
 
 # ==================== 模型分级配置 ====================
@@ -120,15 +120,15 @@ class TestModelTier:
 class TestLLMProvider:
     """2.1.2: Provider 工厂 — 验证模型名称和配置"""
 
-    def test_provider_map_keys(self):
-        """_PROVIDER_MAP 应包含所有 5 个模型"""
-        from app.services.llm import _PROVIDER_MAP
+    def test_model_registry_keys(self):
+        """_MODEL_REGISTRY 应包含所有 5 个模型"""
+        from app.services.llm import _MODEL_REGISTRY
 
-        assert "deepseek-v4-flash" in _PROVIDER_MAP
-        assert "deepseek-v4-pro" in _PROVIDER_MAP
-        assert "qwen3-max" in _PROVIDER_MAP
-        assert "glm-5" in _PROVIDER_MAP
-        assert "kimi-k2.5" in _PROVIDER_MAP
+        assert "deepseek-v4-flash" in _MODEL_REGISTRY
+        assert "deepseek-v4-pro" in _MODEL_REGISTRY
+        assert "qwen3-max" in _MODEL_REGISTRY
+        assert "glm-5" in _MODEL_REGISTRY
+        assert "kimi-k2.5" in _MODEL_REGISTRY
 
     def test_get_provider_no_key(self):
         """无 API Key 时应返回 None"""

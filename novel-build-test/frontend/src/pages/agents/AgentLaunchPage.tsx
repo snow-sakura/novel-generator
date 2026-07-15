@@ -33,7 +33,6 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { agentApi, projectApi, type ProjectItem } from '@/lib/api-service'
-import { useAuthStore } from '@/lib/auth-store'
 
 /** 工作流模板定义 */
 const WORKFLOW_TEMPLATES = [
@@ -91,7 +90,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function AgentLaunchPage() {
   const { id: projectIdFromRoute } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+
 
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState(projectIdFromRoute || '')

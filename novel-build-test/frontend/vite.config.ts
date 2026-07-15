@@ -16,4 +16,17 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) return 'vendor'
+          if (id.includes('node_modules/react-router')) return 'vendor'
+          if (id.includes('node_modules/@radix-ui/')) return 'ui'
+          if (id.includes('node_modules/recharts')) return 'charts'
+          if (id.includes('node_modules/framer-motion')) return 'animations'
+        },
+      },
+    },
+  },
 })

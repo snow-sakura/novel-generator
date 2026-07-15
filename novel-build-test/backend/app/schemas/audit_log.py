@@ -23,11 +23,7 @@ class AuditLogResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class AuditLogPage(BaseModel):
-    """审计日志分页响应"""
+# 泛型分页别名
+from app.schemas.base import Page
 
-    items: list[AuditLogResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+AuditLogPage = Page[AuditLogResponse]

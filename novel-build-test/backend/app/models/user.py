@@ -1,14 +1,13 @@
 """用户模型 — 平台用户账户信息"""
 
-import datetime
-
-from sqlalchemy import Boolean, DateTime, Integer, String, func
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.base import TimestampMixin
 
 
-class User(Base):
+class User(TimestampMixin, Base):
     """用户表
 
     属性说明：
@@ -32,12 +31,6 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String(100), nullable=True, comment="显示名称")
     role: Mapped[str] = mapped_column(String(20), default="engineer", comment="角色: admin/engineer/viewer")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="是否激活")
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), comment="创建时间"
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间"
-    )
 
     # 关联
     projects = relationship("Project", back_populates="owner")

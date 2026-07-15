@@ -4,15 +4,14 @@
 同时同步到 Qdrant 向量数据库供语义检索。
 """
 
-import datetime
-
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.base import TimestampMixin
 
 
-class KnowledgeDoc(Base):
+class KnowledgeDoc(TimestampMixin, Base):
     """知识条目表
 
     属性说明：
@@ -26,8 +25,6 @@ class KnowledgeDoc(Base):
         vector_id: Qdrant 中的点 ID（同步后记录）
         vector_synced: 是否已同步到向量库
         created_by: 创建者用户 ID
-        created_at: 创建时间
-        updated_at: 更新时间
     """
 
     __tablename__ = "knowledge_docs"
@@ -51,16 +48,10 @@ class KnowledgeDoc(Base):
         String(100), nullable=True, comment="Qdrant 点 ID"
     )
     vector_synced: Mapped[bool] = mapped_column(
-        Integer, default=False, comment="是否已同步到向量库"
+        Boolean, default=False, comment="是否已同步到向量库"
     )
     created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), comment="创建时间"
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间"
     )
 
     project = relationship("Project", backref="knowledge_docs")

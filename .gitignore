@@ -24,6 +24,15 @@ node_modules/
 
 # Generated data
 novels_index.json
+dump.rdb
+
+# Playwright
+test-results/
+.playwright-mcp/
+
+# CI artifacts
+**/review_findings.json
+**/code_review_findings.json
 
 # Test cache
 .pytest_cache/

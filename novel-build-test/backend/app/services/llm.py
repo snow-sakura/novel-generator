@@ -6,9 +6,12 @@
   - GLM-5              (L3 — 结构化输出，测试计划、架构设计)
   - Qwen3-Max          (L4 — 复杂决策，架构评审、重大缺陷判定)
   - Kimi K2.5          (L5 — 长文档分析，256K 上下文)
+
+所有 Provider 均兼容 OpenAI API 格式，通过统一配置驱动。
 """
 
-from abc import ABC, abstractmethod
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,271 +36,108 @@ class LLMResult:
     model_name: str
 
 
-class BaseLLMProvider(ABC):
-    """大模型 Provider 抽象基类"""
+@dataclass
+class ModelPrice:
+    """模型定价配置（人民币/百万 token）"""
 
-    def __init__(self, api_key: str, base_url: str):
+    input_price_per_m: float
+    output_price_per_m: float
+
+
+# ==================== 模型定价注册表 ====================
+# 所有定价数据集中管理，便于统一更新
+
+_MODEL_REGISTRY: dict[str, ModelPrice] = {
+    # DeepSeek
+    "deepseek-v4-flash": ModelPrice(input_price_per_m=1.0, output_price_per_m=2.0),
+    "deepseek-v4-pro": ModelPrice(input_price_per_m=12.0, output_price_per_m=24.0),
+    # 阿里云
+    "qwen3-max": ModelPrice(input_price_per_m=2.5, output_price_per_m=10.0),
+    # 智谱 AI
+    "glm-5": ModelPrice(input_price_per_m=7.0, output_price_per_m=22.0),
+    # 月之暗面
+    "kimi-k2.5": ModelPrice(input_price_per_m=6.5, output_price_per_m=28.0),
+}
+
+# 模型 → (config 属性名 API Key, config 属性名 Base URL)
+_CONFIG_MAP: dict[str, tuple[str, str]] = {
+    "deepseek-v4-flash": ("deepseek_api_key", "deepseek_base_url"),
+    "deepseek-v4-pro": ("deepseek_api_key", "deepseek_base_url"),
+    "qwen3-max": ("qwen_api_key", "qwen_base_url"),
+    "glm-5": ("glm_api_key", "glm_base_url"),
+    "kimi-k2.5": ("moonshot_api_key", "moonshot_base_url"),
+}
+
+
+# ==================== 统一 Provider ====================
+
+
+class OpenAICompatibleProvider:
+    """OpenAI 兼容 API 的统一 Provider（替代 5 个重复 Provider 类）
+
+    所有国产大模型均提供 OpenAI 兼容接口（/chat/completions），
+    仅在 model 名称和定价上存在差异，通过注册表驱动即可。
+
+    Args:
+        api_key: API 密钥
+        base_url: API 基础地址
+        model_name: 模型名称（用于注册表查找定价）
+    """
+
+    def __init__(self, api_key: str, base_url: str, model_name: str) -> None:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
+        self.model_name = model_name
+        self.price = _MODEL_REGISTRY[model_name]
 
-    @abstractmethod
     async def chat(self, messages: list[dict], **kwargs: Any) -> LLMResult:
-        """发送对话请求"""
-        ...
+        """发送对话请求（OpenAI 兼容接口）"""
+        import httpx
 
-    @abstractmethod
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model_name,
+            "messages": messages,
+            **kwargs,
+        }
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            choice = data["choices"][0]
+            usage = data["usage"]
+            pt = usage["prompt_tokens"]
+            ct = usage["completion_tokens"]
+            return LLMResult(
+                content=choice["message"]["content"],
+                usage=LLMUsage(
+                    prompt_tokens=pt,
+                    completion_tokens=ct,
+                    cost_yuan=self.calculate_cost(pt, ct),
+                ),
+                model_name=self.model_name,
+            )
+
     def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
         """按人民币计价计算费用"""
-        ...
-
-
-# ==================== DeepSeek-V4-Flash (L1) ====================
-
-
-class DeepSeekV4FlashProvider(BaseLLMProvider):
-    """DeepSeek-V4-Flash（深度求索 — 常规任务主力模型）
-
-    发布: 2026-04-24
-    价格: 输入 ¥1/百万 token，输出 ¥2/百万 token
-    上下文: 1M tokens
-    特点: 速度快、成本低，替代原 DeepSeek-V3
-    """
-
-    async def chat(self, messages: list[dict], **kwargs: Any) -> LLMResult:
-        import httpx
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": "deepseek-v4-flash",
-            "messages": messages,
-            **kwargs,
-        }
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            choice = data["choices"][0]
-            usage = data["usage"]
-            pt = usage["prompt_tokens"]
-            ct = usage["completion_tokens"]
-            return LLMResult(
-                content=choice["message"]["content"],
-                usage=LLMUsage(prompt_tokens=pt, completion_tokens=ct, cost_yuan=self.calculate_cost(pt, ct)),
-                model_name="deepseek-v4-flash",
-            )
-
-    def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
-        return (prompt_tokens * 1.0 + completion_tokens * 2.0) / 1_000_000
-
-
-# ==================== DeepSeek-V4-Pro (L2) ====================
-
-
-class DeepSeekV4ProProvider(BaseLLMProvider):
-    """DeepSeek-V4-Pro（深度求索 — 推理审计/复杂推理）
-
-    发布: 2026-04-24
-    价格: 输入 ¥12/百万 token，输出 ¥24/百万 token
-    上下文: 1M tokens
-    特点: 强推理、编码、Agent 工作流，替代原 DeepSeek-R1
-    """
-
-    async def chat(self, messages: list[dict], **kwargs: Any) -> LLMResult:
-        import httpx
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": "deepseek-v4-pro",
-            "messages": messages,
-            **kwargs,
-        }
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            choice = data["choices"][0]
-            usage = data["usage"]
-            pt = usage["prompt_tokens"]
-            ct = usage["completion_tokens"]
-            return LLMResult(
-                content=choice["message"]["content"],
-                usage=LLMUsage(prompt_tokens=pt, completion_tokens=ct, cost_yuan=self.calculate_cost(pt, ct)),
-                model_name="deepseek-v4-pro",
-            )
-
-    def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
-        return (prompt_tokens * 12.0 + completion_tokens * 24.0) / 1_000_000
-
-
-# ==================== Qwen3-Max (L4) ====================
-
-
-class Qwen3MaxProvider(BaseLLMProvider):
-    """Qwen3-Max（阿里云通义千问 — 复杂决策旗舰模型）
-
-    发布: 2026
-    价格: 输入 ¥2.5/百万 token，输出 ¥10/百万 token
-    上下文: 256K tokens
-    特点: 通用旗舰，推理能力最强，替代原 Qwen-Max
-    """
-
-    async def chat(self, messages: list[dict], **kwargs: Any) -> LLMResult:
-        import httpx
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": "qwen3-max",
-            "messages": messages,
-            **kwargs,
-        }
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            choice = data["choices"][0]
-            usage = data["usage"]
-            pt = usage["prompt_tokens"]
-            ct = usage["completion_tokens"]
-            return LLMResult(
-                content=choice["message"]["content"],
-                usage=LLMUsage(prompt_tokens=pt, completion_tokens=ct, cost_yuan=self.calculate_cost(pt, ct)),
-                model_name="qwen3-max",
-            )
-
-    def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
-        return (prompt_tokens * 2.5 + completion_tokens * 10.0) / 1_000_000
-
-
-# ==================== GLM-5 (L3) ====================
-
-
-class GLM5Provider(BaseLLMProvider):
-    """GLM-5（智谱 AI — 结构化输出旗舰）
-
-    发布: 2026-02，最新版 GLM-5.2（2026-06）
-    价格: 输入 ¥7/百万 token，输出 ¥22/百万 token
-    上下文: 128K~1M tokens
-    特点: 编码、多模态、推理，替代原 GLM-4
-    """
-
-    async def chat(self, messages: list[dict], **kwargs: Any) -> LLMResult:
-        import httpx
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": "glm-5",
-            "messages": messages,
-            **kwargs,
-        }
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            choice = data["choices"][0]
-            usage = data["usage"]
-            pt = usage["prompt_tokens"]
-            ct = usage["completion_tokens"]
-            return LLMResult(
-                content=choice["message"]["content"],
-                usage=LLMUsage(prompt_tokens=pt, completion_tokens=ct, cost_yuan=self.calculate_cost(pt, ct)),
-                model_name="glm-5",
-            )
-
-    def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
-        return (prompt_tokens * 7.0 + completion_tokens * 22.0) / 1_000_000
-
-
-# ==================== Kimi K2.5 (L5 — 长文档分析) ====================
-
-
-class KimiK25Provider(BaseLLMProvider):
-    """Kimi K2.5（月之暗面 Moonshot — 长文档/多模态分析）
-
-    发布: 2026-01-27
-    价格: 输入 ¥6.5/百万 token，输出 ¥28/百万 token
-    上下文: 256K tokens
-    特点: 多模态（文本+代码+图片+视频），超长上下文，替代原 Moonshot-v1
-    """
-
-    async def chat(self, messages: list[dict], **kwargs: Any) -> LLMResult:
-        import httpx
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": "kimi-k2.5",
-            "messages": messages,
-            **kwargs,
-        }
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            choice = data["choices"][0]
-            usage = data["usage"]
-            pt = usage["prompt_tokens"]
-            ct = usage["completion_tokens"]
-            return LLMResult(
-                content=choice["message"]["content"],
-                usage=LLMUsage(prompt_tokens=pt, completion_tokens=ct, cost_yuan=self.calculate_cost(pt, ct)),
-                model_name="kimi-k2.5",
-            )
-
-    def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
-        return (prompt_tokens * 6.5 + completion_tokens * 28.0) / 1_000_000
+        return (
+            prompt_tokens * self.price.input_price_per_m
+            + completion_tokens * self.price.output_price_per_m
+        ) / 1_000_000
 
 
 # ==================== 工厂函数 ====================
 
-_PROVIDER_MAP = {
-    "deepseek-v4-flash": ("deepseek_api_key", "deepseek_base_url", DeepSeekV4FlashProvider),
-    "deepseek-v4-pro": ("deepseek_api_key", "deepseek_base_url", DeepSeekV4ProProvider),
-    "qwen3-max": ("qwen_api_key", "qwen_base_url", Qwen3MaxProvider),
-    "glm-5": ("glm_api_key", "glm_base_url", GLM5Provider),
-    "kimi-k2.5": ("moonshot_api_key", "moonshot_base_url", KimiK25Provider),
-}
 
-
-def get_provider(model_name: str) -> BaseLLMProvider | None:
+def get_provider(model_name: str) -> OpenAICompatibleProvider | None:
     """根据模型名称获取对应的 Provider 实例
 
     Args:
@@ -306,15 +146,36 @@ def get_provider(model_name: str) -> BaseLLMProvider | None:
     Returns:
         Provider 实例，如果模型不存在或 API Key 未配置则返回 None
     """
-    info = _PROVIDER_MAP.get(model_name.lower())
-    if not info:
+    model_key = model_name.lower()
+    if model_key not in _MODEL_REGISTRY or model_key not in _CONFIG_MAP:
         return None
 
-    api_key_attr, base_url_attr, provider_cls = info
+    api_key_attr, base_url_attr = _CONFIG_MAP[model_key]
     api_key = getattr(settings, api_key_attr, "")
     base_url = getattr(settings, base_url_attr, "")
 
     if not api_key:
         return None
 
-    return provider_cls(api_key=api_key, base_url=base_url)
+    return OpenAICompatibleProvider(
+        api_key=api_key,
+        base_url=base_url,
+        model_name=model_key,
+    )
+
+
+def get_all_available_models() -> list[dict[str, Any]]:
+    """列出所有已配置可用的模型（API Key 非空）"""
+    available = []
+    for model_key in _MODEL_REGISTRY:
+        api_key_attr, _ = _CONFIG_MAP[model_key]
+        if getattr(settings, api_key_attr, ""):
+            price = _MODEL_REGISTRY[model_key]
+            available.append(
+                {
+                    "model": model_key,
+                    "input_price_per_m": price.input_price_per_m,
+                    "output_price_per_m": price.output_price_per_m,
+                }
+            )
+    return available

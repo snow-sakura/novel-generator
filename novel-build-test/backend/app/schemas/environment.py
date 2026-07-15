@@ -46,11 +46,7 @@ class EnvironmentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class EnvironmentPage(BaseModel):
-    """环境分页响应"""
+# 泛型分页别名
+from app.schemas.base import Page
 
-    items: list[EnvironmentResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+EnvironmentPage = Page[EnvironmentResponse]
