@@ -78,7 +78,7 @@ class AgentBase(ABC):
     def __init__(
         self,
         name: str,
-        model: str = "deepseek-v3",
+        model: str = "deepseek-v4-flash",
         role_description: str = "",
         system_prompt: str = "",
     ):
@@ -86,7 +86,7 @@ class AgentBase(ABC):
 
         Args:
             name: 智能体名称（如 "RequirementsAnalyst"）。
-            model: 模型名称，默认 "deepseek-v3"。
+            model: 模型名称，默认 "deepseek-v4-flash"。
             role_description: 角色描述，用于提示词构建。
             system_prompt: 系统级提示词，随每次 LLM 调用发送。
         """

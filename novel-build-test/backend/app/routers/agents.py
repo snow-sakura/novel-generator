@@ -23,7 +23,10 @@ async def 执行智能体任务(
     db: AsyncSession = Depends(get_db),
     当前用户: dict = Depends(检查权限(操作.创建)),
 ):
-    """执行智能体任务（调度总控编排工作流）"""
+    """执行智能体任务（调度总控编排工作流）
+
+    2.3.5: 支持传入辩论结果上下文（debate_context），自动注入下游 Agent
+    """
     from app.agents.dispatch_controller import DispatchController
 
     项目ID = 请求.get("项目ID")
@@ -34,6 +37,11 @@ async def 执行智能体任务(
         raise HTTPException(status_code=400, detail="项目ID不能为空")
 
     controller = DispatchController()
+
+    # 2.3.5: 注入辩论结果（如果已存在）
+    辩论结果 = 请求.get("辩论结果")
+    if 辩论结果:
+        controller.set_debate_context(辩论结果)
 
     # 记录执行开始
     执行记录 = AgentExecution(

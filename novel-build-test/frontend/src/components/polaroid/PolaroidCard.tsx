@@ -21,6 +21,10 @@ export interface PolaroidCardProps {
   signature?: string
   /** 状态标签 */
   badge?: { label: string; variant?: 'default' | 'amber' | 'rose' | 'muted' }
+  /** 智能体状态 */
+  status?: 'active' | 'pending' | 'beta'
+  /** 上次运行时间 */
+  lastRunTime?: string
   /** 点击回调 */
   onClick?: () => void
   /** 是否禁用（半透明） */
@@ -50,6 +54,8 @@ export default function PolaroidCard({
   metricLabel,
   signature,
   badge,
+  status,
+  lastRunTime,
   onClick,
   disabled = false,
   className,
@@ -70,8 +76,8 @@ export default function PolaroidCard({
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
       className={cn(
-        'relative w-72 cursor-pointer select-none rounded-xl bg-white p-4 transition-colors',
-        'shadow-polaroid',
+        'relative cursor-pointer select-none rounded-xl bg-white p-4 transition-colors flex flex-col',
+        'shadow-polaroid h-[220px]',
         disabled && 'opacity-50 pointer-events-none',
         onClick && 'cursor-pointer',
         className,
@@ -100,9 +106,9 @@ export default function PolaroidCard({
 
       {/* 自定义内容（children 模式，覆盖默认渲染） */}
       {children ? (
-        <div>{children}</div>
+        <div className="flex-1">{children}</div>
       ) : (
-        <>
+        <div className="flex-1 flex flex-col">
       {/* 标题区 */}
       <div className="mb-1 text-center">
         <h3 className="text-base font-semibold text-[var(--polaroid-text)]">
@@ -146,15 +152,46 @@ export default function PolaroidCard({
         </div>
       )}
 
+      {/* 智能体状态 + 上次运行时间 */}
+      {(status || lastRunTime) && (
+        <div className="mb-2 flex items-center justify-between text-[11px]">
+          {status && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium',
+                status === 'active' && 'bg-emerald-50 text-emerald-600',
+                status === 'pending' && 'bg-amber-50 text-amber-600',
+                status === 'beta' && 'bg-purple-50 text-purple-600',
+              )}
+            >
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full',
+                  status === 'active' && 'bg-emerald-500',
+                  status === 'pending' && 'bg-amber-500',
+                  status === 'beta' && 'bg-purple-500',
+                )}
+              />
+              {status === 'active' ? '已就绪' : status === 'pending' ? '待接入' : 'Beta'}
+            </span>
+          )}
+          {lastRunTime && (
+            <span style={{ color: 'var(--polaroid-text-muted)' }}>
+              {lastRunTime}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* 底部签名区（拍立得标志性留白） */}
       {signature && (
-        <div className="mt-3 border-t border-[var(--polaroid-border)] pt-2 text-center">
+        <div className="mt-auto pt-2 border-t border-[var(--polaroid-border)] text-center">
           <span className="text-[11px] italic tracking-wide text-[var(--polaroid-text-muted)]">
             {signature}
           </span>
         </div>
       )}
-      </>
+      </div>
       )}
 
     </motion.div>

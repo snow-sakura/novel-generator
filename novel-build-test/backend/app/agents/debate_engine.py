@@ -54,7 +54,7 @@ class DebateEngine(AgentBase):
         super().__init__(
             name="DebateEngine",
             role_description="多模型辩论引擎，用于质量门禁校验和决策论证",
-            model="deepseek-v3",
+            model="deepseek-v4-flash",
         )
         self._max_rounds: int = 3
         self._consensus_threshold: float = 0.7
@@ -90,8 +90,8 @@ class DebateEngine(AgentBase):
             # 配置 AutoGen 智能体
             llm_config = {
                 "config_list": [
-                    {"model": "deepseek-v3", "api_type": "openai"},
-                    {"model": "qwen-max", "api_type": "openai"},
+                    {"model": "deepseek-v4-flash", "api_type": "openai"},
+                    {"model": "qwen3-max", "api_type": "openai"},
                 ],
                 "temperature": 0.7,
             }

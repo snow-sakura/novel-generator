@@ -1,0 +1,140 @@
+# AISQA 全栈部署 — docker-compose.yml (4.2.1)
+# 一键启动: docker compose up -d
+# 停止: docker compose down
+
+version: "3.9"
+
+services:
+  # ==================== MySQL 数据库 ====================
+  mysql:
+    image: mysql:8.0
+    container_name: aisqa-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-aisqa_pass}
+      MYSQL_DATABASE: aisqa
+      MYSQL_USER: aisqa
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-aisqa_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Redis 事件总线 ====================
+  redis:
+    image: redis:7-alpine
+    container_name: aisqa-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Qdrant 向量数据库 ====================
+  qdrant:
+    image: qdrant/qdrant:v1.13
+    container_name: aisqa-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== MCP 工具服务 ====================
+  mcp-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aisqa-mcp
+    restart: unless-stopped
+    command: >
+      uvicorn app.mcp_integration.server:app
+      --host 0.0.0.0 --port 8001
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+      - GLM_API_KEY=${GLM_API_KEY:-}
+      - GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+      - MOONSHOT_API_KEY=${MOONSHOT_API_KEY:-}
+      - MOONSHOT_BASE_URL=https://api.moonshot.cn/v1
+    ports:
+      - "8001:8001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ==================== Backend API ====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aisqa-backend
+    restart: unless-stopped
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - DATABASE_URL=mysql+aiomysql://aisqa:aisqa_pass@mysql:3306/aisqa
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+      - GLM_API_KEY=${GLM_API_KEY:-}
+      - GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+      - MOONSHOT_API_KEY=${MOONSHOT_API_KEY:-}
+      - MOONSHOT_BASE_URL=https://api.moonshot.cn/v1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  # ==================== Frontend ====================
+  frontend:
+    image: node:22-alpine
+    container_name: aisqa-frontend
+    restart: unless-stopped
+    working_dir: /app
+    command: >
+      sh -c "npm install && npm run build && npm run preview -- --host 0.0.0.0 --port 3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  qdrant_data:

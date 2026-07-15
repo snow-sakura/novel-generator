@@ -14,7 +14,7 @@ class TestCaseWriter(AgentBase):
     def __init__(self):
         super().__init__(
             name="TestCaseWriter",
-            model="glm-4",
+            model="glm-5",
             role_description="测试用例编写专家",
             system_prompt=(
                 "你是一个专业的测试用例编写专家，擅长将测试场景转化为结构化的可执行测试用例。"

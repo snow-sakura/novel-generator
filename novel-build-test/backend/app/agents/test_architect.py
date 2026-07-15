@@ -14,7 +14,7 @@ class TestArchitect(AgentBase):
     def __init__(self):
         super().__init__(
             name="TestArchitect",
-            model="qwen-max",
+            model="qwen3-max",
             role_description="测试架构师",
             system_prompt=(
                 "你是一个经验丰富的测试架构师，擅长设计高质量的测试架构和策略。"

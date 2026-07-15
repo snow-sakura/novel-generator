@@ -12,53 +12,21 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/lib/auth-store'
 import AiAssistantFloating from '@/components/ai-chat/AiAssistantFloating'
+import { getModulesByGroup, groupOrder } from '@/lib/modules'
 import {
   LayoutDashboard,
-  FolderKanban,
-  FileText,
-  Server,
-  Package,
-  BookOpen,
-  Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
   User,
 } from 'lucide-react'
 
-/** 公共模块导航项 */
-const publicNavItems = [
-  { label: '首页', path: '/', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { label: '项目管理', path: '/projects', icon: <FolderKanban className="h-5 w-5" /> },
-  { label: '需求管理', path: '/requirements', icon: <FileText className="h-5 w-5" /> },
-  { label: '测试环境', path: '/environments', icon: <Server className="h-5 w-5" /> },
-  { label: '测试资产库', path: '/assets', icon: <Package className="h-5 w-5" /> },
-  { label: 'AI 知识库', path: '/knowledge', icon: <BookOpen className="h-5 w-5" /> },
-]
-
-/** 底部导航 */
-const bottomNavItems = [
-  { label: '设置', path: '/settings', icon: <Settings className="h-5 w-5" /> },
-]
-
-/** 页面标题映射 */
-const pageTitles: Record<string, string> = {
-  '/': '首页',
-  '/projects': '项目管理',
-  '/requirements': '需求管理',
-  '/environments': '测试环境',
-  '/assets': '测试资产库',
-  '/knowledge': 'AI 知识库',
-  '/settings': '系统设置',
-}
-
 export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuthStore()
-
-  const currentTitle = pageTitles[location.pathname] ?? 'AISQA'
+  const grouped = getModulesByGroup()
 
   const handleLogout = () => {
     logout()
@@ -96,94 +64,102 @@ export default function MainLayout() {
         </div>
 
         {/* 导航菜单 */}
-        <nav className="flex-1 space-y-1 px-2 py-4">
-          {publicNavItems.map((item) => {
-            const active = isActive(item.path)
+        <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
+          {/* 首页 */}
+          <button
+            onClick={() => navigate('/')}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            )}
+            style={{
+              backgroundColor: isActive('/') ? 'var(--amber-primary)' : 'transparent',
+              color: isActive('/') ? 'var(--sidebar-primary-foreground)' : 'var(--sidebar-foreground)',
+              opacity: isActive('/') ? 1 : 0.7,
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive('/')) {
+                e.currentTarget.style.backgroundColor = 'var(--sidebar-accent)'
+                e.currentTarget.style.opacity = '1'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive('/')) {
+                e.currentTarget.style.backgroundColor = 'transparent'
+                e.currentTarget.style.opacity = '0.7'
+              }
+            }}
+            title={collapsed ? '首页' : undefined}
+          >
+            <span className="shrink-0"><LayoutDashboard className="h-5 w-5" /></span>
+            {!collapsed && <span>首页</span>}
+          </button>
+
+          {/* 按分组显示模块 */}
+          {groupOrder.map((group) => {
+            const mods = grouped.get(group)
+            if (!mods || mods.length === 0) return null
             return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              <div key={group}>
+                {!collapsed && (
+                  <div className="mt-4 mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider"
+                    style={{ color: 'var(--polaroid-text-muted)' }}>
+                    {group}
+                  </div>
                 )}
-                style={{
-                  backgroundColor: active ? 'var(--amber-primary)' : 'transparent',
-                  color: active ? 'var(--sidebar-primary-foreground)' : 'var(--sidebar-foreground)',
-                  opacity: active ? 1 : 0.7,
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.backgroundColor = 'var(--sidebar-accent)'
-                    e.currentTarget.style.opacity = '1'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                    e.currentTarget.style.opacity = '0.7'
-                  }
-                }}
-                title={collapsed ? item.label : undefined}
-              >
-                <span className="shrink-0">{item.icon}</span>
-                {!collapsed && <span>{item.label}</span>}
-              </button>
+                {mods.map((mod) => {
+                  const ModIcon = mod.icon
+                  const active = location.pathname.startsWith(`/modules/${mod.key}`)
+                  return (
+                    <button
+                      key={mod.key}
+                      onClick={() => navigate(`/modules/${mod.key}`)}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      )}
+                      style={{
+                        backgroundColor: active ? 'var(--amber-primary)' : 'transparent',
+                        color: active ? 'var(--sidebar-primary-foreground)' : 'var(--sidebar-foreground)',
+                        opacity: active ? 1 : 0.7,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!active) {
+                          e.currentTarget.style.backgroundColor = 'var(--sidebar-accent)'
+                          e.currentTarget.style.opacity = '1'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!active) {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                          e.currentTarget.style.opacity = '0.7'
+                        }
+                      }}
+                      title={collapsed ? mod.title : undefined}
+                    >
+                      <span className="shrink-0"><ModIcon className="h-5 w-5" /></span>
+                      {!collapsed && <span className="truncate">{mod.title}</span>}
+                    </button>
+                  )
+                })}
+              </div>
             )
           })}
         </nav>
 
-        {/* 底部导航 */}
+        {/* 底部折叠按钮 */}
         <div className="border-t px-2 py-2" style={{ borderColor: 'var(--sidebar-border)' }}>
-          {bottomNavItems.map((item) => {
-            const active = isActive(item.path)
-            return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                )}
-                style={{
-                  backgroundColor: active ? 'var(--amber-primary)' : 'transparent',
-                  color: active ? 'var(--sidebar-primary-foreground)' : 'var(--sidebar-foreground)',
-                  opacity: active ? 1 : 0.7,
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.backgroundColor = 'var(--sidebar-accent)'
-                    e.currentTarget.style.opacity = '1'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                    e.currentTarget.style.opacity = '0.7'
-                  }
-                }}
-                title={collapsed ? item.label : undefined}
-              >
-                <span className="shrink-0">{item.icon}</span>
-                {!collapsed && <span>{item.label}</span>}
-              </button>
-            )
-          })}
-
-          {/* 折叠按钮 */}
-          <div className="mt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-center"
-              style={{ color: 'var(--sidebar-foreground)', opacity: 0.5 }}
-              onClick={() => setCollapsed(!collapsed)}
-            >
-              {collapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center"
+            style={{ color: 'var(--sidebar-foreground)', opacity: 0.5 }}
+            onClick={() => setCollapsed(!collapsed)}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </aside>
 
@@ -198,7 +174,7 @@ export default function MainLayout() {
           }}
         >
           <h1 className="text-lg font-semibold" style={{ color: 'var(--polaroid-text)' }}>
-            {currentTitle}
+            AISQA
           </h1>
 
           <DropdownMenu>
@@ -216,11 +192,6 @@ export default function MainLayout() {
                 <User className="h-4 w-4" />
                 <span>{user?.display_name ?? '用户'}</span>
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>个人设置</span>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />

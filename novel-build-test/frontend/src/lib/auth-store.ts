@@ -5,8 +5,10 @@ import { TOKEN_KEY, REFRESH_TOKEN_KEY } from './constants'
 interface User {
   id: number
   username: string
+  email?: string
   display_name: string
   role: string
+  is_active?: boolean
 }
 
 /** 认证状态接口 */
@@ -21,6 +23,8 @@ interface AuthState {
   logout: () => void
   /** 从本地存储加载 Token */
   loadFromStorage: () => void
+  /** 更新用户信息 */
+  setUser: (user: User) => void
 }
 
 /**
@@ -47,8 +51,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loadFromStorage: () => {
     const token = localStorage.getItem(TOKEN_KEY)
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
     if (token) {
-      set({ token, isAuthenticated: true })
+      set({ token, refreshToken, isAuthenticated: true })
     }
+  },
+
+  setUser: (user) => {
+    set({ user })
   },
 }))

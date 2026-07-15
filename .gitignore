@@ -6,6 +6,7 @@ __pycache__/
 dist/
 *.db
 .env
+.env.*
 .venv/
 
 # Node

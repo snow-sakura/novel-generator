@@ -6,7 +6,7 @@
 支持风格多选、六层大纲、CrewAI 多智能体管线、XMind 导出、对话式创作、段落润色（重写/扩写/精简）。
 
 > **版本标识**: 本目录为 V2 血肉版，API 前缀 `/api/v2`，数据库文件 `novel_generator_v2.db`
-> V2 在 V1 基础上新增：段落润色、版本历史、ParagraphVersion 模型
+> V2 在 V1 基础上新增：段落润色、版本历史、ParagraphVersion 模型、生成记录管理增强
 
 ## 技术栈
 

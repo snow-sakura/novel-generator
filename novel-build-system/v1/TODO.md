@@ -4,6 +4,26 @@
 
 ---
 
+## v1.4.0 (2026-07-08)
+
+### 新增功能
+
+- **详情页大纲/章节弹窗**：NovelPage 顶栏新增「大纲生成结果」和「章节细纲」按钮
+  - `OutlineModal` — 6 层 tab 切换展示，每层使用彩色卡片风格（紫色/蓝色/绿色/琥珀/靛色/玫红）
+  - `ChaptersModal` — 章节 tab 导航 + 单章卡片展示，轮换 5 色区分
+- **卡片式 UI 风格**：两个弹窗均参考 `MultiStepLog.OutlineLayerCard` 设计，使用 `outline-card-grid` 网格布局
+- **全中文 LABEL_MAP**：补齐 outline 数据中 24 个缺失的中文 key 映射，消除英文显示
+
+### 文件变更
+
+| 文件 | 说明 |
+|---|---|
+| `v1/frontend/src/pages/NovelPage.jsx` | 新增 state/计算/按钮/弹窗渲染 |
+| `v1/frontend/src/components/OutlineModal.jsx` | 重写：tab 导航 + 卡片式内容展示 |
+| `v1/frontend/src/components/ChaptersModal.jsx` | 重写：tab 导航 + 单章卡片展示 |
+
+---
+
 ## v1.3.1 (2026-07-07)
 
 ### Bug 修复

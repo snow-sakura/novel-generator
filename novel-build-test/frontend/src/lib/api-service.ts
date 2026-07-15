@@ -1,6 +1,17 @@
 import apiClient from './api-client'
 
 // ====== 认证 ======
+export interface UserInfo {
+  id: number
+  username: string
+  email: string
+  display_name: string | null
+  role: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export const authApi = {
   /** 登录 */
   login: (username: string, password: string) =>
@@ -13,24 +24,25 @@ export const authApi = {
   /** 刷新令牌 */
   refresh: (refresh_token: string) =>
     apiClient.post('/auth/refresh', { refresh_token }),
+
+  /** 获取当前用户信息 */
+  me: () => apiClient.get<UserInfo>('/auth/me'),
+
+  /** 修改密码 */
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    apiClient.post('/auth/change-password', data),
 }
 
 // ====== 项目 ======
 export interface ProjectItem {
   id: number
   name: string
-  description: string
+  description: string | null
   status: 'active' | 'archived' | 'draft'
+  repo_url?: string | null
+  owner_id?: number
   created_at: string
-  manager?: string
-  stats?: {
-    total_cases: number
-    passed: number
-    failed: number
-    blocked: number
-    executions: number
-    bugs: number
-  }
+  updated_at: string
 }
 
 export interface PaginatedResponse<T> {
@@ -256,6 +268,83 @@ export const knowledgeApi = {
     apiClient.post<Array<{ id: string; score: number; payload: Record<string, unknown> }>>('/knowledge/search', params),
 }
 
+// ====== 用户管理 ======
+export interface UserItem {
+  id: number
+  username: string
+  email: string
+  display_name: string | null
+  role: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export const userApi = {
+  /** 获取用户列表 */
+  list: (params?: { page?: number; page_size?: number; search?: string; role?: string; status?: string }) =>
+    apiClient.get<PaginatedResponse<UserItem>>('/users', { params }),
+
+  /** 获取用户详情 */
+  detail: (id: number) => apiClient.get<UserItem>(`/users/${id}`),
+
+  /** 创建用户 */
+  create: (data: { username: string; email: string; password: string; display_name?: string }) =>
+    apiClient.post<UserItem>('/users', data),
+
+  /** 更新用户 */
+  update: (id: number, data: { display_name?: string; email?: string; role?: string; is_active?: boolean }) =>
+    apiClient.put<UserItem>(`/users/${id}`, data),
+
+  /** 删除用户 */
+  delete: (id: number) => apiClient.delete(`/users/${id}`),
+
+  /** 更新用户角色 */
+  updateRole: (id: number, role: string) =>
+    apiClient.put<UserItem>(`/users/${id}/role`, { role }),
+
+  /** 更新用户状态 */
+  updateStatus: (id: number, is_active: boolean) =>
+    apiClient.put<UserItem>(`/users/${id}/status`, { is_active }),
+
+  /** 重置用户密码 */
+  resetPassword: (id: number, new_password: string) =>
+    apiClient.post(`/users/${id}/reset-password`, { new_password }),
+}
+
+// ====== 角色管理 ======
+export interface RoleItem {
+  id: number
+  name: string
+  code: string
+  description: string | null
+  menu_permissions: string[] | null
+  data_scope: 'all' | 'project' | 'self'
+  user_count: number
+  created_at: string
+  updated_at: string
+}
+
+export const roleApi = {
+  /** 获取角色列表 */
+  list: (params?: { page?: number; page_size?: number; search?: string }) =>
+    apiClient.get<PaginatedResponse<RoleItem>>('/roles', { params }),
+
+  /** 获取角色详情 */
+  detail: (id: number) => apiClient.get<RoleItem>(`/roles/${id}`),
+
+  /** 创建角色 */
+  create: (data: { name: string; code: string; description?: string; menu_permissions?: string[]; data_scope?: string }) =>
+    apiClient.post<RoleItem>('/roles', data),
+
+  /** 更新角色 */
+  update: (id: number, data: { name?: string; description?: string; menu_permissions?: string[]; data_scope?: string }) =>
+    apiClient.put<RoleItem>(`/roles/${id}`, data),
+
+  /** 删除角色 */
+  delete: (id: number) => apiClient.delete(`/roles/${id}`),
+}
+
 // ====== 审计日志 ======
 export interface AuditLogItem {
   id: number
@@ -343,17 +432,111 @@ export const agentApi = {
   /** 成本统计 */
   costs: () => apiClient.get<CostStats>('/agents/costs'),
 
-  /** AI-Native: 调度全流程执行 */
-  dispatch: (data: { project_id: number; project_name?: string; 需求文档?: string; 执行模式?: string }) =>
-    apiClient.post('/agents/dispatch', data),
+  /** AI-Native: 调度全流程执行（支持中文/英文双通） */
+  dispatch: (data: {
+    project_id?: number;
+    project_name?: string;
+    requirement_doc?: string;
+    execution_mode?: string;
+    项目ID?: number;
+    项目名称?: string;
+    需求文档?: string;
+    执行模式?: string;
+  }) => apiClient.post('/agents/dispatch', data),
 
-  /** AI-Native: 启动辩论 */
-  startDebate: (data: { 议题: string; 论点列表?: string[]; 最大轮次?: number }) =>
-    apiClient.post('/agents/debate', data),
+  /** AI-Native: 启动辩论（支持中文/英文双通） */
+  startDebate: (data: {
+    topic?: string;
+    pro_side?: string;
+    con_side?: string;
+    max_rounds?: number;
+    议题?: string;
+    论点列表?: string[];
+    最大轮次?: number;
+  }) => apiClient.post('/agents/debate', data),
 
-  /** AI-Native: 执行单个智能体 */
-  executeAgent: (data: { 智能体: string; 输入?: Record<string, unknown> }) =>
-    apiClient.post('/agents/execute-single', data),
+  /** AI-Native: 执行单个智能体（支持中文/英文双通） */
+  executeAgent: (data: {
+    agent?: string;
+    input?: Record<string, unknown>;
+    智能体?: string;
+    输入?: Record<string, unknown>;
+  }) => apiClient.post('/agents/execute-single', data),
+}
+
+// ====== 测试执行 ======
+export interface ExecutionItem {
+  id: number
+  project_id: number
+  name: string
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  agent_execution_id: number | null
+  summary: { total?: number; passed?: number; failed?: number; skipped?: number; duration?: number } | null
+  error_message: string | null
+  created_by: number
+  started_at: string
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export const executionApi = {
+  /** 获取项目级执行列表 */
+  list: (projectId: number, params?: { page?: number; page_size?: number; status?: string }) =>
+    apiClient.get<PaginatedResponse<ExecutionItem>>(`/projects/${projectId}/executions`, { params }),
+
+  /** 创建执行 */
+  create: (projectId: number, data: { name: string; agent_execution_id?: number }) =>
+    apiClient.post<ExecutionItem>(`/projects/${projectId}/executions`, data),
+
+  /** 获取执行详情 */
+  detail: (id: number) => apiClient.get<ExecutionItem>(`/executions/${id}`),
+
+  /** 取消执行 */
+  cancel: (id: number) => apiClient.patch<ExecutionItem>(`/executions/${id}/cancel`),
+
+  /** 删除执行 */
+  delete: (id: number) => apiClient.delete(`/executions/${id}`),
+
+  /** SSE 日志流 URL */
+  executionStreamUrl: (id: number) => `/api/v1/executions/${id}/stream`,
+}
+
+// ====== 测试报告 ======
+export interface ReportItem {
+  id: number
+  execution_id: number
+  total_cases: number
+  passed: number
+  failed: number
+  skipped: number
+  duration: number | null
+  pass_rate: number
+  summary: string | null
+  details: Array<{ name: string; status: string; duration: number; error?: string }> | null
+  quality_score: number | null
+  created_by: number
+  created_at: string
+}
+
+export const reportApi = {
+  /** 获取指定执行的报告 */
+  getByExecution: (executionId: number) =>
+    apiClient.get<ReportItem>(`/executions/${executionId}/report`),
+
+  /** 创建报告 */
+  create: (executionId: number, data: {
+    total_cases: number; passed: number; failed: number; skipped: number;
+    duration?: number; summary?: string; details?: Array<unknown>;
+  }) => apiClient.post<ReportItem>(`/executions/${executionId}/report`, data),
+
+  /** 获取全局报告列表（分页） */
+  list: (params?: { page?: number; page_size?: number; project_id?: number }) =>
+    apiClient.get<PaginatedResponse<ReportItem>>('/reports', { params }),
+
+  /** 获取报告详情 */
+  detail: (reportId: number) =>
+    apiClient.get<ReportItem>(`/reports/${reportId}`),
 }
 
 // ====== AI-Native 子系统 ======
@@ -363,17 +546,17 @@ export const aiNativeApi = {
     status: string
     app: string
     version: string
-    子系统状态: {
-      数据库: string
-      向量数据库: string
-      事件总线: string
+    subsystem_status: {
+      database: string
+      vector_db: string
+      event_bus: string
     }
   }>('/health'),
 
   /** 向量集合列表 */
-  向量集合列表: () => apiClient.get('/vector-db/collections'),
+  getCollections: () => apiClient.get('/vector-db/collections'),
 
   /** 语义检索 */
-  语义检索: (data: { 文本: string; 集合?: string; 限制?: number }) =>
+  searchVectorDb: (data: { query?: string; collection_name?: string; limit?: number; 文本?: string; 集合?: string; 限制?: number }) =>
     apiClient.post('/vector-db/search', data),
 }

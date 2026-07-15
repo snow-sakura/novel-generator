@@ -4,6 +4,7 @@ AI-Native 多智能体测试平台核心入口。
 集成 4 支柱架构：向量数据库 + 事件总线 + MCP + RAG。
 """
 
+import asyncio
 import contextlib
 import logging
 from collections.abc import AsyncIterator
@@ -62,13 +63,30 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as e:
         logger.warning(f"⚠️ Redis 事件总线连接失败（事件日志模式）: {e}")
 
-    # 4. 启动 MCP 服务器（后台任务）
+    # 4. 注册 MCP 内置工具（浏览器、文件操作等）
+    try:
+        from app.mcp_integration.tools.browser import BROWSER_TOOLS
+        from app.mcp_integration.tool_registry import global_tool_registry
+        for tool_def in BROWSER_TOOLS:
+            global_tool_registry.register(
+                name=tool_def["name"],
+                func=tool_def["func"],
+                description=tool_def["description"],
+                schema=tool_def["schema"],
+            )
+        logger.info(f"✅ 已注册 {len(BROWSER_TOOLS)} 个 MCP 内置工具")
+    except Exception as e:
+        logger.warning(f"⚠️ MCP 内置工具注册失败: {e}")
+
+    # 5. 启动 MCP 服务器（后台 FastAPI 进程，端口 8001）
     try:
         from app.mcp_integration.server import MCPServer
         mcp_server = MCPServer()
-        logger.info("✅ MCP 服务器就绪")
+        app.state.mcp_server = mcp_server
+        asyncio.create_task(mcp_server.start())
+        logger.info("✅ MCP 服务器已启动 (端口 8001)")
     except Exception as e:
-        logger.warning(f"⚠️ MCP 服务器初始化失败: {e}")
+        logger.warning(f"⚠️ MCP 服务器启动失败: {e}")
 
     yield
 
@@ -92,6 +110,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.info("✅ 事件总线已关闭")
     except Exception as e:
         logger.warning(f"事件总线关闭异常: {e}")
+
+    # 3. 关闭 MCP 服务器
+    try:
+        mcp_server = getattr(app.state, "mcp_server", None)
+        if mcp_server:
+            await mcp_server.stop()
+            logger.info("✅ MCP 服务器已关闭")
+    except Exception as e:
+        logger.warning(f"MCP 服务器关闭异常: {e}")
 
     logger.info("👋 AISQA 平台已停止")
 
@@ -154,20 +181,25 @@ async def health_check():
         "status": "ok",
         "app": settings.app_name,
         "version": "1.0.0",
-        "子系统状态": {
-            "数据库": db_status,
-            "向量数据库": qdrant_status,
-            "事件总线": redis_status,
+        "subsystem_status": {
+            "database": db_status,
+            "vector_db": qdrant_status,
+            "event_bus": redis_status,
         },
     }
 
 
 # ==================== 注册路由 ====================
 
-from app.routers import auth, projects, audit_logs, agents, requirements, environments, assets, knowledge
+from app.routers import auth, users, roles, projects, audit_logs, agents, requirements, environments, assets, knowledge
 from app.routers import settings as settings_router
+from app.routers import test_executions
+from app.routers import test_reports
+from app.routers import mcp_tools
 
 app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(roles.router)
 app.include_router(projects.router)
 app.include_router(audit_logs.router)
 app.include_router(agents.router)
@@ -176,6 +208,9 @@ app.include_router(environments.router)
 app.include_router(assets.router)
 app.include_router(knowledge.router)
 app.include_router(settings_router.router)
+app.include_router(test_executions.router)
+app.include_router(test_reports.router)
+app.include_router(mcp_tools.router)
 
 # ===== AI-Native API 路由 =====
 
@@ -186,65 +221,98 @@ async def get_collections():
     try:
         from app.vector_db.collection_manager import global_collection_manager
         collections = await global_collection_manager.list_all_collections()
-        return {"状态": "ok", "集合列表": collections}
+        return {"status": "ok", "collections": collections}
     except Exception as e:
-        return {"状态": "error", "消息": str(e)}
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/v1/vector-db/search", tags=["AI-Native"])
 async def semantic_search(query: dict):
-    """语义检索测试知识"""
+    """语义检索测试知识
+
+    请求体字段（支持中文/英文双通）:
+        - query / 文本: 检索文本
+        - collection_name / 集合: 集合名称（默认 test_case_knowledge）
+        - limit / 限制: 最大返回条数（默认 5）
+    """
     try:
         from app.rag_pipeline.retriever import global_context_retriever
         results = await global_context_retriever.retrieve_context(
-            query=query.get("文本", ""),
-            collection_name=query.get("集合", "test_case_knowledge"),
-            limit=query.get("限制", 5),
+            query=query.get("query") or query.get("文本", ""),
+            collection_name=query.get("collection_name") or query.get("集合", "test_case_knowledge"),
+            limit=query.get("limit") or query.get("限制", 5),
         )
-        return {"状态": "ok", "结果": results}
+        return {"status": "ok", "results": results}
     except Exception as e:
-        return {"状态": "error", "消息": str(e)}
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/v1/agents/dispatch", tags=["AI-Native"])
 async def dispatch_execution(request: dict):
-    """调度智能体执行测试任务"""
+    """调度智能体执行测试任务
+
+    请求体字段（支持中文/英文双通）:
+        - project_id / 项目ID: 项目唯一标识
+        - project_name / 项目名称: 项目名称
+        - requirement_doc / 需求文档: 需求文档内容
+        - execution_mode / 执行模式: 全流程/快速检测/架构评审/用例生成
+    """
     try:
         from app.agents.dispatch_controller import DispatchController
         controller = DispatchController()
-        result = await controller.execute({
-            "项目ID": request.get("项目ID"),
-            "项目名称": request.get("项目名称", ""),
-            "需求文档": request.get("需求文档", ""),
-            "执行模式": request.get("执行模式", "全流程"),
-        })
-        return {"状态": "ok", "结果": result}
+
+        # 中文/英文 key 双通适配
+        context = {
+            "project_id": request.get("project_id") or request.get("项目ID"),
+            "project_name": request.get("project_name") or request.get("项目名称", ""),
+            "requirement_doc": request.get("requirement_doc") or request.get("需求文档", ""),
+            "execution_mode": request.get("execution_mode") or request.get("执行模式", "全流程"),
+        }
+        result = await controller.execute(context)
+        return {"status": "ok", "result": result}
     except Exception as e:
-        return {"状态": "error", "消息": str(e)}
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/v1/agents/debate", tags=["AI-Native"])
 async def start_debate(request: dict):
-    """启动 AI 多模型辩论"""
+    """启动 AI 多模型辩论
+
+    请求体字段（支持中文/英文双通）:
+        - topic / 议题: 辩论议题
+        - pro_side / 正方立场: 正方立场描述
+        - con_side / 反方立场: 反方立场描述
+        - max_rounds / 最大轮次: 最大辩论轮数（默认 3）
+    """
     try:
         from app.agents.debate_engine import DebateEngine
         engine = DebateEngine()
-        result = await engine.execute({
-            "议题": request.get("议题", ""),
-            "论点列表": request.get("论点列表", []),
-            "最大轮次": request.get("最大轮次", 3),
-        })
-        return {"状态": "ok", "结果": result}
+
+        # 中文/英文 key 双通适配
+        arg_list = request.get("论点列表") or request.get("arguments", [])
+        context = {
+            "topic": request.get("topic") or request.get("议题", ""),
+            "pro_side": request.get("pro_side") or (arg_list[0] if len(arg_list) > 0 else ""),
+            "con_side": request.get("con_side") or (arg_list[1] if len(arg_list) > 1 else ""),
+            "max_rounds": request.get("max_rounds") or request.get("最大轮次", 3),
+        }
+        result = await engine.execute(context)
+        return {"status": "ok", "result": result}
     except Exception as e:
-        return {"状态": "error", "消息": str(e)}
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/v1/agents/execute-single", tags=["AI-Native"])
 async def execute_single_agent(request: dict):
-    """执行单个智能体"""
+    """执行单个智能体
+
+    请求体字段（支持中文/英文双通）:
+        - agent / 智能体: 智能体名称（需求分析/测试架构/测试设计/用例编写/执行分析/质量审计/成本优化）
+        - input / 输入: 传递给智能体的上下文参数
+    """
     try:
-        agent_name = request.get("智能体", "")
-        agent_input = request.get("输入", {})
+        agent_name = request.get("agent") or request.get("智能体", "")
+        agent_input = request.get("input") or request.get("输入", {})
 
         agent_mapping = {
             "需求分析": "RequirementsAnalyst",
@@ -255,19 +323,21 @@ async def execute_single_agent(request: dict):
             "质量审计": "QualityAuditor",
             "成本优化": "CostOptimizer",
         }
+        # 也支持直接传入英文类名
+        reverse_mapping = {v: k for k, v in agent_mapping.items()}
+
+        class_name = agent_mapping.get(agent_name) or reverse_mapping.get(agent_name)
+        if not class_name:
+            return {"status": "error", "message": f"未知智能体: {agent_name}"}
 
         import importlib
-        class_name = agent_mapping.get(agent_name)
-        if not class_name:
-            return {"状态": "error", "消息": f"未知智能体: {agent_name}"}
-
         module = importlib.import_module(f"app.agents.{class_name.lower()}")
         agent_class = getattr(module, class_name, None)
         if not agent_class:
-            return {"状态": "error", "消息": f"未找到类: {class_name}"}
+            return {"status": "error", "message": f"未找到类: {class_name}"}
 
         instance = agent_class()
         result = await instance.execute(agent_input)
-        return {"状态": "ok", "结果": result}
+        return {"status": "ok", "result": result}
     except Exception as e:
-        return {"状态": "error", "消息": str(e)}
+        return {"status": "error", "message": str(e)}

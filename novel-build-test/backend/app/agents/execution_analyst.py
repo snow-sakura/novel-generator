@@ -14,7 +14,7 @@ class ExecutionAnalyst(AgentBase):
     def __init__(self):
         super().__init__(
             name="ExecutionAnalyst",
-            model="deepseek-v3",
+            model="deepseek-v4-flash",
             role_description="执行分析专家",
             system_prompt=(
                 "你是一个资深的测试执行分析专家，擅长分析测试执行日志和结果。"

@@ -14,7 +14,7 @@ class TestDesigner(AgentBase):
     def __init__(self):
         super().__init__(
             name="TestDesigner",
-            model="glm-4",
+            model="glm-5",
             role_description="测试设计专家",
             system_prompt=(
                 "你是一个专业的测试设计专家，擅长将测试架构转化为具体的测试场景和用例大纲。"

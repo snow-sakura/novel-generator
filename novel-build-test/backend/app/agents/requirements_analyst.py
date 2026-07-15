@@ -14,7 +14,7 @@ class RequirementsAnalyst(AgentBase):
     def __init__(self):
         super().__init__(
             name="RequirementsAnalyst",
-            model="deepseek-v3",
+            model="deepseek-v4-flash",
             role_description="需求分析专家",
             system_prompt=(
                 "你是一个专业的需求分析专家，擅长从产品需求文档（PRD）中提取结构化信息。"

@@ -14,7 +14,7 @@ class QualityAuditor(AgentBase):
     def __init__(self):
         super().__init__(
             name="QualityAuditor",
-            model="deepseek-r1",
+            model="deepseek-v4-pro",
             role_description="质量审计专家",
             system_prompt=(
                 "你是一个严谨的质量审计专家，擅长从多维度评估软件质量。"

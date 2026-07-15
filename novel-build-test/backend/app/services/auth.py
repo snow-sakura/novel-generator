@@ -1,4 +1,4 @@
-"""身份认证服务 — 注册、登录、刷新令牌"""
+"""身份认证服务 — 注册、登录、刷新令牌、修改密码"""
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -110,3 +110,24 @@ async def refresh_token(db: AsyncSession, token: str) -> tuple[str, str] | None:
     new_refresh_token = create_refresh_token(token_data)
 
     return new_access_token, new_refresh_token
+
+
+async def change_password(
+    db: AsyncSession, user: User, current_password: str, new_password: str
+) -> None:
+    """修改用户密码
+
+    Args:
+        db: 数据库会话
+        user: 当前用户
+        current_password: 当前密码
+        new_password: 新密码
+
+    Raises:
+        ValueError: 当前密码错误
+    """
+    if not verify_password(current_password, user.hashed_password):
+        raise ValueError("当前密码错误")
+
+    user.hashed_password = hash_password(new_password)
+    await db.commit()

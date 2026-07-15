@@ -22,7 +22,7 @@ class CostOptimizer(AgentBase):
     def __init__(self):
         super().__init__(
             name="CostOptimizer",
-            model="deepseek-v3",
+            model="deepseek-v4-flash",
             role_description="成本优化专家",
             system_prompt=(
                 "你是一个 LLM 成本优化专家，精通大模型调用成本分析与优化策略。"

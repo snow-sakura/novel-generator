@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 
 class UserCreate(BaseModel):
@@ -21,6 +21,15 @@ class UserLogin(BaseModel):
     password: str = Field(..., description="密码")
 
 
+class UserUpdate(BaseModel):
+    """用户更新请求"""
+
+    display_name: str | None = Field(None, max_length=100, description="显示名称")
+    email: str | None = Field(None, description="邮箱地址")
+    role: str | None = Field(None, description="角色")
+    is_active: bool | None = Field(None, description="是否激活")
+
+
 class UserResponse(BaseModel):
     """用户信息响应"""
 
@@ -36,6 +45,15 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UserListResponse(BaseModel):
+    """用户列表响应"""
+
+    items: list[UserResponse]
+    total: int
+    page: int
+    page_size: int
+
+
 class TokenResponse(BaseModel):
     """JWT Token 响应"""
 
@@ -43,3 +61,16 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class PasswordChangeRequest(BaseModel):
+    """密码修改请求"""
+
+    current_password: str = Field(..., description="当前密码")
+    new_password: str = Field(..., min_length=6, max_length=128, description="新密码")
+
+
+class PasswordResetRequest(BaseModel):
+    """密码重置请求"""
+
+    new_password: str = Field(..., min_length=6, max_length=128, description="新密码")

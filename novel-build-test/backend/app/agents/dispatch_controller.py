@@ -1,13 +1,17 @@
-"""调度总控智能体 — 基于 CrewAI 的任务分发与流程编排引擎
+"""调度总控智能体 — 基于 LangGraph 的任务分发与流程编排引擎
 
 本模块提供 DispatchController 类，负责将复杂测试任务拆解并分发到
-多个专业 Agent 执行。优先使用 CrewAI 框架进行智能编排，若不可用
-则依次回退到 LangGraph 工作流和顺序执行模式。
+多个专业 Agent 执行。优先使用 LangGraph 工作流引擎，若不可用
+则回退到顺序执行模式。
 
-支持三种执行模式:
-    1. CrewAI 编排（首选）— 使用 CrewAI 的 Agent/Role/Process 机制
-    2. LangGraph 工作流（回退）— 使用有向图工作流引擎
-    3. 顺序执行（最终回退）— 按预定义顺序逐一执行 Agent
+支持两种执行模式:
+    1. LangGraph 工作流（首选）— 使用有向图工作流引擎，支持状态持久化和断点续跑
+    2. 顺序执行（回退）— 按预定义顺序逐一执行 Agent
+
+执行计划关联:
+    - 2.4.3 成本聚合: 每步执行后累加 cost_yuan → 写入最终记录
+    - 2.4.4 超时控制: 整个工作流默认 30 分钟超时，超时自动标记 failed
+    - 2.3.5 辩论上下文: 自动将已有辩论结果注入下游 Agent 上下文
 """
 
 import asyncio
@@ -17,7 +21,6 @@ from datetime import datetime
 from typing import Any, Optional
 
 from .base import AgentBase, AgentResult
-from .workflow_graph import AgentState, workflow_graph
 from .requirements_analyst import RequirementsAnalyst
 from .test_architect import TestArchitect
 from .test_designer import TestDesigner
@@ -27,6 +30,9 @@ from .quality_auditor import QualityAuditor
 from .cost_optimizer import CostOptimizer
 
 logger = logging.getLogger(__name__)
+
+# 默认全局超时时间（秒），2.4.4: 30 分钟
+DEFAULT_WORKFLOW_TIMEOUT_SECONDS: int = 1800
 
 # 工作流定义：执行模式到 Agent 执行序列的映射
 WORKFLOW_DEFINITIONS: dict[str, list[dict[str, Any]]] = {
@@ -65,8 +71,8 @@ class DispatchController(AgentBase):
     并提供全流程追踪和成本核算。
 
     特性:
-        - 三级编排策略：CrewAI → LangGraph → 顺序执行
-        - 支持多种预定义工作流模板
+        - 二级编排策略：LangGraph → 顺序执行
+        - 支持多种预定义工作流模板（全流程/快速检测/架构评审/用例生成）
         - 实时执行状态追踪
         - 聚合所有子 Agent 的执行成本和结果
     """
@@ -75,7 +81,7 @@ class DispatchController(AgentBase):
         super().__init__(
             name="DispatchController",
             role_description="调度总控：任务分发、流程编排、仲裁决策",
-            model="deepseek-v3",
+            model="deepseek-v4-flash",
         )
         # 实例化子 Agent
         self._analyst = RequirementsAnalyst()
@@ -97,133 +103,58 @@ class DispatchController(AgentBase):
             "CostOptimizer": self._optimizer,
         }
 
-    async def _try_crewai_orchestrate(self, context: dict[str, Any]) -> Optional[AgentResult]:
-        """尝试使用 CrewAI 框架进行智能编排
+        # 辩论结果缓存（2.3.5: 注入下游 Agent 上下文）
+        self._debate_results: Optional[dict[str, Any]] = None
 
-        将各专业 Agent 包装为 CrewAI 的 Agent 角色，通过 Crew
-        的 Process 机制自动管理任务依赖和执行顺序。
+    def set_debate_context(self, debate_results: dict[str, Any]) -> None:
+        """注入辩论结果到调度上下文（2.3.5）
+
+        在发起工作流执行前，调用此方法传入已有的辩论结果，
+        之后所有子 Agent 的 step_context 中会包含 debate 字段。
 
         Args:
-            context: 执行上下文
+            debate_results: 辩论结果字典，至少包含:
+                - topic: 辩论议题
+                - final_decision: 最终决策
+                - consensus: 是否达成共识
+                - disagreements: 分歧点列表（可选）
+        """
+        self._debate_results = debate_results
+        logger.info(
+            f"辩论上下文已注入: topic={debate_results.get('topic', 'N/A')}, "
+            f"consensus={debate_results.get('consensus', False)}"
+        )
+
+    def _build_step_context(
+        self,
+        context: dict[str, Any],
+        agent_name: str,
+        previous_results: dict[str, Any],
+    ) -> dict[str, Any]:
+        """构建步骤上下文（含辩论结果注入 + 历史结果传递）
+
+        2.3.5: 如果已设置辩论结果，自动注入到每个步骤的 context 中
+        2.4.3: 前一阶段结果通过 previous_results 传递
+
+        Args:
+            context: 原始执行上下文
+            agent_name: 当前 Agent 名称
+            previous_results: 之前步骤的执行结果
 
         Returns:
-            编排成功返回 AgentResult，CrewAI 不可用时返回 None
+            增强后的步骤上下文
         """
-        try:
-            from crewai import Agent, Crew, Process, Task
-        except ImportError:
-            logger.warning("CrewAI 不可用，将回退到 LangGraph 工作流模式")
-            return None
+        step_context: dict[str, Any] = {
+            **context,
+            "task_id": f"{context.get('task_id', '')}_{agent_name}",
+            "previous_results": previous_results,
+        }
 
-        try:
-            execution_mode = context.get("execution_mode", "全流程")
-            workflow = WORKFLOW_DEFINITIONS.get(
-                execution_mode, WORKFLOW_DEFINITIONS["全流程"]
-            )
+        # 2.3.5: 注入辩论结果
+        if self._debate_results is not None:
+            step_context["debate_context"] = self._debate_results
 
-            # 创建 CrewAI Agent 列表
-            crew_agents: list[Agent] = []
-            crew_tasks: list[Task] = []
-
-            agent_role_map = {
-                "RequirementsAnalyst": (
-                    "需求分析师",
-                    "负责分析 PRD/需求文档，提取功能点和测试要点",
-                ),
-                "TestArchitect": (
-                    "测试架构师",
-                    "负责设计整体测试架构、技术选型和策略规划",
-                ),
-                "TestDesigner": (
-                    "测试设计师",
-                    "负责设计具体的测试场景、测试数据和验收标准",
-                ),
-                "TestCaseWriter": (
-                    "用例编写师",
-                    "负责将测试场景转化为可执行的测试用例",
-                ),
-                "CostOptimizer": (
-                    "成本优化师",
-                    "负责优化测试资源分配和成本控制",
-                ),
-                "ExecutionAnalyst": (
-                    "执行分析师",
-                    "负责执行测试计划并分析测试结果",
-                ),
-                "QualityAuditor": (
-                    "质量审计师",
-                    "负责质量审计、缺陷分析和最终报告生成",
-                ),
-            }
-
-            # 为工作流中的每个步骤创建 CrewAI Agent 和 Task
-            for step_info in workflow:
-                agent_name = step_info["agent"]
-                role_info = agent_role_map.get(agent_name, (agent_name, ""))
-                agent_instance = self._agent_map.get(agent_name)
-                if not agent_instance:
-                    continue
-
-                crew_agent = Agent(
-                    role=role_info[0],
-                    goal=step_info["description"],
-                    backstory=f"你是{role_info[0]}，擅长{role_info[1]}",
-                    verbose=True,
-                    allow_delegation=False,
-                )
-                crew_agents.append(crew_agent)
-
-                crew_task = Task(
-                    description=(
-                        f"执行任务：{step_info['description']}\n"
-                        f"项目名称：{context.get('project_name', '未知项目')}\n"
-                        f"上下文：{json.dumps(context, ensure_ascii=False)}"
-                    ),
-                    agent=crew_agent,
-                    expected_output="结构化的任务执行结果",
-                )
-                crew_tasks.append(crew_task)
-
-            # 创建并执行 Crew
-            crew = Crew(
-                agents=crew_agents,
-                tasks=crew_tasks,
-                process=Process.sequential,
-                verbose=True,
-            )
-
-            crew_result = await asyncio.to_thread(crew.kickoff)
-
-            # 构建输出
-            output = json.dumps(
-                {
-                    "execution_mode": execution_mode,
-                    "orchestrator": "crewai",
-                    "workflow": workflow,
-                    "result": str(crew_result),
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
-
-            return AgentResult(
-                status="completed",
-                output_content=output,
-                model_used="deepseek-v3",
-                prompt_tokens=0,
-                completion_tokens=0,
-                cost_yuan=0.0,
-                agent_name=self.name,
-                metadata={
-                    "execution_mode": execution_mode,
-                    "orchestrator": "crewai",
-                    "total_steps": len(workflow),
-                },
-            )
-
-        except Exception as e:
-            logger.error(f"CrewAI 编排失败: {e}", exc_info=True)
-            return None
+        return step_context
 
     async def _langgraph_execute(self, context: dict[str, Any]) -> AgentResult:
         """使用 LangGraph 工作流引擎执行全流程
@@ -243,7 +174,7 @@ class DispatchController(AgentBase):
         )
 
         # 构建初始状态
-        initial_state: AgentState = {
+        initial_state: dict[str, Any] = {
             "context": context,
             "current_step": 0,
             "results": {},
@@ -263,12 +194,12 @@ class DispatchController(AgentBase):
                 logger.warning(f"未知 Agent: {agent_name}，跳过")
                 continue
 
-            # 准备步骤上下文（包含之前步骤的结果）
-            step_context = {
-                **context,
-                "task_id": f"{context.get('task_id', '')}_{agent_name}",
-                "previous_results": state["results"],
-            }
+            # 准备步骤上下文（2.3.5: 含辩论结果注入, 2.4.3: 含历史结果传递）
+            step_context = self._build_step_context(
+                context=context,
+                agent_name=agent_name,
+                previous_results=state["results"],
+            )
 
             try:
                 # 执行当前 Agent
@@ -311,12 +242,6 @@ class DispatchController(AgentBase):
         # 标记完成状态
         state["status"] = "completed" if not state["errors"] else "completed_with_errors"
 
-        # 更新 workflow_graph 状态
-        try:
-            workflow_graph.update_state(state)
-        except Exception as e:
-            logger.warning(f"更新工作流状态失败: {e}")
-
         # 构建输出
         output = json.dumps(
             {
@@ -336,7 +261,7 @@ class DispatchController(AgentBase):
         return AgentResult(
             status=state["status"],
             output_content=output,
-            model_used="deepseek-v3",
+            model_used="deepseek-v4-flash",
             prompt_tokens=0,
             completion_tokens=0,
             cost_yuan=state["total_cost"],
@@ -379,14 +304,15 @@ class DispatchController(AgentBase):
                 logger.warning(f"未知 Agent: {agent_name}，跳过")
                 continue
 
-            # 构建当前步骤上下文（包含前面所有步骤的结果）
-            step_context = {
-                **context,
-                "task_id": f"{context.get('task_id', '')}_{agent_name}",
-                "pipeline_results": results,
-                "execution_mode": execution_mode,
-                "step": step_info,
-            }
+            # 构建当前步骤上下文（2.3.5: 含辩论结果注入, 2.4.3: 含历史结果传递）
+            step_context = self._build_step_context(
+                context=context,
+                agent_name=agent_name,
+                previous_results=results,
+            )
+            step_context["execution_mode"] = execution_mode
+            step_context["step"] = step_info
+            step_context["pipeline_results"] = results
 
             try:
                 # 实例化并执行 Agent
@@ -439,7 +365,7 @@ class DispatchController(AgentBase):
         return AgentResult(
             status=overall_status,
             output_content=output,
-            model_used="deepseek-v3",
+            model_used="deepseek-v4-flash",
             prompt_tokens=0,
             completion_tokens=0,
             cost_yuan=total_cost,
@@ -456,10 +382,11 @@ class DispatchController(AgentBase):
     async def execute(self, context: dict[str, Any]) -> AgentResult:
         """执行调度总控任务
 
-        根据 execution_mode 选择工作流模板，按优先级尝试三种编排策略：
-        1. CrewAI 智能编排
-        2. LangGraph 工作流
-        3. 顺序执行（保底）
+        根据 execution_mode 选择工作流模板，按优先级尝试两种编排策略：
+        1. LangGraph 工作流（首选）— 有向图引擎，支持状态持久化和断点续跑
+        2. 顺序执行（回退）— 按预定义顺序逐一执行 Agent
+
+        2.4.4: 整个工作流有默认 30 分钟超时，超时自动标记 failed
 
         Args:
             context: 执行上下文，支持字段：
@@ -474,33 +401,70 @@ class DispatchController(AgentBase):
         execution_mode = context.get("execution_mode", "全流程")
         task_id = context.get("task_id", f"task_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
 
-        logger.info(
-            f"调度总控开始执行 | 模式={execution_mode} | 任务ID={task_id}"
+        # 2.4.4: 从 context 中读取超时配置，默认 30 分钟
+        timeout_seconds = context.get(
+            "timeout_seconds",
+            DEFAULT_WORKFLOW_TIMEOUT_SECONDS,
         )
 
-        # 策略 1: 尝试 CrewAI 编排
-        logger.info("尝试 CrewAI 编排模式...")
-        result = await self._try_crewai_orchestrate(context)
+        logger.info(
+            f"调度总控开始执行 | 模式={execution_mode} | "
+            f"任务ID={task_id} | 超时={timeout_seconds}s"
+        )
 
-        if result is not None:
-            logger.info("CrewAI 编排执行成功")
-            return result
-
-        # 策略 2: 回退到 LangGraph 工作流
-        logger.info("CrewAI 不可用，回退到 LangGraph 工作流模式...")
-        result = await self._langgraph_execute(context)
-
-        if result.status != "failed":
-            logger.info("LangGraph 工作流执行成功")
-            return result
-
-        # 策略 3: 最终回退到顺序执行
-        logger.warning("LangGraph 工作流执行异常，回退到顺序执行模式...")
-        result = await self._sequential_execute(context)
+        try:
+            # 2.4.4: 整个工作流包裹超时控制
+            result = await asyncio.wait_for(
+                self._execute_with_fallback(context),
+                timeout=timeout_seconds,
+            )
+        except asyncio.TimeoutError:
+            logger.error(
+                f"调度总控执行超时 | 模式={execution_mode} | "
+                f"任务ID={task_id} | 超时={timeout_seconds}s"
+            )
+            return AgentResult(
+                status="failed",
+                output_content=json.dumps({
+                    "execution_mode": execution_mode,
+                    "status": "failed",
+                    "error": f"执行超时（{timeout_seconds}秒）",
+                    "total_cost": 0.0,
+                }, ensure_ascii=False),
+                model_used=self.model,
+                prompt_tokens=0,
+                completion_tokens=0,
+                cost_yuan=0.0,
+                agent_name=self.name,
+                metadata={
+                    "execution_mode": execution_mode,
+                    "status": "timeout",
+                    "timeout_seconds": timeout_seconds,
+                },
+            )
 
         logger.info(
             f"调度总控执行完成 | 状态={result.status} | "
             f"成本=¥{result.cost_yuan:.4f}"
         )
 
+        return result
+
+    async def _execute_with_fallback(self, context: dict[str, Any]) -> AgentResult:
+        """执行工作流（含回退逻辑）
+
+        策略 1: LangGraph 工作流（首选）
+        策略 2: 顺序执行（回退）
+        """
+        # 策略 1: 尝试 LangGraph 工作流
+        logger.info("尝试 LangGraph 工作流模式...")
+        result = await self._langgraph_execute(context)
+
+        if result.status not in ("failed",):
+            logger.info("LangGraph 工作流执行成功")
+            return result
+
+        # 策略 2: 回退到顺序执行
+        logger.warning("LangGraph 工作流执行异常，回退到顺序执行模式...")
+        result = await self._sequential_execute(context)
         return result

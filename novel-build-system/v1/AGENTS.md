@@ -1,6 +1,7 @@
 # AGENTS.md — 番茄小说生成智能体 V1
 
 > **版本标识**: V1 骨架版，API 前缀 `/api/v1`，数据库 `novel_generator_v1.db`
+> V1 在初始版本基础上新增：详情页大纲/章节弹窗、卡片式UI风格、全中文LABEL_MAP
 
 ## 核心流程
 

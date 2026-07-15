@@ -1,7 +1,7 @@
 # AGENTS.md — 番茄小说生成智能体 V2
 
 > **版本标识**: V2 血肉版，API 前缀 `/api/v2`，数据库 `novel_generator_v2.db`
-> V2 在 V1 基础上新增：段落润色（重写/扩写/精简）、版本历史、ParagraphVersion 模型
+> V2 在 V1 基础上新增：段落润色（重写/扩写/精简）、版本历史、ParagraphVersion 模型、生成记录管理增强
 
 ## 核心流程
 

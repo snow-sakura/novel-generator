@@ -295,9 +295,9 @@
 
 ```json
 // Request
-{ "key": "llm.default_model", "value": "deepseek-v3", "description": "默认 LLM 模型" }
+{ "key": "llm.default_model", "value": "deepseek-v4-flash", "description": "默认 LLM 模型（DeepSeek-V4-Flash）" }
 // Response 201
-{ "id": 1, "key": "llm.default_model", "value": "deepseek-v3", "description": "默认 LLM 模型", "updated_at": "..." }
+{ "id": 1, "key": "llm.default_model", "value": "deepseek-v4-flash", "description": "默认 LLM 模型（DeepSeek-V4-Flash）", "updated_at": "..." }
 ```
 
 ### GET /api/v1/settings/{key}
@@ -310,7 +310,7 @@
 
 ```json
 // Request
-{ "value": "qwen-max", "description": "默认 LLM 模型（更新）" }
+{ "value": "qwen3-max", "description": "默认 LLM 模型（更新为 Qwen3-Max）" }
 ```
 
 ### DELETE /api/v1/settings/{key}

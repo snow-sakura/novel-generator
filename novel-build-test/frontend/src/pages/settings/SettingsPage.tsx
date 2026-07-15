@@ -1,20 +1,16 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { settingsApi, type SettingItem } from "@/lib/api-service"
-import PolaroidCard from "@/components/polaroid/PolaroidCard"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Save, Plus, Trash2, Settings as SettingsIcon } from "lucide-react"
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, Save, Trash2, Settings as SettingsIcon, Loader2, X } from 'lucide-react'
+import { settingsApi, type SettingItem } from '@/lib/api-service'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [editingValues, setEditingValues] = useState<Record<string, string>>({})
   const [showNewForm, setShowNewForm] = useState(false)
-  const [newKey, setNewKey] = useState("")
-  const [newValue, setNewValue] = useState("")
-  const [newDesc, setNewDesc] = useState("")
+  const [newKey, setNewKey] = useState('')
+  const [newValue, setNewValue] = useState('')
+  const [newDesc, setNewDesc] = useState('')
   const [savingKey, setSavingKey] = useState<string | null>(null)
 
   const fetchSettings = async () => {
@@ -23,14 +19,13 @@ export default function SettingsPage() {
       const res = await settingsApi.list()
       const data = res.data
       setSettings(data)
-      // 初始化编辑值
       const values: Record<string, string> = {}
       for (const s of data) {
         values[s.key] = s.value
       }
       setEditingValues(values)
     } catch (err) {
-      console.error("Failed to fetch settings:", err)
+      console.error('Failed to fetch settings:', err)
     } finally {
       setLoading(false)
     }
@@ -44,10 +39,9 @@ export default function SettingsPage() {
     setSavingKey(key)
     try {
       await settingsApi.update(key, { value: editingValues[key] })
-      // 刷新列表
       await fetchSettings()
     } catch (err) {
-      console.error("Failed to save setting:", err)
+      console.error('Failed to save setting:', err)
     } finally {
       setSavingKey(null)
     }
@@ -59,7 +53,7 @@ export default function SettingsPage() {
       await settingsApi.delete(key)
       await fetchSettings()
     } catch (err) {
-      console.error("Failed to delete setting:", err)
+      console.error('Failed to delete setting:', err)
     }
   }
 
@@ -71,162 +65,180 @@ export default function SettingsPage() {
         value: newValue.trim(),
         description: newDesc.trim() || undefined,
       })
-      setNewKey("")
-      setNewValue("")
-      setNewDesc("")
+      setNewKey('')
+      setNewValue('')
+      setNewDesc('')
       setShowNewForm(false)
       await fetchSettings()
     } catch (err) {
-      console.error("Failed to create setting:", err)
+      console.error('Failed to create setting:', err)
     }
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: 'var(--amber-primary)' }} />
       </div>
     )
   }
 
   return (
-    <div className="animate-fade-in space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-800">
+          <h1 className="text-lg font-semibold" style={{ color: 'var(--polaroid-text)' }}>
             系统设置
           </h1>
-          <p className="mt-1 text-sm text-stone-500">管理系统配置项（键值对存储）</p>
+          <p className="text-sm" style={{ color: 'var(--polaroid-text-muted)' }}>管理系统配置项（键值对存储）</p>
         </div>
-        <Button
+        <button
           onClick={() => setShowNewForm(!showNewForm)}
-          className="bg-amber-500 text-white shadow-md hover:bg-amber-600"
+          className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: 'var(--amber-primary)' }}
         >
-          <Plus className="mr-1.5 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           新增设置
-        </Button>
+        </button>
       </div>
 
       {/* New Setting Form */}
-      {showNewForm && (
-        <PolaroidCard className="max-w-xl">
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-stone-700">
-                键名 <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={newKey}
-                onChange={(e) => setNewKey(e.target.value)}
-                placeholder="例如: llm.default_model"
-                className="border-stone-200 bg-white font-mono text-sm text-stone-700"
-              />
+      <AnimatePresence>
+        {showNewForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-xl border p-5 space-y-4" style={{ borderColor: 'var(--polaroid-border)', backgroundColor: 'var(--polaroid-white)' }}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium" style={{ color: 'var(--polaroid-text)' }}>新增配置项</h3>
+                <button onClick={() => setShowNewForm(false)} className="p-1 rounded-lg hover:bg-gray-100">
+                  <X className="h-4 w-4" style={{ color: 'var(--polaroid-text-muted)' }} />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--polaroid-text)' }}>
+                    键名 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    value={newKey}
+                    onChange={(e) => setNewKey(e.target.value)}
+                    placeholder="例如: llm.default_model"
+                    className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none font-mono focus:border-[var(--amber-primary)]"
+                    style={{ borderColor: 'var(--polaroid-border)' }}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--polaroid-text)' }}>
+                    值 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    placeholder="设置值"
+                    className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--amber-primary)]"
+                    style={{ borderColor: 'var(--polaroid-border)' }}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--polaroid-text)' }}>说明</label>
+                  <input
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    placeholder="可选：设置说明"
+                    className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--amber-primary)]"
+                    style={{ borderColor: 'var(--polaroid-border)' }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleCreate}
+                  disabled={!newKey.trim() || !newValue.trim()}
+                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--amber-primary)' }}
+                >
+                  <Save className="h-4 w-4" />
+                  创建
+                </button>
+                <button
+                  onClick={() => setShowNewForm(false)}
+                  className="rounded-lg px-4 py-2 text-sm border transition-colors hover:bg-gray-50"
+                  style={{ borderColor: 'var(--polaroid-border)', color: 'var(--polaroid-text-muted)' }}
+                >
+                  取消
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-stone-700">
-                值 <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
-                placeholder="设置值"
-                className="border-stone-200 bg-white text-stone-700"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-stone-700">说明</label>
-              <Input
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                placeholder="可选：设置说明"
-                className="border-stone-200 bg-white text-stone-700"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={handleCreate}
-                disabled={!newKey.trim() || !newValue.trim()}
-                className="bg-amber-500 text-white hover:bg-amber-600"
-              >
-                <Save className="mr-1.5 h-4 w-4" />
-                创建
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowNewForm(false)}
-                className="border-stone-200 text-stone-600"
-              >
-                取消
-              </Button>
-            </div>
-          </div>
-        </PolaroidCard>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Settings List */}
       {settings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-stone-400">
-          <SettingsIcon className="mb-3 h-12 w-12" />
+        <div className="flex flex-col items-center justify-center py-20" style={{ color: 'var(--polaroid-text-muted)' }}>
+          <SettingsIcon className="mb-3 h-12 w-12 opacity-30" />
           <p className="text-lg font-medium">暂无设置</p>
           <p className="mt-1 text-sm">点击"新增设置"开始添加</p>
         </div>
       ) : (
         <div className="space-y-3">
           {settings.map((setting) => (
-            <PolaroidCard key={setting.key} className="w-full">
+            <div key={setting.key} className="rounded-xl border p-5" style={{ borderColor: 'var(--polaroid-border)', backgroundColor: 'var(--polaroid-white)' }}>
               <div className="space-y-3">
                 {/* Key + Description */}
                 <div className="flex items-start justify-between">
                   <div>
-                    <code className="rounded bg-stone-100 px-2 py-0.5 font-mono text-sm font-medium text-stone-800">
+                    <code className="rounded-lg px-2 py-1 font-mono text-sm font-medium" style={{ backgroundColor: 'var(--polaroid-warm)', color: 'var(--polaroid-text)' }}>
                       {setting.key}
                     </code>
                     {setting.description && (
-                      <p className="mt-1 text-xs text-stone-500">{setting.description}</p>
+                      <p className="mt-1 text-xs" style={{ color: 'var(--polaroid-text-muted)' }}>{setting.description}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(setting.key)}
-                      className="h-8 text-red-400 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <button
+                    onClick={() => handleDelete(setting.key)}
+                    className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-400" />
+                  </button>
                 </div>
 
                 {/* Value Editor */}
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={editingValues[setting.key] ?? ""}
+                  <input
+                    value={editingValues[setting.key] ?? ''}
                     onChange={(e) =>
                       setEditingValues((v) => ({ ...v, [setting.key]: e.target.value }))
                     }
-                    className="flex-1 border-stone-200 bg-white font-mono text-sm text-stone-700"
+                    className="flex-1 rounded-lg border bg-white px-3 py-2 text-sm outline-none font-mono focus:border-[var(--amber-primary)]"
+                    style={{ borderColor: 'var(--polaroid-border)' }}
                   />
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <button
                     onClick={() => handleSave(setting.key)}
-                    disabled={savingKey === setting.key}
-                    className="border-stone-200 text-stone-600"
+                    disabled={savingKey === setting.key || editingValues[setting.key] === setting.value}
+                    className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm border transition-colors hover:bg-gray-50 disabled:opacity-50"
+                    style={{ borderColor: 'var(--polaroid-border)', color: 'var(--polaroid-text-muted)' }}
                   >
-                    <Save className={`mr-1.5 h-4 w-4 ${savingKey === setting.key ? "animate-spin" : ""}`} />
-                    {savingKey === setting.key ? "保存中..." : "保存"}
-                  </Button>
+                    {savingKey === setting.key ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    {savingKey === setting.key ? '保存中...' : '保存'}
+                  </button>
                 </div>
 
                 {/* Updated At */}
-                <p className="text-xs text-stone-400">
-                  最后更新: {new Date(setting.updated_at).toLocaleString("zh-CN")}
+                <p className="text-xs" style={{ color: 'var(--polaroid-text-muted)' }}>
+                  最后更新: {new Date(setting.updated_at).toLocaleString('zh-CN')}
                 </p>
               </div>
-            </PolaroidCard>
+            </div>
           ))}
         </div>
       )}
