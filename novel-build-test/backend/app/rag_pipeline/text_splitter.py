@@ -4,8 +4,6 @@
 """
 
 import logging
-import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +15,7 @@ class TextSplitter:
         self,
         chunk_size: int = 512,
         chunk_overlap: int = 64,
-        separators: Optional[list[str]] = None,
+        separators: list[str] | None = None,
     ) -> None:
         """
         初始化文本分割器。

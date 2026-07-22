@@ -5,18 +5,18 @@ import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.agent import AgentExecution, AgentDebateRecord
+from app.models.agent import AgentDebateRecord, AgentExecution
+from app.schemas.base import page_from_query
 from app.schemas.phase3 import (
     DebateLaunchRequest,
-    DebateRecordResponse,
     DebateRecordPage,
+    DebateRecordResponse,
 )
-from app.schemas.base import page_from_query
-from app.utils.rbac import 获取当前用户, 检查权限, 操作
+from app.utils.rbac import 操作, 检查权限
 
 logger = logging.getLogger(__name__)
 
@@ -90,10 +90,7 @@ async def debate_launch(
                 round_number=i + 1,
                 agent_role="正方" if i % 2 == 0 else "反方",
                 stance=round_data.get("pro_argument", round_data.get("stance", "")),
-                content=(
-                    f"正方：{round_data.get('pro_argument', '')}\n"
-                    f"反方：{round_data.get('con_argument', '')}"
-                ),
+                content=(f"正方：{round_data.get('pro_argument', '')}\n反方：{round_data.get('con_argument', '')}"),
                 consensus_reached=round_data.get("consensus_reached", False),
                 final_decision=debate_data.get("final_decision", debate_data.get("arbitration", {})),
                 arbitrator_notes=debate_data.get("arbitrator_notes", ""),
@@ -208,9 +205,7 @@ async def debate_records_list(
     """获取辩论记录列表（分页）"""
     # 查询辩论执行记录（作为辩论记录展示）
     query = select(AgentExecution).where(AgentExecution.agent_type == "debater")
-    count_query = select(func.count()).select_from(AgentExecution).where(
-        AgentExecution.agent_type == "debater"
-    )
+    count_query = select(func.count()).select_from(AgentExecution).where(AgentExecution.agent_type == "debater")
 
     if status_filter:
         query = query.where(AgentExecution.status == status_filter)
@@ -243,25 +238,19 @@ async def debate_records_list(
             reached = any(bool(r.consensus_reached) for r in debate_rounds)
             consensus_text = "已达成共识" if reached else "未达成共识"
 
-        items.append(DebateRecordResponse(
-            id=exec_record.id,
-            topic=(
-                exec_record.input_data.get("topic", "")
-                if isinstance(exec_record.input_data, dict)
-                else ""
-            ),
-            models=exec_record.model_used or "deepseek-v4-flash",
-            rounds=str(len(debate_rounds)),
-            consensus=consensus_text,
-            status=exec_record.status,
-            created_by=None,
-            created_at=exec_record.started_at,
-            finished_at=(
-                exec_record.completed_at.isoformat()
-                if exec_record.completed_at
-                else None
-            ),
-        ))
+        items.append(
+            DebateRecordResponse(
+                id=exec_record.id,
+                topic=(exec_record.input_data.get("topic", "") if isinstance(exec_record.input_data, dict) else ""),
+                models=exec_record.model_used or "deepseek-v4-flash",
+                rounds=str(len(debate_rounds)),
+                consensus=consensus_text,
+                status=exec_record.status,
+                created_by=None,
+                created_at=exec_record.started_at,
+                finished_at=(exec_record.completed_at.isoformat() if exec_record.completed_at else None),
+            )
+        )
 
     return page_from_query(
         DebateRecordResponse,
@@ -304,26 +293,10 @@ async def debate_record_detail(
 
     return {
         "辩论ID": execution.id,
-        "议题": (
-            execution.input_data.get("topic", "")
-            if isinstance(execution.input_data, dict)
-            else ""
-        ),
-        "正方立场": (
-            execution.input_data.get("pro_side", "")
-            if isinstance(execution.input_data, dict)
-            else ""
-        ),
-        "反方立场": (
-            execution.input_data.get("con_side", "")
-            if isinstance(execution.input_data, dict)
-            else ""
-        ),
-        "最大轮次": (
-            execution.input_data.get("max_rounds", 3)
-            if isinstance(execution.input_data, dict)
-            else 3
-        ),
+        "议题": (execution.input_data.get("topic", "") if isinstance(execution.input_data, dict) else ""),
+        "正方立场": (execution.input_data.get("pro_side", "") if isinstance(execution.input_data, dict) else ""),
+        "反方立场": (execution.input_data.get("con_side", "") if isinstance(execution.input_data, dict) else ""),
+        "最大轮次": (execution.input_data.get("max_rounds", 3) if isinstance(execution.input_data, dict) else 3),
         "状态": execution.status,
         "模型": execution.model_used,
         "费用": execution.cost_yuan,

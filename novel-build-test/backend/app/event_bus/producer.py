@@ -6,7 +6,7 @@
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import redis.asyncio as aioredis
 
@@ -23,7 +23,7 @@ class EventProducer:
     """
 
     def __init__(self) -> None:
-        self._client: Optional[aioredis.Redis] = None
+        self._client: aioredis.Redis | None = None
         self._connected: bool = False
 
     async def connect(self) -> None:
@@ -49,6 +49,7 @@ class EventProducer:
             raise RuntimeError("EventProducer 尚未连接，请先调用 connect()")
 
         from dataclasses import asdict
+
         payload = json.dumps(asdict(event), ensure_ascii=False, default=str)
         await self._client.publish(channel, payload)
         logger.debug("已发布事件到频道 '%s': %s", channel, payload[:200])

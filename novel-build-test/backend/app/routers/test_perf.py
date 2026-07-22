@@ -3,7 +3,7 @@
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -35,11 +35,7 @@ async def list_perf_scripts(
     """获取性能测试脚本列表（分页，支持筛选）"""
     user_id = 当前用户["用户ID"]
     query = select(PerfTestScript).where(PerfTestScript.created_by == user_id)
-    count_query = (
-        select(func.count())
-        .select_from(PerfTestScript)
-        .where(PerfTestScript.created_by == user_id)
-    )
+    count_query = select(func.count()).select_from(PerfTestScript).where(PerfTestScript.created_by == user_id)
 
     if project_id:
         query = query.where(PerfTestScript.project_id == project_id)
@@ -96,9 +92,7 @@ async def update_perf_script(
     """更新性能测试脚本"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(PerfTestScript).where(
-            PerfTestScript.id == script_id, PerfTestScript.created_by == user_id
-        )
+        select(PerfTestScript).where(PerfTestScript.id == script_id, PerfTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -122,9 +116,7 @@ async def delete_perf_script(
     """删除性能测试脚本"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(PerfTestScript).where(
-            PerfTestScript.id == script_id, PerfTestScript.created_by == user_id
-        )
+        select(PerfTestScript).where(PerfTestScript.id == script_id, PerfTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -143,9 +135,7 @@ async def run_perf_script(
     """Mock 执行性能测试脚本（自动创建监控记录）"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(PerfTestScript).where(
-            PerfTestScript.id == script_id, PerfTestScript.created_by == user_id
-        )
+        select(PerfTestScript).where(PerfTestScript.id == script_id, PerfTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -188,19 +178,13 @@ async def list_perf_monitor(
     # 验证脚本归属
     user_id = 当前用户["用户ID"]
     script_result = await db.execute(
-        select(PerfTestScript).where(
-            PerfTestScript.id == script_id, PerfTestScript.created_by == user_id
-        )
+        select(PerfTestScript).where(PerfTestScript.id == script_id, PerfTestScript.created_by == user_id)
     )
     if not script_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="脚本不存在")
 
     query = select(PerfMonitorRecord).where(PerfMonitorRecord.script_id == script_id)
-    count_query = (
-        select(func.count())
-        .select_from(PerfMonitorRecord)
-        .where(PerfMonitorRecord.script_id == script_id)
-    )
+    count_query = select(func.count()).select_from(PerfMonitorRecord).where(PerfMonitorRecord.script_id == script_id)
 
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
@@ -234,19 +218,13 @@ async def list_perf_monitor_history(
     user_id = 当前用户["用户ID"]
     # 验证脚本归属
     script_result = await db.execute(
-        select(PerfTestScript).where(
-            PerfTestScript.id == script_id, PerfTestScript.created_by == user_id
-        )
+        select(PerfTestScript).where(PerfTestScript.id == script_id, PerfTestScript.created_by == user_id)
     )
     if not script_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="脚本不存在")
 
     query = select(PerfMonitorRecord).where(PerfMonitorRecord.script_id == script_id)
-    count_query = (
-        select(func.count())
-        .select_from(PerfMonitorRecord)
-        .where(PerfMonitorRecord.script_id == script_id)
-    )
+    count_query = select(func.count()).select_from(PerfMonitorRecord).where(PerfMonitorRecord.script_id == script_id)
 
     if days:
         cutoff = datetime.datetime.now() - datetime.timedelta(days=days)

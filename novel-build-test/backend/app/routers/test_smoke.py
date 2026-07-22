@@ -35,11 +35,7 @@ async def list_smoke_suites(
     user_id = 当前用户["用户ID"]
 
     base_query = select(SmokeSuite).where(SmokeSuite.created_by == user_id)
-    count_base = (
-        select(func.count())
-        .select_from(SmokeSuite)
-        .where(SmokeSuite.created_by == user_id)
-    )
+    count_base = select(func.count()).select_from(SmokeSuite).where(SmokeSuite.created_by == user_id)
 
     if project_id is not None:
         base_query = base_query.where(SmokeSuite.project_id == project_id)
@@ -50,20 +46,14 @@ async def list_smoke_suites(
 
     total = (await db.execute(count_base)).scalar() or 0
 
-    query = (
-        base_query.order_by(SmokeSuite.updated_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    query = base_query.order_by(SmokeSuite.updated_at.desc()).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     items = list(result.scalars().all())
 
     return page_from_query(SmokeSuiteResponse, items, total, page, page_size)
 
 
-@router.post(
-    "/suites", response_model=SmokeSuiteResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/suites", response_model=SmokeSuiteResponse, status_code=status.HTTP_201_CREATED)
 async def create_smoke_suite(
     data: SmokeSuiteCreate,
     db: AsyncSession = Depends(get_db),
@@ -94,11 +84,7 @@ async def get_smoke_suite(
 ):
     """获取冒烟测试套件详情"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(SmokeSuite).where(
-            SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id
-        )
-    )
+    result = await db.execute(select(SmokeSuite).where(SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id))
     suite = result.scalar_one_or_none()
     if not suite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="测试套件不存在")
@@ -114,11 +100,7 @@ async def update_smoke_suite(
 ):
     """更新冒烟测试套件"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(SmokeSuite).where(
-            SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id
-        )
-    )
+    result = await db.execute(select(SmokeSuite).where(SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id))
     suite = result.scalar_one_or_none()
     if not suite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="测试套件不存在")
@@ -140,11 +122,7 @@ async def delete_smoke_suite(
 ):
     """删除冒烟测试套件"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(SmokeSuite).where(
-            SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id
-        )
-    )
+    result = await db.execute(select(SmokeSuite).where(SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id))
     suite = result.scalar_one_or_none()
     if not suite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="测试套件不存在")
@@ -161,11 +139,7 @@ async def run_smoke_suite(
 ):
     """模拟运行冒烟测试套件"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(SmokeSuite).where(
-            SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id
-        )
-    )
+    result = await db.execute(select(SmokeSuite).where(SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id))
     suite = result.scalar_one_or_none()
     if not suite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="测试套件不存在")
@@ -178,6 +152,7 @@ async def run_smoke_suite(
 
 class AutoTriggerUpdate(BaseModel):
     """自动触发配置更新"""
+
     auto_trigger: bool = Field(..., description="是否自动触发")
     trigger_config: str | None = Field(None, description="触发配置(JSON)")
 
@@ -191,11 +166,7 @@ async def update_smoke_suite_auto_trigger(
 ):
     """更新冒烟测试套件的自动触发配置"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(SmokeSuite).where(
-            SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id
-        )
-    )
+    result = await db.execute(select(SmokeSuite).where(SmokeSuite.id == suite_id, SmokeSuite.created_by == user_id))
     suite = result.scalar_one_or_none()
     if not suite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="测试套件不存在")

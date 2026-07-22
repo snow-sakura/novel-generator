@@ -33,6 +33,7 @@ test-results/
 # CI artifacts
 **/review_findings.json
 **/code_review_findings.json
+**/test-review-report.json
 
 # Test cache
 .pytest_cache/

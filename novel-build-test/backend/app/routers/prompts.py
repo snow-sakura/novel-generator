@@ -15,7 +15,6 @@ from app.schemas.prompt import (
     FewShotCreate,
     FewShotResponse,
     FewShotUpdate,
-    PromptCreate,
     PromptDebugRequest,
     PromptDebugResponse,
     PromptDiffResponse,
@@ -51,12 +50,7 @@ async def list_prompts(
     count_query = select(func.count()).select_from(AgentPrompt)
     total = (await db.execute(count_query)).scalar() or 0
 
-    query = (
-        select(AgentPrompt)
-        .order_by(AgentPrompt.agent_key)
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    query = select(AgentPrompt).order_by(AgentPrompt.agent_key).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     items = list(result.scalars().all())
 
@@ -74,9 +68,7 @@ async def compare_prompt_versions(
     """比较提示词的两个历史版本"""
     # 查询版本 A
     result_a = await db.execute(
-        select(PromptVersion).where(
-            PromptVersion.agent_key == agent_key, PromptVersion.version == version_a
-        )
+        select(PromptVersion).where(PromptVersion.agent_key == agent_key, PromptVersion.version == version_a)
     )
     ver_a = result_a.scalar_one_or_none()
     if not ver_a:
@@ -87,9 +79,7 @@ async def compare_prompt_versions(
 
     # 查询版本 B
     result_b = await db.execute(
-        select(PromptVersion).where(
-            PromptVersion.agent_key == agent_key, PromptVersion.version == version_b
-        )
+        select(PromptVersion).where(PromptVersion.agent_key == agent_key, PromptVersion.version == version_b)
     )
     ver_b = result_b.scalar_one_or_none()
     if not ver_b:
@@ -146,9 +136,7 @@ async def get_prompt(
     当前用户: dict = Depends(检查权限(操作.读取)),
 ):
     """获取指定 Agent 的当前提示词"""
-    result = await db.execute(
-        select(AgentPrompt).where(AgentPrompt.agent_key == agent_key)
-    )
+    result = await db.execute(select(AgentPrompt).where(AgentPrompt.agent_key == agent_key))
     prompt = result.scalar_one_or_none()
     if not prompt:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="提示词不存在")
@@ -163,9 +151,7 @@ async def update_prompt(
     当前用户: dict = Depends(检查权限(操作.更新)),
 ):
     """更新提示词 — 自动创建新版本，保存旧版本到历史表"""
-    result = await db.execute(
-        select(AgentPrompt).where(AgentPrompt.agent_key == agent_key)
-    )
+    result = await db.execute(select(AgentPrompt).where(AgentPrompt.agent_key == agent_key))
     prompt = result.scalar_one_or_none()
     if not prompt:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="提示词不存在")
@@ -199,18 +185,12 @@ async def list_prompt_versions(
 ):
     """获取指定 Agent 的版本历史（分页）"""
     # 先确认 agent 存在
-    exists = await db.execute(
-        select(AgentPrompt).where(AgentPrompt.agent_key == agent_key)
-    )
+    exists = await db.execute(select(AgentPrompt).where(AgentPrompt.agent_key == agent_key))
     if not exists.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="提示词不存在")
 
     # 总数
-    count_query = (
-        select(func.count())
-        .select_from(PromptVersion)
-        .where(PromptVersion.agent_key == agent_key)
-    )
+    count_query = select(func.count()).select_from(PromptVersion).where(PromptVersion.agent_key == agent_key)
     total = (await db.execute(count_query)).scalar() or 0
 
     # 分页数据
@@ -236,18 +216,14 @@ async def rollback_prompt(
 ):
     """回滚到指定版本 — 恢复内容并设置当前版本号"""
     # 获取当前提示词
-    result = await db.execute(
-        select(AgentPrompt).where(AgentPrompt.agent_key == agent_key)
-    )
+    result = await db.execute(select(AgentPrompt).where(AgentPrompt.agent_key == agent_key))
     prompt = result.scalar_one_or_none()
     if not prompt:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="提示词不存在")
 
     # 获取目标版本
     ver_result = await db.execute(
-        select(PromptVersion).where(
-            PromptVersion.agent_key == agent_key, PromptVersion.version == body.version
-        )
+        select(PromptVersion).where(PromptVersion.agent_key == agent_key, PromptVersion.version == body.version)
     )
     target = ver_result.scalar_one_or_none()
     if not target:
@@ -297,11 +273,7 @@ async def list_prompt_templates(
 
     total = (await db.execute(count_base)).scalar() or 0
 
-    query = (
-        base_query.order_by(PromptTemplate.name)
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    query = base_query.order_by(PromptTemplate.name).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     items = list(result.scalars().all())
 
@@ -340,9 +312,7 @@ async def update_prompt_template(
     当前用户: dict = Depends(检查权限(操作.更新)),
 ):
     """更新提示词模板"""
-    result = await db.execute(
-        select(PromptTemplate).where(PromptTemplate.id == template_id)
-    )
+    result = await db.execute(select(PromptTemplate).where(PromptTemplate.id == template_id))
     template = result.scalar_one_or_none()
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在")
@@ -368,9 +338,7 @@ async def delete_prompt_template(
     当前用户: dict = Depends(检查权限(操作.删除)),
 ):
     """删除提示词模板"""
-    result = await db.execute(
-        select(PromptTemplate).where(PromptTemplate.id == template_id)
-    )
+    result = await db.execute(select(PromptTemplate).where(PromptTemplate.id == template_id))
     template = result.scalar_one_or_none()
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在")
@@ -443,9 +411,7 @@ async def update_fewshot_example(
     当前用户: dict = Depends(检查权限(操作.更新)),
 ):
     """更新 Few-shot 示例"""
-    result = await db.execute(
-        select(FewShotExample).where(FewShotExample.id == example_id)
-    )
+    result = await db.execute(select(FewShotExample).where(FewShotExample.id == example_id))
     example = result.scalar_one_or_none()
     if not example:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="示例不存在")
@@ -471,9 +437,7 @@ async def delete_fewshot_example(
     当前用户: dict = Depends(检查权限(操作.删除)),
 ):
     """删除 Few-shot 示例"""
-    result = await db.execute(
-        select(FewShotExample).where(FewShotExample.id == example_id)
-    )
+    result = await db.execute(select(FewShotExample).where(FewShotExample.id == example_id))
     example = result.scalar_one_or_none()
     if not example:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="示例不存在")

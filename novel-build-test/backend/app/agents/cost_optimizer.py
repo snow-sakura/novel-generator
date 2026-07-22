@@ -52,10 +52,7 @@ class CostOptimizer(AgentBase):
         budget_limit = context.get("budget_limit", 0.0)
         cost_details = context.get("cost_details", {})
 
-        total_cost = sum(
-            log.get("cost_yuan", log.get("费用", 0.0))
-            for log in execution_log
-        )
+        total_cost = sum(log.get("cost_yuan", log.get("费用", 0.0)) for log in execution_log)
 
         cost_breakdown = self._calculate_cost_breakdown(total_cost, cost_details)
 
@@ -172,16 +169,27 @@ class CostOptimizer(AgentBase):
             ],
             "total_optimized_cost": round(
                 total_cost
-                * (base_ratio * 0.7 + cache_hit_rate * 0.1
-                   + batch_ratio * 0.5 + delta_ratio * 0.4
-                   + structure_ratio * 0.6),
+                * (
+                    base_ratio * 0.7
+                    + cache_hit_rate * 0.1
+                    + batch_ratio * 0.5
+                    + delta_ratio * 0.4
+                    + structure_ratio * 0.6
+                ),
                 4,
             ),
             "total_saving": round(
                 total_cost
-                * (1.0 - (base_ratio * 0.7 + cache_hit_rate * 0.1
-                          + batch_ratio * 0.5 + delta_ratio * 0.4
-                          + structure_ratio * 0.6)),
+                * (
+                    1.0
+                    - (
+                        base_ratio * 0.7
+                        + cache_hit_rate * 0.1
+                        + batch_ratio * 0.5
+                        + delta_ratio * 0.4
+                        + structure_ratio * 0.6
+                    )
+                ),
                 4,
             ),
         }
@@ -194,6 +202,7 @@ class CostOptimizer(AgentBase):
             pass
 
         import re
+
         match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
         if match:
             try:

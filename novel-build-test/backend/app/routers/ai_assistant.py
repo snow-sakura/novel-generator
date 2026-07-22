@@ -2,8 +2,8 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, status
-from sqlalchemy import func, select, text
+from fastapi import APIRouter, Depends
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -43,42 +43,36 @@ async def get_assistant_overview(
     """获取 AI 助手概览数据（项目数、执行数、通过率、近期活动）"""
     try:
         # 项目总数
-        project_count_result = await db.execute(
-            select(func.count()).select_from(Project)
-        )
+        project_count_result = await db.execute(select(func.count()).select_from(Project))
         project_count = project_count_result.scalar() or 0
 
         # 执行总数
-        execution_count_result = await db.execute(
-            select(func.count()).select_from(TestExecution)
-        )
+        execution_count_result = await db.execute(select(func.count()).select_from(TestExecution))
         execution_count = execution_count_result.scalar() or 0
 
         # 通过率（成功执行 / 总执行数）
         completed_count_result = await db.execute(
-            select(func.count()).select_from(TestExecution).where(
-                TestExecution.status == "completed"
-            )
+            select(func.count()).select_from(TestExecution).where(TestExecution.status == "completed")
         )
         completed_count = completed_count_result.scalar() or 0
         pass_rate = round((completed_count / execution_count * 100), 2) if execution_count > 0 else 0.0
 
         # 最近 5 条审计日志
-        recent_logs_result = await db.execute(
-            select(AuditLog).order_by(AuditLog.created_at.desc()).limit(5)
-        )
+        recent_logs_result = await db.execute(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(5))
         recent_logs = recent_logs_result.scalars().all()
 
         recent_activities = []
         for log in recent_logs:
-            recent_activities.append({
-                "id": log.id,
-                "action": log.action,
-                "entity_type": log.entity_type,
-                "entity_id": log.entity_id,
-                "actor_name": log.actor_name or "",
-                "created_at": str(log.created_at) if log.created_at else "",
-            })
+            recent_activities.append(
+                {
+                    "id": log.id,
+                    "action": log.action,
+                    "entity_type": log.entity_type,
+                    "entity_id": log.entity_id,
+                    "actor_name": log.actor_name or "",
+                    "created_at": str(log.created_at) if log.created_at else "",
+                }
+            )
 
         return AssistantOverview(
             project_count=project_count,
@@ -108,6 +102,6 @@ async def assistant_chat(
 
     return {
         "reply": f"您好！已收到您的消息：「{message[:50]}」"
-                 f"{'...' if len(message) > 50 else ''}"
-                 f"\n\nAI 智能对话功能正在开发中，敬请期待！"
+        f"{'...' if len(message) > 50 else ''}"
+        f"\n\nAI 智能对话功能正在开发中，敬请期待！"
     }

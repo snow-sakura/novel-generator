@@ -4,9 +4,8 @@
 依赖 LLM Provider 就绪（2.1），当前返回模拟数据占位。
 """
 
-import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -52,23 +51,19 @@ class ReportAnalyzer:
         """
         pass_rate = (passed / total_cases * 100) if total_cases > 0 else 0.0
 
-        # 构建 LLM 分析提示
-        analysis_prompt = self._build_analysis_prompt(
+        # 构建 LLM 分析提示（3.2.6: 依赖 2.1 LLM Provider 配置）
+        _ = self._build_analysis_prompt(
             total_cases, passed, failed, skipped, duration, pass_rate, details
         )
 
-        # 尝试调用 LLM（3.2.6: 依赖 2.1 LLM Provider 配置）
+        # 尝试调用 LLM
         try:
-            # 当 LLM Provider 就绪后，此处调用 self._call_llm(analysis_prompt)
+            # 当 LLM Provider 就绪后，此处调用 self._call_llm(...)
             # 当前返回模拟分析结果
-            result = self._fallback_analysis(
-                total_cases, passed, failed, skipped, duration, pass_rate
-            )
+            result = self._fallback_analysis(total_cases, passed, failed, skipped, duration, pass_rate)
         except Exception as e:
             logger.warning(f"LLM 分析失败，使用回退分析: {e}")
-            result = self._fallback_analysis(
-                total_cases, passed, failed, skipped, duration, pass_rate
-            )
+            result = self._fallback_analysis(total_cases, passed, failed, skipped, duration, pass_rate)
 
         return result
 
@@ -108,12 +103,12 @@ class ReportAnalyzer:
 
         prompt += (
             "\n请返回 JSON 格式的分析结果：\n"
-            '{\n'
+            "{\n"
             '  "quality_score": <0-100 质量评分>,\n'
             '  "summary": "<自然语言摘要>",\n'
             '  "suggestions": ["<改进建议1>", "<改进建议2>"],\n'
             '  "failure_patterns": ["<失败模式1>", "<失败模式2>"]\n'
-            '}\n'
+            "}\n"
         )
         return prompt
 
@@ -141,10 +136,7 @@ class ReportAnalyzer:
 
         # 自然语言摘要
         if pass_rate == 100:
-            summary = (
-                f"测试执行圆满完成！共执行 {total_cases} 个用例，"
-                f"全部通过（通过率 100%）。"
-            )
+            summary = f"测试执行圆满完成！共执行 {total_cases} 个用例，全部通过（通过率 100%）。"
         elif pass_rate >= 90:
             summary = (
                 f"测试结果良好。共执行 {total_cases} 个用例，"

@@ -90,6 +90,7 @@ class RequirementsAnalyst(AgentBase):
 
         # 尝试从 markdown 代码块中提取 JSON
         import re
+
         match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
         if match:
             try:

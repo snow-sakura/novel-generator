@@ -43,9 +43,7 @@ class TestProjectsAPI:
     @pytest.mark.asyncio
     async def test_create_project(self, client):
         """POST /api/v1/projects — 创建项目"""
-        resp = await client.post(
-            self.BASE, json={"name": "Test Project", "description": "test"}
-        )
+        resp = await client.post(self.BASE, json={"name": "Test Project", "description": "test"})
         assert resp.status_code != 404
 
 

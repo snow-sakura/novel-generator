@@ -4,11 +4,10 @@ import asyncio
 import datetime
 import json
 import logging
-import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -17,11 +16,12 @@ from app.schemas.test_execution import (
     ExecutionCreate,
     ExecutionPage,
     ExecutionResponse,
-    ExecutionUpdate,
     execution_page_from_query,
 )
 from app.services.executor import (
     cancel_execution as _cancel_exec,
+)
+from app.services.executor import (
     execute_test,
     get_execution_logs,
 )
@@ -46,11 +46,7 @@ async def list_project_executions(
 ):
     """3.1.2 R1: 获取项目级执行记录列表（分页）"""
     query = select(TestExecution).where(TestExecution.project_id == project_id)
-    count_query = (
-        select(func.count())
-        .select_from(TestExecution)
-        .where(TestExecution.project_id == project_id)
-    )
+    count_query = select(func.count()).select_from(TestExecution).where(TestExecution.project_id == project_id)
 
     if status:
         query = query.where(TestExecution.status == status)
@@ -112,9 +108,7 @@ async def get_execution(
     当前用户: dict = Depends(检查权限(操作.读取)),
 ):
     """3.1.2 R2: 获取执行详情"""
-    result = await db.execute(
-        select(TestExecution).where(TestExecution.id == execution_id)
-    )
+    result = await db.execute(select(TestExecution).where(TestExecution.id == execution_id))
     execution = result.scalar_one_or_none()
     if not execution:
         raise HTTPException(status_code=404, detail="执行记录不存在")
@@ -128,9 +122,7 @@ async def cancel_execution(
     当前用户: dict = Depends(检查权限(操作.更新)),
 ):
     """3.1.2 U1: 取消执行"""
-    result = await db.execute(
-        select(TestExecution).where(TestExecution.id == execution_id)
-    )
+    result = await db.execute(select(TestExecution).where(TestExecution.id == execution_id))
     execution = result.scalar_one_or_none()
     if not execution:
         raise HTTPException(status_code=404, detail="执行记录不存在")
@@ -157,9 +149,7 @@ async def delete_execution(
     当前用户: dict = Depends(检查权限(操作.删除)),
 ):
     """3.1.2 D1: 删除执行记录"""
-    result = await db.execute(
-        select(TestExecution).where(TestExecution.id == execution_id)
-    )
+    result = await db.execute(select(TestExecution).where(TestExecution.id == execution_id))
     execution = result.scalar_one_or_none()
     if not execution:
         raise HTTPException(status_code=404, detail="执行记录不存在")

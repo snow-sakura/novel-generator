@@ -1,20 +1,35 @@
-# AISQA Backend Dockerfile
-FROM python:3.12-slim
+# ===== Build stage =====
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# 安装系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    default-libmysqlclient-dev \
+    gcc default-libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制依赖文件
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements.txt
 
-# 代码通过 volume 挂载，无需 COPY
+# ===== Runtime stage =====
+FROM python:3.12-slim AS runtime
+
+WORKDIR /app
+
+# 仅从 builder 复制已安装的包
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
+# 复制应用代码
+COPY app/ ./app/
+COPY alembic.ini .
+COPY alembic/ ./alembic/
+COPY pytest.ini .
+COPY pyproject.toml .
+COPY tests/ ./tests/
 
 EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

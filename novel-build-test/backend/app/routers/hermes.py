@@ -14,7 +14,6 @@ from app.schemas.phase3 import (
     HermesChannelCreate,
     HermesChannelResponse,
     HermesChannelUpdate,
-    HermesPermissionPage,
     HermesPermissionRespond,
     HermesPermissionResponse,
 )

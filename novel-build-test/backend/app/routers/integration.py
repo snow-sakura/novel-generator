@@ -11,15 +11,12 @@ from app.models.integration import CicdConfig, ExternalTool, NotificationChannel
 from app.schemas.base import Page, page_from_query
 from app.schemas.phase3 import (
     CicdConfigCreate,
-    CicdConfigPage,
     CicdConfigResponse,
     CicdConfigUpdate,
     ExternalToolCreate,
-    ExternalToolPage,
     ExternalToolResponse,
     ExternalToolUpdate,
     NotificationChannelCreate,
-    NotificationChannelPage,
     NotificationChannelResponse,
     NotificationChannelUpdate,
 )
@@ -52,11 +49,9 @@ async def list_cicd_configs(
     total = (await db.execute(count_query)).scalar() or 0
 
     items = list(
-        (
-            await db.execute(
-                query.order_by(CicdConfig.id).offset((page - 1) * page_size).limit(page_size)
-            )
-        ).scalars().all()
+        (await db.execute(query.order_by(CicdConfig.id).offset((page - 1) * page_size).limit(page_size)))
+        .scalars()
+        .all()
     )
 
     return page_from_query(CicdConfigResponse, items, total, page, page_size)
@@ -152,21 +147,15 @@ async def list_notification_channels(
     total = (await db.execute(count_query)).scalar() or 0
 
     items = list(
-        (
-            await db.execute(
-                query.order_by(NotificationChannel.id)
-                .offset((page - 1) * page_size)
-                .limit(page_size)
-            )
-        ).scalars().all()
+        (await db.execute(query.order_by(NotificationChannel.id).offset((page - 1) * page_size).limit(page_size)))
+        .scalars()
+        .all()
     )
 
     return page_from_query(NotificationChannelResponse, items, total, page, page_size)
 
 
-@router.post(
-    "/notifications", response_model=NotificationChannelResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/notifications", response_model=NotificationChannelResponse, status_code=status.HTTP_201_CREATED)
 async def create_notification_channel(
     data: NotificationChannelCreate,
     db: AsyncSession = Depends(get_db),
@@ -279,13 +268,9 @@ async def list_external_tools(
     total = (await db.execute(count_query)).scalar() or 0
 
     items = list(
-        (
-            await db.execute(
-                query.order_by(ExternalTool.id)
-                .offset((page - 1) * page_size)
-                .limit(page_size)
-            )
-        ).scalars().all()
+        (await db.execute(query.order_by(ExternalTool.id).offset((page - 1) * page_size).limit(page_size)))
+        .scalars()
+        .all()
     )
 
     return page_from_query(ExternalToolResponse, items, total, page, page_size)

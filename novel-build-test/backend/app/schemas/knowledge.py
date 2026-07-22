@@ -25,9 +25,7 @@ class KnowledgeUpdate(BaseModel):
 
     title: str | None = Field(None, min_length=1, max_length=200, description="知识标题")
     content: str | None = Field(None, description="知识正文（Markdown）")
-    source: str | None = Field(
-        None, pattern=r"^(file|manual|api)$", description="来源"
-    )
+    source: str | None = Field(None, pattern=r"^(file|manual|api)$", description="来源")
     tags: str | None = Field(None, max_length=500, description="逗号分隔标签")
 
 

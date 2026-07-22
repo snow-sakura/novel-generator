@@ -5,7 +5,6 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from app.config import settings
 
@@ -15,14 +14,14 @@ logger = logging.getLogger(__name__)
 class DocumentLoader:
     """文档加载器，负责从文件系统和项目目录中加载文档内容。"""
 
-    def __init__(self, base_path: Optional[str] = None) -> None:
+    def __init__(self, base_path: str | None = None) -> None:
         """
         初始化文档加载器。
 
         Args:
             base_path: 基础路径，如果为 None 则使用 settings 中配置的路径或默认当前目录。
         """
-        default_path = getattr(settings, 'PROJECT_SOURCE_DIR', None) or '.'
+        default_path = getattr(settings, "PROJECT_SOURCE_DIR", None) or "."
         self.base_path = base_path or default_path
         logger.info("DocumentLoader 初始化，base_path=%s", self.base_path)
 

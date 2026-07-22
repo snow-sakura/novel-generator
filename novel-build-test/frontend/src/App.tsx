@@ -8,6 +8,7 @@ import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
 import ModuleDetailPage from '@/pages/modules/ModuleDetailPage'
+import WorkflowExecutionListPage from '@/pages/workflow-config/WorkflowExecutionListPage'
 
 /**
  * 应用根组件
@@ -42,7 +43,7 @@ export default function App() {
             <Route path="/knowledge" element={<Navigate to="/" replace />} />
             <Route path="/settings" element={<Navigate to="/" replace />} />
             <Route path="/agents" element={<Navigate to="/" replace />} />
-            <Route path="/executions" element={<Navigate to="/" replace />} />
+            <Route path="/executions" element={<WorkflowExecutionListPage />} />
             <Route path="/reports" element={<Navigate to="/" replace />} />
             <Route path="/audit" element={<Navigate to="/" replace />} />
           </Route>

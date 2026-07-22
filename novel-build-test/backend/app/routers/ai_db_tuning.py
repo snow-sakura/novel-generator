@@ -3,9 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
 from app.schemas.phase3 import DbConnectRequest, DbIndexSuggestion, DbSlowQueryResponse
 from app.utils.rbac import 操作, 检查权限
 

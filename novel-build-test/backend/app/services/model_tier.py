@@ -20,22 +20,21 @@ CostOptimizer Agent 依赖此模块进行成本分析和优化建议。
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass(frozen=True)
 class ModelTierConfig:
     """单个模型层级配置"""
 
-    tier: str                          # L1 / L2 / L3 / L4 / L5
-    provider_name: str                 # Provider 标识（deepseek-v4-flash / deepseek-v4-pro / glm-5 / qwen3-max / kimi-k2.5）
-    display_name: str                  # 显示名
-    model_id: str                      # 实际 API 模型 ID
-    input_price_per_m: float           # 输入价格（¥/M tokens）
-    output_price_per_m: float          # 输出价格（¥/M tokens）
-    max_tokens: int                    # 最大输出 Token 数
+    tier: str  # L1 / L2 / L3 / L4 / L5
+    provider_name: str  # Provider 标识（deepseek-v4-flash / deepseek-v4-pro / glm-5 / qwen3-max / kimi-k2.5）
+    display_name: str  # 显示名
+    model_id: str  # 实际 API 模型 ID
+    input_price_per_m: float  # 输入价格（¥/M tokens）
+    output_price_per_m: float  # 输出价格（¥/M tokens）
+    max_tokens: int  # 最大输出 Token 数
     suitable_scenarios: list[str] = field(default_factory=list)  # 适用场景列表
-    weight: float = 0.0                # 使用占比权重（0-1）
+    weight: float = 0.0  # 使用占比权重（0-1）
 
 
 # ==================== 模型分级定义 ====================
@@ -111,9 +110,7 @@ ALL_TIERS: list[ModelTierConfig] = [
     L5_KIMI_K25,
 ]
 
-TIER_BY_PROVIDER: dict[str, ModelTierConfig] = {
-    cfg.provider_name: cfg for cfg in ALL_TIERS
-}
+TIER_BY_PROVIDER: dict[str, ModelTierConfig] = {cfg.provider_name: cfg for cfg in ALL_TIERS}
 
 TIER_BY_SCENARIO: dict[str, ModelTierConfig] = {}
 for cfg in ALL_TIERS:

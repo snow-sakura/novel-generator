@@ -4,7 +4,7 @@ import logging
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -36,11 +36,7 @@ async def list_functional_cases(
     """获取功能测试用例列表（分页，支持多条件筛选）"""
     user_id = 当前用户["用户ID"]
     query = select(FunctionalTestCase).where(FunctionalTestCase.created_by == user_id)
-    count_query = (
-        select(func.count())
-        .select_from(FunctionalTestCase)
-        .where(FunctionalTestCase.created_by == user_id)
-    )
+    count_query = select(func.count()).select_from(FunctionalTestCase).where(FunctionalTestCase.created_by == user_id)
 
     if project_id:
         query = query.where(FunctionalTestCase.project_id == project_id)

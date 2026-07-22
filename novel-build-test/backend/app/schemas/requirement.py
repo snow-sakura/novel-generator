@@ -23,7 +23,8 @@ class RequirementUpdate(BaseModel):
     module: str | None = Field(None, max_length=100, description="所属模块")
     priority: str | None = Field(None, pattern=r"^P[0-3]$", description="优先级: P0/P1/P2/P3")
     status: str | None = Field(
-        None, pattern=r"^(draft|review|approved|implemented|rejected)$",
+        None,
+        pattern=r"^(draft|review|approved|implemented|rejected)$",
         description="状态: draft/review/approved/implemented/rejected",
     )
 

@@ -11,7 +11,8 @@ class AssetCreate(BaseModel):
     project_id: int = Field(..., description="所属项目 ID")
     name: str = Field(..., min_length=1, max_length=200, description="资产名称")
     type: str = Field(
-        "file", pattern=r"^(file|script|data|config|image|other)$",
+        "file",
+        pattern=r"^(file|script|data|config|image|other)$",
         description="资产类型",
     )
     tags: str | None = Field(None, max_length=500, description="逗号分隔标签")
@@ -23,7 +24,8 @@ class AssetUpdate(BaseModel):
 
     name: str | None = Field(None, min_length=1, max_length=200, description="资产名称")
     type: str | None = Field(
-        None, pattern=r"^(file|script|data|config|image|other)$",
+        None,
+        pattern=r"^(file|script|data|config|image|other)$",
         description="资产类型",
     )
     tags: str | None = Field(None, max_length=500, description="逗号分隔标签")

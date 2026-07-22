@@ -61,12 +61,8 @@ class AIModel(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False, comment="模型标识名")
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="显示名称")
     max_tokens: Mapped[int] = mapped_column(Integer, default=4096, comment="最大上下文长度")
-    input_price_per_m: Mapped[float] = mapped_column(
-        Float, default=0.0, comment="输入价格(分/百万tokens)"
-    )
-    output_price_per_m: Mapped[float] = mapped_column(
-        Float, default=0.0, comment="输出价格(分/百万tokens)"
-    )
+    input_price_per_m: Mapped[float] = mapped_column(Float, default=0.0, comment="输入价格(分/百万tokens)")
+    output_price_per_m: Mapped[float] = mapped_column(Float, default=0.0, comment="输出价格(分/百万tokens)")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="是否启用")
 
     def __repr__(self) -> str:
@@ -90,9 +86,7 @@ class ModelTierConfig(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(20), nullable=False, comment="分级名称: L1/L2/L3/L4/L5")
     description: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="描述")
-    model_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("ai_models.id"), nullable=False, comment="关联模型ID"
-    )
+    model_id: Mapped[int] = mapped_column(Integer, ForeignKey("ai_models.id"), nullable=False, comment="关联模型ID")
     rules: Mapped[str | None] = mapped_column(Text, nullable=True, comment="路由规则(JSON)")
     weight: Mapped[int] = mapped_column(Integer, default=0, comment="权重(0-100)")
 
@@ -118,9 +112,7 @@ class CostRecord(TimestampMixin, Base):
     execution_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("agent_executions.id"), nullable=True, comment="执行记录ID"
     )
-    model_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("ai_models.id"), nullable=False, comment="模型ID"
-    )
+    model_id: Mapped[int] = mapped_column(Integer, ForeignKey("ai_models.id"), nullable=False, comment="模型ID")
     input_tokens: Mapped[int] = mapped_column(Integer, default=0, comment="输入 tokens")
     output_tokens: Mapped[int] = mapped_column(Integer, default=0, comment="输出 tokens")
     cost_yuan: Mapped[float] = mapped_column(Float, default=0.0, comment="费用(分)")

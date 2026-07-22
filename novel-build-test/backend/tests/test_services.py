@@ -6,7 +6,6 @@
 
 import pytest
 
-
 # ==================== 报告分析器 ====================
 
 
@@ -21,8 +20,12 @@ class TestReportAnalyzer:
         analyzer = ReportAnalyzer()
         pass_rate = 80.0
         result = analyzer._fallback_analysis(
-            total_cases=10, passed=8, failed=1, skipped=1,
-            duration=45.0, pass_rate=pass_rate,
+            total_cases=10,
+            passed=8,
+            failed=1,
+            skipped=1,
+            duration=45.0,
+            pass_rate=pass_rate,
         )
         assert result is not None
         assert isinstance(result, dict)
@@ -36,8 +39,12 @@ class TestReportAnalyzer:
 
         analyzer = ReportAnalyzer()
         result = analyzer._fallback_analysis(
-            total_cases=10, passed=10, failed=0, skipped=0,
-            duration=30.0, pass_rate=100.0,
+            total_cases=10,
+            passed=10,
+            failed=0,
+            skipped=0,
+            duration=30.0,
+            pass_rate=100.0,
         )
         assert result["quality_score"] == 100
 
@@ -48,8 +55,12 @@ class TestReportAnalyzer:
 
         analyzer = ReportAnalyzer()
         prompt = analyzer._build_analysis_prompt(
-            total_cases=10, passed=8, failed=1, skipped=1,
-            duration=45.0, pass_rate=80.0,
+            total_cases=10,
+            passed=8,
+            failed=1,
+            skipped=1,
+            duration=45.0,
+            pass_rate=80.0,
             details=None,
         )
         assert isinstance(prompt, str)

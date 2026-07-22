@@ -4,7 +4,6 @@
 """
 
 import logging
-from typing import Any, Optional
 
 from app.vector_db.knowledge_retriever import global_retriever
 

@@ -26,12 +26,11 @@ class TestAsset(TimestampMixin, Base):
     __tablename__ = "test_assets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    project_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目"
-    )
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目")
     name: Mapped[str] = mapped_column(String(200), nullable=False, comment="资产名称")
     type: Mapped[str] = mapped_column(
-        String(20), default="file",
+        String(20),
+        default="file",
         comment="资产类型: file/script/data/config/image/other",
     )
     tags: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="逗号分隔标签")
@@ -39,9 +38,7 @@ class TestAsset(TimestampMixin, Base):
     file_size: Mapped[int] = mapped_column(Integer, default=0, comment="文件大小（字节）")
     content: Mapped[str | None] = mapped_column(Text, nullable=True, comment="文本内容")
     version: Mapped[int] = mapped_column(Integer, default=1, comment="版本号")
-    created_by: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, comment="创建者")
 
     # 关联
     project = relationship("Project", backref="assets")

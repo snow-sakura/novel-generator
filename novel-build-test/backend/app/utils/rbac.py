@@ -9,6 +9,7 @@ from app.utils.security import decode_token
 
 class 角色(str, Enum):
     """系统角色"""
+
     管理员 = "admin"
     工程师 = "engineer"
     观察者 = "viewer"
@@ -24,6 +25,7 @@ class 角色(str, Enum):
 
 class 操作(str, Enum):
     """系统操作"""
+
     创建 = "create"
     读取 = "read"
     更新 = "update"
@@ -47,6 +49,7 @@ def 获取当前用户(authorization: str = Header(..., alias="Authorization")):
 
 def 检查权限(所需操作: 操作):
     """权限校验装饰器"""
+
     async def 校验器(当前用户: dict = Depends(获取当前用户)):
         用户角色 = 当前用户.get("角色", "viewer")
         try:
@@ -61,4 +64,5 @@ def 检查权限(所需操作: 操作):
                 detail=f"角色 '{用户角色}' 没有 '{所需操作.value}' 权限",
             )
         return 当前用户
+
     return 校验器

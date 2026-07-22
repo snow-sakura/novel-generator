@@ -4,14 +4,13 @@ import datetime
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, desc
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.agent import AgentExecution
 from app.schemas.phase3 import AgentAnalyzeRequest, AgentAnalyzeResponse
-from app.utils.rbac import 获取当前用户, 检查权限, 操作
+from app.utils.rbac import 操作, 检查权限
 
 logger = logging.getLogger(__name__)
 

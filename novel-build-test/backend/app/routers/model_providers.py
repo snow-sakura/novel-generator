@@ -1,37 +1,37 @@
 """模型配置路由 — ModelProvider / AIModel / TierConfig / CostRecord CRUD"""
 
 import datetime
-import math
 import logging
+import math
 import random
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, desc, cast, Date
+from sqlalchemy import Date, cast, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 from app.database import get_db
-from app.models.model_provider import ModelProvider, AIModel, ModelTierConfig, CostRecord
+from app.models.model_provider import AIModel, CostRecord, ModelProvider, ModelTierConfig
 from app.schemas.model_provider import (
-    ModelProviderCreate,
-    ModelProviderUpdate,
-    ModelProviderResponse,
-    ModelProviderPage,
     AIModelCreate,
-    AIModelUpdate,
-    AIModelResponse,
     AIModelPage,
-    TierConfigCreate,
-    TierConfigUpdate,
-    TierConfigResponse,
-    TierConfigPage,
-    CostRecordResponse,
-    CostRecordPage,
+    AIModelResponse,
+    AIModelUpdate,
     CostOverview,
+    CostRecordPage,
+    CostRecordResponse,
     CostTrend,
+    ModelProviderCreate,
+    ModelProviderPage,
+    ModelProviderResponse,
+    ModelProviderUpdate,
     ProviderTestRequest,
     ProviderTestResponse,
+    TierConfigCreate,
+    TierConfigPage,
+    TierConfigResponse,
+    TierConfigUpdate,
 )
 from app.utils.rbac import 操作, 检查权限
 
@@ -570,13 +570,15 @@ async def get_cost_overview(
         )
         model_breakdown = []
         for row in breakdown_result.all():
-            model_breakdown.append({
-                "model_id": row[0],
-                "execution_count": row[1] or 0,
-                "total_cost": float(row[2] or 0),
-                "total_input_tokens": row[3] or 0,
-                "total_output_tokens": row[4] or 0,
-            })
+            model_breakdown.append(
+                {
+                    "model_id": row[0],
+                    "execution_count": row[1] or 0,
+                    "total_cost": float(row[2] or 0),
+                    "total_input_tokens": row[3] or 0,
+                    "total_output_tokens": row[4] or 0,
+                }
+            )
 
         return CostOverview(
             total_cost=total_cost,
@@ -616,13 +618,15 @@ async def get_cost_trend(
 
         daily_costs = []
         for row in trend_result.all():
-            daily_costs.append({
-                "date": str(row[0]) if row[0] else "",
-                "execution_count": row[1] or 0,
-                "total_cost": float(row[2] or 0),
-                "total_input_tokens": row[3] or 0,
-                "total_output_tokens": row[4] or 0,
-            })
+            daily_costs.append(
+                {
+                    "date": str(row[0]) if row[0] else "",
+                    "execution_count": row[1] or 0,
+                    "total_cost": float(row[2] or 0),
+                    "total_input_tokens": row[3] or 0,
+                    "total_output_tokens": row[4] or 0,
+                }
+            )
 
         return CostTrend(daily_costs=daily_costs)
     except Exception:

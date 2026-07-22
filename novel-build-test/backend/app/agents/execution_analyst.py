@@ -86,6 +86,7 @@ class ExecutionAnalyst(AgentBase):
             pass
 
         import re
+
         match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
         if match:
             try:
@@ -96,8 +97,12 @@ class ExecutionAnalyst(AgentBase):
         logger.warning("无法解析执行分析输出为 JSON，使用文本回退格式")
         return {
             "execution_summary": {
-                "total": 0, "passed": 0, "failed": 0,
-                "skipped": 0, "blocked": 0, "pass_rate": 0.0,
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "skipped": 0,
+                "blocked": 0,
+                "pass_rate": 0.0,
             },
             "failed_cases": [],
             "defect_report": [],

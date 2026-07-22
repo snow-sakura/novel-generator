@@ -8,7 +8,7 @@
 import asyncio
 import json
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
 
 import redis.asyncio as aioredis
 
@@ -25,10 +25,10 @@ class EventConsumer:
     """
 
     def __init__(self) -> None:
-        self._client: Optional[aioredis.Redis] = None
-        self._pubsub: Optional[aioredis.client.PubSub] = None
+        self._client: aioredis.Redis | None = None
+        self._pubsub: aioredis.client.PubSub | None = None
         self._running: bool = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._handlers: dict[str, list[Callable]] = {}
 
     async def connect(self) -> None:

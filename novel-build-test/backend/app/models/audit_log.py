@@ -2,7 +2,7 @@
 
 import datetime
 
-from sqlalchemy import JSON, DateTime, Integer, String, Text, func
+from sqlalchemy import JSON, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -39,9 +39,7 @@ class AuditLog(Base):
     changes: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="变更详情")
     ai_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="AI 决策元数据")
     ip_address: Mapped[str] = mapped_column(String(45), nullable=True, comment="请求 IP")
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), comment="操作时间"
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), comment="操作时间")
 
     def __repr__(self) -> str:
         return f"<AuditLog id={self.id} action={self.action} entity={self.entity_type}#{self.entity_id}>"

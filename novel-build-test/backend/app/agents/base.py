@@ -11,14 +11,12 @@
 所有具体 Agent 必须继承 AgentBase 并实现 execute 方法。
 """
 
-import json
 import logging
-import hashlib
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
-from app.services.llm import get_provider, LLMResult
+from app.services.llm import LLMResult, get_provider
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +36,7 @@ class AgentResult:
         prompt_tokens: int = 0,
         completion_tokens: int = 0,
         cost_yuan: float = 0.0,
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
         agent_name: str = "",
     ):
         self.status = status
@@ -137,10 +135,7 @@ class AgentBase(ABC):
             RuntimeError: Provider 不可用时抛出。
         """
         if self._llm_provider is None:
-            raise RuntimeError(
-                f"Agent '{self.name}': LLM Provider 不可用，"
-                f"请检查模型 '{self.model}' 的 API Key 配置。"
-            )
+            raise RuntimeError(f"Agent '{self.name}': LLM Provider 不可用，请检查模型 '{self.model}' 的 API Key 配置。")
 
         # 构造消息列表（system + user）
         messages = []
@@ -169,8 +164,7 @@ class AgentBase(ABC):
         self._total_cost += result.usage.cost_yuan
 
         logger.debug(
-            "Agent '%s' LLM 调用完成: model=%s, prompt_tokens=%d, "
-            "completion_tokens=%d, cost=%.6f 元",
+            "Agent '%s' LLM 调用完成: model=%s, prompt_tokens=%d, completion_tokens=%d, cost=%.6f 元",
             self.name,
             result.model_name,
             result.usage.prompt_tokens,
@@ -182,7 +176,7 @@ class AgentBase(ABC):
 
     # ==================== 自省与反思 ====================
 
-    async def _reflect(self, result: LLMResult, context: dict) -> Optional[str]:
+    async def _reflect(self, result: LLMResult, context: dict) -> str | None:
         """对 LLM 输出进行简单反思，判断是否需要改进。
 
         检查输出中是否包含常见错误指示词，若发现问题
@@ -199,8 +193,15 @@ class AgentBase(ABC):
 
         # 常见错误指示模式
         error_indicators = [
-            "抱歉", "我不能", "无法完成", "error", "exception",
-            "缺乏信息", "insufficient", "undefined", "not implemented",
+            "抱歉",
+            "我不能",
+            "无法完成",
+            "error",
+            "exception",
+            "缺乏信息",
+            "insufficient",
+            "undefined",
+            "not implemented",
         ]
 
         for indicator in error_indicators:
@@ -348,7 +349,7 @@ class AgentBase(ABC):
             len(self._memory),
         )
 
-    async def _load_from_memory(self, key: str) -> Optional[Any]:
+    async def _load_from_memory(self, key: str) -> Any | None:
         """从短期记忆中按键加载最近一次保存的内容。
 
         Args:
@@ -394,7 +395,7 @@ class AgentBase(ABC):
             最后一次（或改进后）的 LLMResult。
         """
         current_prompt = prompt
-        last_result: Optional[LLMResult] = None
+        last_result: LLMResult | None = None
 
         for attempt in range(max_retries):
             logger.info(
@@ -452,7 +453,7 @@ class AgentBase(ABC):
         self,
         output: str = "",
         error: str = "",
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
         status: str = "completed",
     ) -> AgentResult:
         """构造 AgentResult（子类辅助方法）

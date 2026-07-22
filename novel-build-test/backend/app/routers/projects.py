@@ -1,10 +1,10 @@
 """项目路由 — 项目的 CRUD 操作（含 RBAC 权限校验）"""
 
-import math
 import logging
+import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 from app.database import get_db
 from app.models.project import Project
 from app.schemas.project import ProjectCreate, ProjectPage, ProjectResponse, ProjectUpdate
-from app.utils.rbac import 操作, 检查权限, 获取当前用户
+from app.utils.rbac import 操作, 检查权限
 
 router = APIRouter(prefix="/api/v1/projects", tags=["项目"])
 
@@ -82,9 +82,7 @@ async def get_project(
 ):
     """获取项目详情"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.owner_id == user_id)
-    )
+    result = await db.execute(select(Project).where(Project.id == project_id, Project.owner_id == user_id))
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目不存在")
@@ -100,9 +98,7 @@ async def update_project(
 ):
     """更新项目信息"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.owner_id == user_id)
-    )
+    result = await db.execute(select(Project).where(Project.id == project_id, Project.owner_id == user_id))
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目不存在")
@@ -147,17 +143,15 @@ async def get_project_stats(
     """获取项目统计信息"""
     # 确保项目存在
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.owner_id == user_id)
-    )
+    result = await db.execute(select(Project).where(Project.id == project_id, Project.owner_id == user_id))
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目不存在")
 
     # 统计关联模块数量（表不存在时安全降级为 0）
-    from app.models.requirement import Requirement
-    from app.models.environment import TestEnvironment
     from app.models.asset import TestAsset
+    from app.models.environment import TestEnvironment
     from app.models.knowledge import KnowledgeDoc as KnowledgeEntry
+    from app.models.requirement import Requirement
 
     return {
         "total_requirements": await _safe_count(db, Requirement, Requirement.project_id, project_id),
@@ -175,9 +169,7 @@ async def delete_project(
 ):
     """删除项目"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.owner_id == user_id)
-    )
+    result = await db.execute(select(Project).where(Project.id == project_id, Project.owner_id == user_id))
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目不存在")

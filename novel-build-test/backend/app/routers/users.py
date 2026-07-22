@@ -7,11 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import (
+    PasswordResetRequest,
     UserCreate,
     UserListResponse,
     UserResponse,
     UserUpdate,
-    PasswordResetRequest,
 )
 from app.services.auth import register_user
 from app.services.user import (
@@ -22,7 +22,6 @@ from app.services.user import (
     update_user_role,
     update_user_status,
 )
-from app.utils.security import hash_password
 
 router = APIRouter(prefix="/api/v1/users", tags=["用户管理"])
 

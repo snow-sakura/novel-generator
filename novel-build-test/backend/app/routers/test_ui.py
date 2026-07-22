@@ -33,11 +33,7 @@ async def list_visual_baselines(
     user_id = 当前用户["用户ID"]
 
     base_query = select(VisualBaseline).where(VisualBaseline.created_by == user_id)
-    count_base = (
-        select(func.count())
-        .select_from(VisualBaseline)
-        .where(VisualBaseline.created_by == user_id)
-    )
+    count_base = select(func.count()).select_from(VisualBaseline).where(VisualBaseline.created_by == user_id)
 
     if project_id is not None:
         base_query = base_query.where(VisualBaseline.project_id == project_id)
@@ -45,11 +41,7 @@ async def list_visual_baselines(
 
     total = (await db.execute(count_base)).scalar() or 0
 
-    query = (
-        base_query.order_by(VisualBaseline.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    query = base_query.order_by(VisualBaseline.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     items = list(result.scalars().all())
 
@@ -91,9 +83,7 @@ async def get_visual_baseline(
     """获取视觉基线详情"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(VisualBaseline).where(
-            VisualBaseline.id == baseline_id, VisualBaseline.created_by == user_id
-        )
+        select(VisualBaseline).where(VisualBaseline.id == baseline_id, VisualBaseline.created_by == user_id)
     )
     baseline = result.scalar_one_or_none()
     if not baseline:
@@ -101,9 +91,7 @@ async def get_visual_baseline(
     return baseline
 
 
-@router.delete(
-    "/baselines/{baseline_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/baselines/{baseline_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_visual_baseline(
     baseline_id: int,
     db: AsyncSession = Depends(get_db),
@@ -112,9 +100,7 @@ async def delete_visual_baseline(
     """删除视觉基线"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(VisualBaseline).where(
-            VisualBaseline.id == baseline_id, VisualBaseline.created_by == user_id
-        )
+        select(VisualBaseline).where(VisualBaseline.id == baseline_id, VisualBaseline.created_by == user_id)
     )
     baseline = result.scalar_one_or_none()
     if not baseline:
@@ -126,12 +112,14 @@ async def delete_visual_baseline(
 
 class VisualDiffRequest(BaseModel):
     """视觉对比请求"""
+
     baseline_id: int = Field(..., ge=1, description="基线 ID")
     compare_url: str = Field(..., min_length=1, max_length=500, description="待对比 URL")
 
 
 class VisualDiffResult(BaseModel):
     """视觉对比结果"""
+
     baseline_id: int
     compare_url: str
     diff_percentage: float = 0.0

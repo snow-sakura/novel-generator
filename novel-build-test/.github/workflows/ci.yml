@@ -60,6 +60,11 @@ jobs:
           pip install -r requirements.txt
           pip install httpx pytest pytest-asyncio
 
+      - name: Lint with Ruff
+        run: |
+          source .venv/bin/activate
+          ruff check --output-format=github
+
       - name: Run tests（带 DB）
         run: |
           source .venv/bin/activate
@@ -102,8 +107,11 @@ jobs:
       - name: TypeScript type check
         run: npx tsc --noEmit
 
-      - name: Lint
-        run: npx eslint src/ --max-warnings 50 2>/dev/null || echo "Lint warnings exist (non-blocking)"
+      - name: ESLint
+        run: npx eslint src/ --max-warnings 100
+
+      - name: Prettier check
+        run: npx prettier --check "src/**/*.{ts,tsx,css}"
 
       - name: Unit tests
         run: npx vitest run

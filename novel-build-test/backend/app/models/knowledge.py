@@ -30,29 +30,23 @@ class KnowledgeDoc(TimestampMixin, Base):
     __tablename__ = "knowledge_docs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    project_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目"
-    )
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目")
     title: Mapped[str] = mapped_column(String(200), nullable=False, comment="知识标题")
     content: Mapped[str | None] = mapped_column(Text, nullable=True, comment="知识正文（Markdown）")
     source: Mapped[str] = mapped_column(
-        String(20), default="manual",
+        String(20),
+        default="manual",
         comment="来源: file/manual/api",
     )
     tags: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="逗号分隔标签")
     collection_name: Mapped[str] = mapped_column(
-        String(50), default="tech_doc_knowledge",
+        String(50),
+        default="tech_doc_knowledge",
         comment="所属 Qdrant 集合",
     )
-    vector_id: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="Qdrant 点 ID"
-    )
-    vector_synced: Mapped[bool] = mapped_column(
-        Boolean, default=False, comment="是否已同步到向量库"
-    )
-    created_by: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
+    vector_id: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="Qdrant 点 ID")
+    vector_synced: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否已同步到向量库")
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, comment="创建者")
 
     project = relationship("Project", backref="knowledge_docs")
 

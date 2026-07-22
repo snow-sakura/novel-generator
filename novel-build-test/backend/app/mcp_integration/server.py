@@ -6,19 +6,18 @@ MCP Server — 基于 FastAPI 的 Model Context Protocol 服务端实现。
 """
 
 import logging
-import json
-from typing import Any, Optional
+from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from pydantic import BaseModel
-from app.config import settings
 
 from .tool_registry import global_tool_registry
 
 
 class ExecuteRequest(BaseModel):
     """工具执行请求体模型。"""
+
     arguments: dict = {}
 
 
@@ -39,8 +38,8 @@ class MCPServer:
         self.host = host
         self.port = port
         self.logger = logging.getLogger(self.__class__.__name__)
-        self._app: Optional[FastAPI] = None
-        self._server: Optional[uvicorn.Server] = None
+        self._app: FastAPI | None = None
+        self._server: uvicorn.Server | None = None
 
         # 初始化 FastAPI 应用并注册路由
         self._build_app()

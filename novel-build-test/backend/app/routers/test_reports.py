@@ -2,8 +2,8 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, desc
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -29,9 +29,7 @@ async def create_report(
 ):
     """3.2.2 C: 创建测试报告"""
     # 验证执行记录存在
-    exec_result = await db.execute(
-        select(TestExecution).where(TestExecution.id == execution_id)
-    )
+    exec_result = await db.execute(select(TestExecution).where(TestExecution.id == execution_id))
     if not exec_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="执行记录不存在")
 
@@ -66,9 +64,7 @@ async def get_report_by_execution(
     当前用户: dict = Depends(检查权限(操作.读取)),
 ):
     """3.2.2 R1: 获取指定执行的报告"""
-    result = await db.execute(
-        select(TestReport).where(TestReport.execution_id == execution_id)
-    )
+    result = await db.execute(select(TestReport).where(TestReport.execution_id == execution_id))
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status_code=404, detail="报告不存在")
@@ -89,13 +85,11 @@ async def list_reports(
 
     if project_id:
         # 通过 execution → project 关联筛选
-        query = (
-            query.join(TestExecution, TestReport.execution_id == TestExecution.id)
-            .where(TestExecution.project_id == project_id)
+        query = query.join(TestExecution, TestReport.execution_id == TestExecution.id).where(
+            TestExecution.project_id == project_id
         )
-        count_query = (
-            count_query.join(TestExecution, TestReport.execution_id == TestExecution.id)
-            .where(TestExecution.project_id == project_id)
+        count_query = count_query.join(TestExecution, TestReport.execution_id == TestExecution.id).where(
+            TestExecution.project_id == project_id
         )
 
     total_result = await db.execute(count_query)
@@ -116,9 +110,7 @@ async def get_report(
     当前用户: dict = Depends(检查权限(操作.读取)),
 ):
     """获取单个报告详情"""
-    result = await db.execute(
-        select(TestReport).where(TestReport.id == report_id)
-    )
+    result = await db.execute(select(TestReport).where(TestReport.id == report_id))
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status_code=404, detail="报告不存在")

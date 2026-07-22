@@ -3,19 +3,19 @@
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.test_modules import AppTestScript, TestDevice
 from app.schemas.test_modules import (
     AppScriptCreate,
-    AppScriptResponse,
     AppScriptPage,
+    AppScriptResponse,
     AppScriptUpdate,
     DeviceCreate,
-    DeviceResponse,
     DevicePage,
+    DeviceResponse,
     DeviceUpdate,
 )
 from app.utils.rbac import 操作, 检查权限
@@ -37,11 +37,7 @@ async def list_app_scripts(
     """获取 App 自动化脚本列表（分页，支持筛选）"""
     user_id = 当前用户["用户ID"]
     query = select(AppTestScript).where(AppTestScript.created_by == user_id)
-    count_query = (
-        select(func.count())
-        .select_from(AppTestScript)
-        .where(AppTestScript.created_by == user_id)
-    )
+    count_query = select(func.count()).select_from(AppTestScript).where(AppTestScript.created_by == user_id)
 
     if project_id:
         query = query.where(AppTestScript.project_id == project_id)
@@ -99,9 +95,7 @@ async def update_app_script(
     """更新 App 自动化脚本"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(AppTestScript).where(
-            AppTestScript.id == script_id, AppTestScript.created_by == user_id
-        )
+        select(AppTestScript).where(AppTestScript.id == script_id, AppTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -125,9 +119,7 @@ async def delete_app_script(
     """删除 App 自动化脚本"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(AppTestScript).where(
-            AppTestScript.id == script_id, AppTestScript.created_by == user_id
-        )
+        select(AppTestScript).where(AppTestScript.id == script_id, AppTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -146,9 +138,7 @@ async def run_app_script(
     """Mock 执行 App 自动化脚本"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(AppTestScript).where(
-            AppTestScript.id == script_id, AppTestScript.created_by == user_id
-        )
+        select(AppTestScript).where(AppTestScript.id == script_id, AppTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:

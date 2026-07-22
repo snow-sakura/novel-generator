@@ -22,9 +22,7 @@ class AgentPrompt(TimestampMixin, Base):
     __tablename__ = "agent_prompts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    agent_key: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, comment="Agent 标识"
-    )
+    agent_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, comment="Agent 标识")
     content: Mapped[str] = mapped_column(Text, nullable=False, comment="提示词内容")
     version: Mapped[int] = mapped_column(Integer, default=1, comment="当前版本")
     description: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="说明")

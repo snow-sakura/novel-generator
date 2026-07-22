@@ -5,7 +5,7 @@
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +21,7 @@ async def _ensure_page() -> Any:
     try:
         from playwright.async_api import async_playwright
     except ImportError:
-        raise ImportError(
-            "playwright 未安装。请执行: pip install playwright && playwright install chromium"
-        )
+        raise ImportError("playwright 未安装。请执行: pip install playwright && playwright install chromium")
 
     if _page is None:
         playwright = await async_playwright().start()
@@ -111,6 +109,7 @@ async def browser_screenshot(**kwargs) -> dict:
     page = await _ensure_page()
     try:
         import base64
+
         screenshot_bytes = await page.screenshot(full_page=True)
         screenshot_b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
         return {

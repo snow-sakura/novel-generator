@@ -18,16 +18,16 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from .base import AgentBase, AgentResult
-from .requirements_analyst import RequirementsAnalyst
-from .test_architect import TestArchitect
-from .test_designer import TestDesigner
-from .test_case_writer import TestCaseWriter
+from .cost_optimizer import CostOptimizer
 from .execution_analyst import ExecutionAnalyst
 from .quality_auditor import QualityAuditor
-from .cost_optimizer import CostOptimizer
+from .requirements_analyst import RequirementsAnalyst
+from .test_architect import TestArchitect
+from .test_case_writer import TestCaseWriter
+from .test_designer import TestDesigner
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ class DispatchController(AgentBase):
         }
 
         # 辩论结果缓存（2.3.5: 注入下游 Agent 上下文）
-        self._debate_results: Optional[dict[str, Any]] = None
+        self._debate_results: dict[str, Any] | None = None
 
     def set_debate_context(self, debate_results: dict[str, Any]) -> None:
         """注入辩论结果到调度上下文（2.3.5）
@@ -169,9 +169,7 @@ class DispatchController(AgentBase):
             合并后的 AgentResult 对象
         """
         execution_mode = context.get("execution_mode", "全流程")
-        workflow = WORKFLOW_DEFINITIONS.get(
-            execution_mode, WORKFLOW_DEFINITIONS["全流程"]
-        )
+        workflow = WORKFLOW_DEFINITIONS.get(execution_mode, WORKFLOW_DEFINITIONS["全流程"])
 
         # 构建初始状态
         initial_state: dict[str, Any] = {
@@ -218,19 +216,23 @@ class DispatchController(AgentBase):
                 state["total_cost"] += agent_result.cost_yuan
 
                 if agent_result.status == "failed":
-                    state["errors"].append({
-                        "step": step_info["step"],
-                        "agent": agent_name,
-                        "error": agent_result.metadata.get("error", "") if agent_result.metadata else "",
-                    })
+                    state["errors"].append(
+                        {
+                            "step": step_info["step"],
+                            "agent": agent_name,
+                            "error": agent_result.metadata.get("error", "") if agent_result.metadata else "",
+                        }
+                    )
 
             except Exception as e:
                 logger.error(f"Agent {agent_name} 执行异常: {e}")
-                state["errors"].append({
-                    "step": step_info["step"],
-                    "agent": agent_name,
-                    "error": str(e),
-                })
+                state["errors"].append(
+                    {
+                        "step": step_info["step"],
+                        "agent": agent_name,
+                        "error": str(e),
+                    }
+                )
                 state["results"][agent_name] = {
                     "agent": agent_name,
                     "status": "failed",
@@ -288,9 +290,7 @@ class DispatchController(AgentBase):
             合并后的 AgentResult 对象
         """
         execution_mode = context.get("execution_mode", "全流程")
-        workflow = WORKFLOW_DEFINITIONS.get(
-            execution_mode, WORKFLOW_DEFINITIONS["全流程"]
-        )
+        workflow = WORKFLOW_DEFINITIONS.get(execution_mode, WORKFLOW_DEFINITIONS["全流程"])
 
         results: dict[str, Any] = {}
         errors: list[dict[str, Any]] = []
@@ -328,19 +328,23 @@ class DispatchController(AgentBase):
                 total_cost += agent_result.cost_yuan
 
                 if agent_result.status == "failed":
-                    errors.append({
-                        "agent": agent_name,
-                        "step": step_info["step"],
-                        "error": agent_result.metadata.get("error", "") if agent_result.metadata else "",
-                    })
+                    errors.append(
+                        {
+                            "agent": agent_name,
+                            "step": step_info["step"],
+                            "error": agent_result.metadata.get("error", "") if agent_result.metadata else "",
+                        }
+                    )
 
             except Exception as e:
                 logger.error(f"顺序执行 Agent {agent_name} 失败: {e}")
-                errors.append({
-                    "agent": agent_name,
-                    "step": step_info["step"],
-                    "error": str(e),
-                })
+                errors.append(
+                    {
+                        "agent": agent_name,
+                        "step": step_info["step"],
+                        "error": str(e),
+                    }
+                )
                 results[agent_name] = {
                     "status": "failed",
                     "error": str(e),
@@ -407,10 +411,7 @@ class DispatchController(AgentBase):
             DEFAULT_WORKFLOW_TIMEOUT_SECONDS,
         )
 
-        logger.info(
-            f"调度总控开始执行 | 模式={execution_mode} | "
-            f"任务ID={task_id} | 超时={timeout_seconds}s"
-        )
+        logger.info(f"调度总控开始执行 | 模式={execution_mode} | 任务ID={task_id} | 超时={timeout_seconds}s")
 
         try:
             # 2.4.4: 整个工作流包裹超时控制
@@ -418,19 +419,19 @@ class DispatchController(AgentBase):
                 self._execute_with_fallback(context),
                 timeout=timeout_seconds,
             )
-        except asyncio.TimeoutError:
-            logger.error(
-                f"调度总控执行超时 | 模式={execution_mode} | "
-                f"任务ID={task_id} | 超时={timeout_seconds}s"
-            )
+        except TimeoutError:
+            logger.error(f"调度总控执行超时 | 模式={execution_mode} | 任务ID={task_id} | 超时={timeout_seconds}s")
             return AgentResult(
                 status="failed",
-                output_content=json.dumps({
-                    "execution_mode": execution_mode,
-                    "status": "failed",
-                    "error": f"执行超时（{timeout_seconds}秒）",
-                    "total_cost": 0.0,
-                }, ensure_ascii=False),
+                output_content=json.dumps(
+                    {
+                        "execution_mode": execution_mode,
+                        "status": "failed",
+                        "error": f"执行超时（{timeout_seconds}秒）",
+                        "total_cost": 0.0,
+                    },
+                    ensure_ascii=False,
+                ),
                 model_used=self.model,
                 prompt_tokens=0,
                 completion_tokens=0,
@@ -443,10 +444,7 @@ class DispatchController(AgentBase):
                 },
             )
 
-        logger.info(
-            f"调度总控执行完成 | 状态={result.status} | "
-            f"成本=¥{result.cost_yuan:.4f}"
-        )
+        logger.info(f"调度总控执行完成 | 状态={result.status} | 成本=¥{result.cost_yuan:.4f}")
 
         return result
 

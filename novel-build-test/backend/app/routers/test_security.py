@@ -13,7 +13,6 @@ from app.schemas.base import Page, page_from_query
 from app.schemas.test_modules import (
     SecurityScanCreate,
     SecurityScanResponse,
-    SecurityScanUpdate,
 )
 from app.utils.rbac import 操作, 检查权限
 
@@ -35,11 +34,7 @@ async def list_security_scans(
     user_id = 当前用户["用户ID"]
 
     base_query = select(SecurityScan).where(SecurityScan.created_by == user_id)
-    count_base = (
-        select(func.count())
-        .select_from(SecurityScan)
-        .where(SecurityScan.created_by == user_id)
-    )
+    count_base = select(func.count()).select_from(SecurityScan).where(SecurityScan.created_by == user_id)
 
     if project_id is not None:
         base_query = base_query.where(SecurityScan.project_id == project_id)
@@ -50,20 +45,14 @@ async def list_security_scans(
 
     total = (await db.execute(count_base)).scalar() or 0
 
-    query = (
-        base_query.order_by(SecurityScan.updated_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    query = base_query.order_by(SecurityScan.updated_at.desc()).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     items = list(result.scalars().all())
 
     return page_from_query(SecurityScanResponse, items, total, page, page_size)
 
 
-@router.post(
-    "/scans", response_model=SecurityScanResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/scans", response_model=SecurityScanResponse, status_code=status.HTTP_201_CREATED)
 async def create_security_scan(
     data: SecurityScanCreate,
     db: AsyncSession = Depends(get_db),
@@ -93,9 +82,7 @@ async def get_security_scan(
     """获取安全扫描任务详情"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(SecurityScan).where(
-            SecurityScan.id == scan_id, SecurityScan.created_by == user_id
-        )
+        select(SecurityScan).where(SecurityScan.id == scan_id, SecurityScan.created_by == user_id)
     )
     scan = result.scalar_one_or_none()
     if not scan:
@@ -112,9 +99,7 @@ async def delete_security_scan(
     """删除安全扫描任务"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(SecurityScan).where(
-            SecurityScan.id == scan_id, SecurityScan.created_by == user_id
-        )
+        select(SecurityScan).where(SecurityScan.id == scan_id, SecurityScan.created_by == user_id)
     )
     scan = result.scalar_one_or_none()
     if not scan:
@@ -133,9 +118,7 @@ async def run_security_scan(
     """模拟运行安全扫描任务（将状态设为 running）"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(SecurityScan).where(
-            SecurityScan.id == scan_id, SecurityScan.created_by == user_id
-        )
+        select(SecurityScan).where(SecurityScan.id == scan_id, SecurityScan.created_by == user_id)
     )
     scan = result.scalar_one_or_none()
     if not scan:
@@ -149,6 +132,7 @@ async def run_security_scan(
 
 class SecurityScanResult(BaseModel):
     """扫描结果响应"""
+
     scan_id: int
     status: str = "completed"
     vulnerabilities: list = Field(default_factory=list)
@@ -164,9 +148,7 @@ async def get_security_scan_result(
     """获取模拟的安全扫描结果"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(SecurityScan).where(
-            SecurityScan.id == scan_id, SecurityScan.created_by == user_id
-        )
+        select(SecurityScan).where(SecurityScan.id == scan_id, SecurityScan.created_by == user_id)
     )
     scan = result.scalar_one_or_none()
     if not scan:

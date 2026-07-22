@@ -4,7 +4,7 @@ import logging
 import math
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -35,11 +35,7 @@ async def list_api_cases(
     """获取接口测试用例列表（分页，支持多条件筛选）"""
     user_id = 当前用户["用户ID"]
     query = select(ApiTestCase).where(ApiTestCase.created_by == user_id)
-    count_query = (
-        select(func.count())
-        .select_from(ApiTestCase)
-        .where(ApiTestCase.created_by == user_id)
-    )
+    count_query = select(func.count()).select_from(ApiTestCase).where(ApiTestCase.created_by == user_id)
 
     if project_id:
         query = query.where(ApiTestCase.project_id == project_id)

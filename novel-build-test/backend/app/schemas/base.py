@@ -2,8 +2,7 @@
 
 import math
 
-from pydantic import BaseModel, Field
-from pydantic import model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class Page[T](BaseModel):

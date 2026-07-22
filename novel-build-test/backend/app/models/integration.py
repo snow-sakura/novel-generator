@@ -13,9 +13,7 @@ class CicdConfig(TimestampMixin, Base):
     __tablename__ = "cicd_configs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    project_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("projects.id"), nullable=False, comment="项目ID"
-    )
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id"), nullable=False, comment="项目ID")
     name: Mapped[str] = mapped_column(String(100), nullable=False, comment="配置名称")
     ci_type: Mapped[str] = mapped_column(String(30), nullable=False, comment="类型: jenkins/github/gitlab")
     webhook_url: Mapped[str] = mapped_column(String(500), nullable=False, comment="Webhook URL")

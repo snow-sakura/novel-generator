@@ -153,9 +153,7 @@ async def enable_skill_package(
         created = []
         for skill_def in package["skills"]:
             # 避免重复创建同名技能
-            existing = await db.execute(
-                select(Skill).where(Skill.name == skill_def["name"])
-            )
+            existing = await db.execute(select(Skill).where(Skill.name == skill_def["name"]))
             if existing.scalar_one_or_none():
                 continue
 

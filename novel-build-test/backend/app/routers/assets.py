@@ -3,7 +3,7 @@
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -38,11 +38,11 @@ async def list_assets(
         count_query = count_query.where(TestAsset.type == type)
     if tags:
         # 多标签取交集：资产标签需包含所有搜索标签
-        for tag in tags.split(","):
-            tag = tag.strip()
-            if tag:
-                query = query.where(TestAsset.tags.like(f"%{tag}%"))
-                count_query = count_query.where(TestAsset.tags.like(f"%{tag}%"))
+        for raw_tag in tags.split(","):
+            t = raw_tag.strip()
+            if t:
+                query = query.where(TestAsset.tags.like(f"%{t}%"))
+                count_query = count_query.where(TestAsset.tags.like(f"%{t}%"))
     if search:
         like_pattern = f"%{search}%"
         query = query.where(TestAsset.name.like(like_pattern))
@@ -95,9 +95,7 @@ async def get_asset(
 ):
     """获取资产详情"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(TestAsset).where(TestAsset.id == asset_id, TestAsset.created_by == user_id)
-    )
+    result = await db.execute(select(TestAsset).where(TestAsset.id == asset_id, TestAsset.created_by == user_id))
     asset = result.scalar_one_or_none()
     if not asset:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="资产不存在")
@@ -113,9 +111,7 @@ async def update_asset(
 ):
     """更新资产信息"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(TestAsset).where(TestAsset.id == asset_id, TestAsset.created_by == user_id)
-    )
+    result = await db.execute(select(TestAsset).where(TestAsset.id == asset_id, TestAsset.created_by == user_id))
     asset = result.scalar_one_or_none()
     if not asset:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="资产不存在")
@@ -139,9 +135,7 @@ async def delete_asset(
 ):
     """删除资产"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(TestAsset).where(TestAsset.id == asset_id, TestAsset.created_by == user_id)
-    )
+    result = await db.execute(select(TestAsset).where(TestAsset.id == asset_id, TestAsset.created_by == user_id))
     asset = result.scalar_one_or_none()
     if not asset:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="资产不存在")

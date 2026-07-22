@@ -1041,3 +1041,60 @@ export const smokeTestApi = {
   updateAutoTrigger: (id: number, config: { auto_trigger: boolean; trigger_config?: Record<string, unknown> }) =>
     apiClient.put<SmokeSuiteItem>(`/test-smoke/suites/${id}/auto`, config),
 }
+
+// ===== 仪表盘 =====
+
+export interface DashboardStats {
+  total_projects: number
+  total_requirements: number
+  total_environments: number
+  total_assets: number
+  total_executions: number
+  total_cases: number
+  pass_rate: number
+  trend: { date: string; count: number }[]
+  pending_reviews: number
+  recent_failed_cases: number
+  expired_environments: number
+}
+
+export const dashboardApi = {
+  /** 获取仪表盘全局统计 */
+  stats: () => apiClient.get<DashboardStats>('/dashboard/stats'),
+}
+
+// ===== 工作流执行 =====
+
+export interface WorkflowExecutionItem {
+  id: number
+  project_id: number
+  template_id: number | null
+  name: string
+  status: string
+  current_step: string | null
+  steps_result: Record<string, unknown> | null
+  error_message: string | null
+  total_cost: number
+  thread_id: string | null
+  started_at: string | null
+  finished_at: string | null
+  is_auto: boolean
+  created_at: string | null
+  updated_at: string | null
+}
+
+export const workflowExecutionApi = {
+  /** 启动工作流执行 */
+  create: (data: { project_id: number; template_id?: number; name: string; mode?: string }) =>
+    apiClient.post<WorkflowExecutionItem>('/workflow-executions', data),
+
+  /** 获取执行列表 */
+  list: (params?: { project_id?: number; page?: number; page_size?: number }) =>
+    apiClient.get<PaginatedResponse<WorkflowExecutionItem>>('/workflow-executions', { params }),
+
+  /** 获取执行详情 */
+  detail: (id: number) => apiClient.get<WorkflowExecutionItem>(`/workflow-executions/${id}`),
+
+  /** 取消执行 */
+  cancel: (id: number) => apiClient.post<WorkflowExecutionItem>(`/workflow-executions/${id}/cancel`),
+}

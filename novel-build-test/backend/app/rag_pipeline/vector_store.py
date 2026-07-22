@@ -5,7 +5,6 @@
 
 import logging
 import uuid
-from typing import Any, Optional
 
 from qdrant_client.http import models
 

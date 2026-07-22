@@ -10,7 +10,7 @@ from app.database import get_db
 from app.mcp_integration.tool_registry import global_tool_registry
 from app.models.skill import McpTool
 from app.schemas.base import Page, page_from_query
-from app.schemas.phase3 import McpToolCreate, McpToolPage, McpToolResponse, McpToolUpdate
+from app.schemas.phase3 import McpToolCreate, McpToolResponse, McpToolUpdate
 from app.utils.rbac import 操作, 检查权限
 
 logger = logging.getLogger(__name__)
@@ -41,11 +41,9 @@ async def list_managed_tools(
     total = (await db.execute(select(func.count(McpTool.id)))).scalar() or 0
 
     items = list(
-        (
-            await db.execute(
-                select(McpTool).order_by(McpTool.id).offset((page - 1) * page_size).limit(page_size)
-            )
-        ).scalars().all()
+        (await db.execute(select(McpTool).order_by(McpTool.id).offset((page - 1) * page_size).limit(page_size)))
+        .scalars()
+        .all()
     )
 
     return page_from_query(McpToolResponse, items, total, page, page_size)

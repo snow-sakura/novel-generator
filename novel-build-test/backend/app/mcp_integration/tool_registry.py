@@ -4,7 +4,8 @@
 """
 
 import logging
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 
 class ToolRegistry:
@@ -12,7 +13,7 @@ class ToolRegistry:
 
     def __init__(self) -> None:
         """初始化空的工具注册表。"""
-        self._tools: Dict[str, dict] = {}
+        self._tools: dict[str, dict] = {}
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def register(
@@ -20,7 +21,7 @@ class ToolRegistry:
         name: str,
         func: Callable,
         description: str = "",
-        schema: Optional[dict] = None,
+        schema: dict | None = None,
     ) -> None:
         """
         注册一个工具。
@@ -59,7 +60,7 @@ class ToolRegistry:
         del self._tools[name]
         self.logger.info("注销工具: %s", name)
 
-    def get_tool(self, name: str) -> Optional[Callable]:
+    def get_tool(self, name: str) -> Callable | None:
         """
         根据名称获取工具的可调用对象。
 

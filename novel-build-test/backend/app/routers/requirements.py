@@ -3,7 +3,7 @@
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -96,11 +96,7 @@ async def get_requirement(
 ):
     """获取需求详情"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(Requirement).where(
-            Requirement.id == req_id, Requirement.created_by == user_id
-        )
-    )
+    result = await db.execute(select(Requirement).where(Requirement.id == req_id, Requirement.created_by == user_id))
     req = result.scalar_one_or_none()
     if not req:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="需求不存在")
@@ -116,11 +112,7 @@ async def update_requirement(
 ):
     """更新需求信息"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(Requirement).where(
-            Requirement.id == req_id, Requirement.created_by == user_id
-        )
-    )
+    result = await db.execute(select(Requirement).where(Requirement.id == req_id, Requirement.created_by == user_id))
     req = result.scalar_one_or_none()
     if not req:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="需求不存在")
@@ -142,11 +134,7 @@ async def delete_requirement(
 ):
     """删除需求"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(Requirement).where(
-            Requirement.id == req_id, Requirement.created_by == user_id
-        )
-    )
+    result = await db.execute(select(Requirement).where(Requirement.id == req_id, Requirement.created_by == user_id))
     req = result.scalar_one_or_none()
     if not req:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="需求不存在")

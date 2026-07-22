@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/v1/mcp", tags=["MCP 工具"])
 
 class ExecuteRequest(BaseModel):
     """工具执行请求"""
+
     arguments: dict = {}
 
 

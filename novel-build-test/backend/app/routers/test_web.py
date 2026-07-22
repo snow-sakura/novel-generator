@@ -3,15 +3,15 @@
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.test_modules import WebTestScript
 from app.schemas.test_modules import (
     WebScriptCreate,
-    WebScriptResponse,
     WebScriptPage,
+    WebScriptResponse,
     WebScriptUpdate,
 )
 from app.utils.rbac import 操作, 检查权限
@@ -31,11 +31,7 @@ async def list_web_scripts(
     """获取 Web 自动化脚本列表（分页，支持筛选和搜索）"""
     user_id = 当前用户["用户ID"]
     query = select(WebTestScript).where(WebTestScript.created_by == user_id)
-    count_query = (
-        select(func.count())
-        .select_from(WebTestScript)
-        .where(WebTestScript.created_by == user_id)
-    )
+    count_query = select(func.count()).select_from(WebTestScript).where(WebTestScript.created_by == user_id)
 
     if project_id:
         query = query.where(WebTestScript.project_id == project_id)
@@ -71,9 +67,7 @@ async def get_web_script(
     """获取 Web 自动化脚本详情"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(WebTestScript).where(
-            WebTestScript.id == script_id, WebTestScript.created_by == user_id
-        )
+        select(WebTestScript).where(WebTestScript.id == script_id, WebTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -114,9 +108,7 @@ async def update_web_script(
     """更新 Web 自动化脚本"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(WebTestScript).where(
-            WebTestScript.id == script_id, WebTestScript.created_by == user_id
-        )
+        select(WebTestScript).where(WebTestScript.id == script_id, WebTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -140,9 +132,7 @@ async def delete_web_script(
     """删除 Web 自动化脚本"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(WebTestScript).where(
-            WebTestScript.id == script_id, WebTestScript.created_by == user_id
-        )
+        select(WebTestScript).where(WebTestScript.id == script_id, WebTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -161,9 +151,7 @@ async def run_web_script(
     """Mock 执行 Web 自动化脚本"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(WebTestScript).where(
-            WebTestScript.id == script_id, WebTestScript.created_by == user_id
-        )
+        select(WebTestScript).where(WebTestScript.id == script_id, WebTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:
@@ -185,9 +173,7 @@ async def get_web_script_result(
     """Mock 获取 Web 自动化脚本执行结果"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(WebTestScript).where(
-            WebTestScript.id == script_id, WebTestScript.created_by == user_id
-        )
+        select(WebTestScript).where(WebTestScript.id == script_id, WebTestScript.created_by == user_id)
     )
     script = result.scalar_one_or_none()
     if not script:

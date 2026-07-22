@@ -90,6 +90,7 @@ class TestDesigner(AgentBase):
             pass
 
         import re
+
         match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
         if match:
             try:

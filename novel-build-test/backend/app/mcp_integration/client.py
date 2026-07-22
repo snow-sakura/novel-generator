@@ -4,8 +4,6 @@ MCP 工具客户端封装。
 """
 
 import logging
-import json
-from typing import Any, Optional
 
 import httpx
 

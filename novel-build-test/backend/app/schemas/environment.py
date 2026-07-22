@@ -10,8 +10,11 @@ class EnvironmentCreate(BaseModel):
 
     project_id: int = Field(..., description="所属项目 ID")
     name: str = Field(..., min_length=1, max_length=200, description="环境名称")
-    type: str = Field("test", pattern=r"^(dev|test|staging|production|custom)$",
-                      description="环境类型: dev/test/staging/production/custom")
+    type: str = Field(
+        "test",
+        pattern=r"^(dev|test|staging|production|custom)$",
+        description="环境类型: dev/test/staging/production/custom",
+    )
     config: dict | None = Field(None, description="配置信息")
 
 
@@ -20,12 +23,14 @@ class EnvironmentUpdate(BaseModel):
 
     name: str | None = Field(None, min_length=1, max_length=200, description="环境名称")
     type: str | None = Field(
-        None, pattern=r"^(dev|test|staging|production|custom)$",
+        None,
+        pattern=r"^(dev|test|staging|production|custom)$",
         description="环境类型",
     )
     config: dict | None = Field(None, description="配置信息")
     status: str | None = Field(
-        None, pattern=r"^(preparing|ready|in_use|maintenance|unavailable)$",
+        None,
+        pattern=r"^(preparing|ready|in_use|maintenance|unavailable)$",
         description="状态",
     )
 

@@ -129,8 +129,7 @@ class OpenAICompatibleProvider:
     def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
         """按人民币计价计算费用"""
         return (
-            prompt_tokens * self.price.input_price_per_m
-            + completion_tokens * self.price.output_price_per_m
+            prompt_tokens * self.price.input_price_per_m + completion_tokens * self.price.output_price_per_m
         ) / 1_000_000
 
 

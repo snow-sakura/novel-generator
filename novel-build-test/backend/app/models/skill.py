@@ -1,6 +1,6 @@
 """Skills 技能中心模型 — 技能注册、权限与调用日志"""
 
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base

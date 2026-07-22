@@ -2,7 +2,7 @@
 
 import datetime
 
-from sqlalchemy import Boolean, JSON, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -34,15 +34,11 @@ class AgentExecution(Base):
     __tablename__ = "agent_executions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    project_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目"
-    )
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目")
     agent_name: Mapped[str] = mapped_column(String(100), nullable=False, comment="Agent 名称")
     agent_type: Mapped[str] = mapped_column(String(50), nullable=False, comment="Agent 类型")
     task_type: Mapped[str] = mapped_column(String(50), nullable=True, comment="任务类型")
-    status: Mapped[str] = mapped_column(
-        String(20), default="pending", comment="状态: pending/running/completed/failed"
-    )
+    status: Mapped[str] = mapped_column(String(20), default="pending", comment="状态: pending/running/completed/failed")
     input_data: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="输入数据")
     output_data: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="输出数据")
     model_used: Mapped[str] = mapped_column(String(100), nullable=True, comment="使用的模型")
@@ -84,15 +80,9 @@ class AgentDebateRecord(Base):
     agent_role: Mapped[str] = mapped_column(String(50), nullable=False, comment="Agent 角色")
     stance: Mapped[str] = mapped_column(String(200), nullable=True, comment="立场说明")
     content: Mapped[str] = mapped_column(Text, nullable=False, comment="辩论内容")
-    consensus_reached: Mapped[bool] = mapped_column(
-        Boolean, default=False, comment="是否达成共识"
-    )
+    consensus_reached: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否达成共识")
     final_decision: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="最终决策")
     arbitrator_notes: Mapped[str] = mapped_column(Text, nullable=True, comment="仲裁者备注")
 
     def __repr__(self) -> str:
-        return (
-            f"<AgentDebateRecord id={self.id}"
-            f" round={self.round_number}"
-            f" role={self.agent_role}>"
-        )
+        return f"<AgentDebateRecord id={self.id} round={self.round_number} role={self.agent_role}>"

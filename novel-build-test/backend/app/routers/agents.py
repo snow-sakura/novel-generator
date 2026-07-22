@@ -3,13 +3,13 @@
 import datetime
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, desc
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.agent import AgentExecution, AgentDebateRecord
-from app.utils.rbac import 获取当前用户, 检查权限, 操作
+from app.models.agent import AgentDebateRecord, AgentExecution
+from app.utils.rbac import 操作, 检查权限
 
 router = APIRouter(prefix="/api/v1/agents", tags=["智能体"])
 
@@ -68,17 +68,17 @@ async def 执行智能体任务(
         结果 = await controller.execute(上下文)
 
         # 更新执行记录
-        执行记录.status = 结果.status if hasattr(结果, 'status') else "completed"
-        输出内容 = 结果.output_content if hasattr(结果, 'output_content') else str(结果)
+        执行记录.status = 结果.status if hasattr(结果, "status") else "completed"
+        输出内容 = 结果.output_content if hasattr(结果, "output_content") else str(结果)
         执行记录.output_data = json.loads(输出内容) if isinstance(输出内容, str) else 输出内容
-        执行记录.model_used = 结果.model_used if hasattr(结果, 'model_used') else ""
-        执行记录.prompt_tokens = 结果.prompt_tokens if hasattr(结果, 'prompt_tokens') else 0
-        执行记录.completion_tokens = 结果.completion_tokens if hasattr(结果, 'completion_tokens') else 0
-        执行记录.cost_yuan = 结果.cost_yuan if hasattr(结果, 'cost_yuan') else 0.0
+        执行记录.model_used = 结果.model_used if hasattr(结果, "model_used") else ""
+        执行记录.prompt_tokens = 结果.prompt_tokens if hasattr(结果, "prompt_tokens") else 0
+        执行记录.completion_tokens = 结果.completion_tokens if hasattr(结果, "completion_tokens") else 0
+        执行记录.cost_yuan = 结果.cost_yuan if hasattr(结果, "cost_yuan") else 0.0
         执行记录.completed_at = datetime.datetime.now(datetime.UTC)
 
         # 保存元数据
-        if hasattr(结果, 'metadata') and 结果.metadata:
+        if hasattr(结果, "metadata") and 结果.metadata:
             执行记录.output_data["元数据"] = 结果.metadata
 
     except Exception as e:
@@ -130,7 +130,7 @@ async def 发起辩论(
 
     # 保存辩论记录
     辩论记录列表 = []
-    if hasattr(结果, 'output_content') and 结果.output_content:
+    if hasattr(结果, "output_content") and 结果.output_content:
         try:
             输出数据 = json.loads(结果.output_content) if isinstance(结果.output_content, str) else 结果.output_content
             for i, 回合 in enumerate(输出数据.get("rounds", [])):
@@ -143,13 +143,15 @@ async def 发起辩论(
                     consensus_reached=回合.get("consensus_reached", False),
                 )
                 db.add(记录)
-                辩论记录列表.append({
-                    "轮次": i + 1,
-                    "正方论点": 回合.get("pro_argument", "")[:200],
-                    "反方论点": 回合.get("con_argument", "")[:200],
-                    "共识度": 回合.get("consensus_score", 0),
-                    "达成共识": 回合.get("consensus_reached", False),
-                })
+                辩论记录列表.append(
+                    {
+                        "轮次": i + 1,
+                        "正方论点": 回合.get("pro_argument", "")[:200],
+                        "反方论点": 回合.get("con_argument", "")[:200],
+                        "共识度": 回合.get("consensus_score", 0),
+                        "达成共识": 回合.get("consensus_reached", False),
+                    }
+                )
         except Exception:
             pass
 
@@ -157,7 +159,7 @@ async def 发起辩论(
 
     # 从 AgentResult 中提取辩论结果
     final_consensus = False
-    if hasattr(结果, 'output_content') and 结果.output_content:
+    if hasattr(结果, "output_content") and 结果.output_content:
         try:
             输出数据 = json.loads(结果.output_content) if isinstance(结果.output_content, str) else 结果.output_content
             final_consensus = 输出数据.get("final_consensus", False) if isinstance(输出数据, dict) else False

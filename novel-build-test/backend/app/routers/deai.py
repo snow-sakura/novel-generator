@@ -1,7 +1,7 @@
 """去AI味配置路由 — 全局配置、领域术语、输出模板、词频黑名单"""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db

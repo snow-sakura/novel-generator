@@ -30,32 +30,21 @@ class TestExecution(TimestampMixin, Base):
     __tablename__ = "test_executions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    project_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目"
-    )
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目")
     name: Mapped[str] = mapped_column(String(300), nullable=False, comment="执行名称")
     status: Mapped[str] = mapped_column(
-        String(20), default="pending",
+        String(20),
+        default="pending",
         comment="状态: pending/running/completed/failed/cancelled",
     )
     agent_execution_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("agent_executions.id"), nullable=True, comment="关联Agent执行ID"
     )
-    started_at: Mapped[datetime.datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="开始时间"
-    )
-    completed_at: Mapped[datetime.datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="完成时间"
-    )
-    summary: Mapped[dict | None] = mapped_column(
-        JSON, nullable=True, comment="执行摘要JSON"
-    )
-    error_message: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="错误信息"
-    )
-    created_by: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
+    started_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True, comment="开始时间")
+    completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True, comment="完成时间")
+    summary: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="执行摘要JSON")
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True, comment="错误信息")
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, comment="创建者")
 
     def __repr__(self) -> str:
         return f"<TestExecution id={self.id} name={self.name} status={self.status}>"

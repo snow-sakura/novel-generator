@@ -16,18 +16,18 @@
 """
 
 import logging
-from typing import Annotated, Any, Literal, Optional, TypedDict
+from typing import TypedDict
 
-from langgraph.graph import END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, StateGraph
 
-from .requirements_analyst import RequirementsAnalyst
-from .test_architect import TestArchitect
-from .test_designer import TestDesigner
-from .test_case_writer import TestCaseWriter
+from .cost_optimizer import CostOptimizer
 from .execution_analyst import ExecutionAnalyst
 from .quality_auditor import QualityAuditor
-from .cost_optimizer import CostOptimizer
+from .requirements_analyst import RequirementsAnalyst
+from .test_architect import TestArchitect
+from .test_case_writer import TestCaseWriter
+from .test_designer import TestDesigner
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,7 @@ class AgentState(TypedDict):
 
 
 # ==================== 步骤函数 ====================
+
 
 async def step_requirements_analysis(state: AgentState) -> dict:
     """步骤 1: 需求解析 — 解析 PRD/需求文档，提取测试要点。"""
@@ -112,7 +113,7 @@ async def step_test_architecture(state: AgentState) -> dict:
                 "status": result.status,
                 "cost_yuan": result.cost_yuan,
                 "model_used": result.model_used,
-            }
+            },
         },
         "status": result.status,
         "current_step": "test_architecture",
@@ -144,7 +145,7 @@ async def step_test_design(state: AgentState) -> dict:
                 "status": result.status,
                 "cost_yuan": result.cost_yuan,
                 "model_used": result.model_used,
-            }
+            },
         },
         "status": result.status,
         "current_step": "test_design",
@@ -177,7 +178,7 @@ async def step_test_case_writing(state: AgentState) -> dict:
                 "status": result.status,
                 "cost_yuan": result.cost_yuan,
                 "model_used": result.model_used,
-            }
+            },
         },
         "status": result.status,
         "current_step": "test_case_writing",
@@ -208,7 +209,7 @@ async def step_execution_analysis(state: AgentState) -> dict:
                 "status": result.status,
                 "cost_yuan": result.cost_yuan,
                 "model_used": result.model_used,
-            }
+            },
         },
         "status": result.status,
         "current_step": "execution_analysis",
@@ -239,7 +240,7 @@ async def step_quality_audit(state: AgentState) -> dict:
                 "status": result.status,
                 "cost_yuan": result.cost_yuan,
                 "model_used": result.model_used,
-            }
+            },
         },
         "status": result.status,
         "current_step": "quality_audit",
@@ -259,9 +260,7 @@ async def step_cost_optimization(state: AgentState) -> dict:
         "total_cost": state.get("total_cost", 0.0),
         "all_results": prev_results,
         "execution_history": {
-            step: data
-            for step, data in prev_results.items()
-            if isinstance(data, dict) and "cost_yuan" in data
+            step: data for step, data in prev_results.items() if isinstance(data, dict) and "cost_yuan" in data
         },
         "execution_mode": state.get("execution_mode", "auto"),
     }
@@ -275,7 +274,7 @@ async def step_cost_optimization(state: AgentState) -> dict:
                 "status": result.status,
                 "cost_yuan": result.cost_yuan,
                 "model_used": result.model_used,
-            }
+            },
         },
         "status": result.status,
         "current_step": "cost_optimization",
@@ -303,6 +302,7 @@ async def human_approval(state: AgentState) -> str:
 
 
 # ==================== 图构建 ====================
+
 
 def create_workflow_graph() -> StateGraph:
     """构建并编译完整的 LangGraph 工作流图。

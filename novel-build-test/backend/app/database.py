@@ -14,6 +14,7 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 class Base(DeclarativeBase):
     """SQLAlchemy 声明式基类"""
+
     pass
 
 
@@ -31,11 +32,27 @@ async def init_db():
     async with engine.begin() as conn:
         # 导入所有模型以触发 SQLAlchemy 元数据注册
         from app.models import (  # noqa: F401
-            user, role, project, audit_log, agent,
-            requirement, environment, asset, knowledge,
-            setting, test_execution, test_report,
-            model_provider, prompt, workflow_template, deai,
+            agent,
+            asset,
+            audit_log,
+            chat,
+            deai,
+            environment,
+            hermes,
+            integration,
+            knowledge,
+            model_provider,
+            project,
+            prompt,
+            requirement,
+            role,
+            setting,
+            skill,
+            test_execution,
             test_modules,
-            chat, hermes, skill, integration,
+            test_report,
+            user,
+            workflow_template,
         )
+
         await conn.run_sync(Base.metadata.create_all)

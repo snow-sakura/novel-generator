@@ -1,10 +1,10 @@
 """环境路由 — 测试环境的 CRUD + 运维操作"""
 
-import math
 import logging
+import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -94,9 +94,7 @@ async def get_environment(
     """获取环境详情"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(TestEnvironment).where(
-            TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id
-        )
+        select(TestEnvironment).where(TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id)
     )
     env = result.scalar_one_or_none()
     if not env:
@@ -114,9 +112,7 @@ async def update_environment(
     """更新环境信息"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(TestEnvironment).where(
-            TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id
-        )
+        select(TestEnvironment).where(TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id)
     )
     env = result.scalar_one_or_none()
     if not env:
@@ -140,9 +136,7 @@ async def delete_environment(
     """删除环境"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(TestEnvironment).where(
-            TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id
-        )
+        select(TestEnvironment).where(TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id)
     )
     env = result.scalar_one_or_none()
     if not env:
@@ -164,9 +158,7 @@ async def health_check_environment(
     """执行环境健康检查"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(TestEnvironment).where(
-            TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id
-        )
+        select(TestEnvironment).where(TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id)
     )
     env = result.scalar_one_or_none()
     if not env:
@@ -190,9 +182,7 @@ async def deploy_environment(
     """部署环境"""
     user_id = 当前用户["用户ID"]
     result = await db.execute(
-        select(TestEnvironment).where(
-            TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id
-        )
+        select(TestEnvironment).where(TestEnvironment.id == env_id, TestEnvironment.owner_id == user_id)
     )
     env = result.scalar_one_or_none()
     if not env:

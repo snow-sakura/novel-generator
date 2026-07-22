@@ -44,12 +44,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # 1. 初始化 MySQL 数据库
     from app.database import init_db
+
     await init_db()
     logger.info("✅ MySQL 数据库已初始化")
 
     # 2. 初始化 Qdrant 向量数据库
     try:
         from app.vector_db.collection_manager import global_collection_manager
+
         await global_collection_manager.init_all_collections()
         logger.info("✅ Qdrant 向量数据库已初始化")
     except Exception as e:
@@ -58,6 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # 3. 连接 Redis 事件总线
     try:
         from app.event_bus.producer import global_producer
+
         await global_producer.connect()
         logger.info("✅ Redis 事件总线已连接")
     except Exception as e:
@@ -65,8 +68,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # 4. 注册 MCP 内置工具（浏览器、文件操作等）
     try:
-        from app.mcp_integration.tools.browser import BROWSER_TOOLS
         from app.mcp_integration.tool_registry import global_tool_registry
+        from app.mcp_integration.tools.browser import BROWSER_TOOLS
+
         for tool_def in BROWSER_TOOLS:
             global_tool_registry.register(
                 name=tool_def["name"],
@@ -81,6 +85,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # 5. 启动 MCP 服务器（后台 FastAPI 进程，端口 8001）
     try:
         from app.mcp_integration.server import MCPServer
+
         mcp_server = MCPServer()
         app.state.mcp_server = mcp_server
         asyncio.create_task(mcp_server.start())
@@ -96,6 +101,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # 1. 关闭 Qdrant 连接
     try:
         from app.vector_db.client import vector_db
+
         await vector_db.close()
         logger.info("✅ Qdrant 连接已关闭")
     except Exception as e:
@@ -104,8 +110,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # 2. 关闭事件总线
     try:
         from app.event_bus.consumer import global_consumer
+
         await global_consumer.close()
         from app.event_bus.producer import global_producer
+
         await global_producer.close()
         logger.info("✅ 事件总线已关闭")
     except Exception as e:
@@ -147,6 +155,7 @@ app.add_middleware(
 async def health_check():
     """健康检查接口（含所有子系统状态）"""
     from sqlalchemy import text
+
     from app.database import async_session
 
     # 数据库健康
@@ -162,6 +171,7 @@ async def health_check():
     qdrant_status = "unknown"
     try:
         from app.vector_db.client import vector_db
+
         qdrant_status = "healthy" if await vector_db.health_check() else "unhealthy"
     except Exception as e:
         qdrant_status = f"unavailable: {e}"
@@ -170,6 +180,7 @@ async def health_check():
     redis_status = "unknown"
     try:
         import redis.asyncio as aioredis
+
         client = aioredis.from_url(settings.REDIS_URL)
         await client.ping()
         redis_status = "healthy"
@@ -191,21 +202,46 @@ async def health_check():
 
 # ==================== 注册路由 ====================
 
-from app.routers import auth, users, roles, projects, audit_logs, agents, requirements, environments, assets, knowledge
+from app.routers import (
+    agent_endpoints,
+    agents,
+    ai_assistant,
+    ai_db_tuning,
+    assets,
+    audit_logs,
+    auth,
+    chat,
+    dashboard,
+    deai,
+    debate_records,
+    environments,
+    hermes,
+    integration,
+    knowledge,
+    mcp_management,
+    mcp_tools,
+    model_providers,
+    projects,
+    prompts,
+    requirements,
+    roles,
+    skills,
+    test_api,
+    test_app,
+    test_data,
+    test_executions,
+    test_functional,
+    test_perf,
+    test_reports,
+    test_security,
+    test_smoke,
+    test_ui,
+    test_web,
+    users,
+    workflow_executions,
+    workflow_templates,
+)
 from app.routers import settings as settings_router
-from app.routers import test_executions
-from app.routers import test_reports
-from app.routers import mcp_tools
-from app.routers import model_providers
-from app.routers import prompts
-from app.routers import workflow_templates
-from app.routers import deai
-from app.routers import test_functional, test_api, test_web, test_app, test_perf
-from app.routers import test_security, test_ui, test_smoke, test_data
-from app.routers import chat, ai_db_tuning, ai_assistant
-from app.routers import hermes, skills
-from app.routers import integration, mcp_management
-from app.routers import agent_endpoints, debate_records
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -222,6 +258,7 @@ app.include_router(test_executions.router)
 app.include_router(test_reports.router)
 app.include_router(mcp_tools.router)
 app.include_router(model_providers.router)
+app.include_router(dashboard.router)
 app.include_router(prompts.router)
 app.include_router(workflow_templates.router)
 app.include_router(deai.router)
@@ -246,6 +283,7 @@ app.include_router(integration.router)
 app.include_router(mcp_management.router)
 app.include_router(agent_endpoints.router)
 app.include_router(debate_records.router)
+app.include_router(workflow_executions.router)
 
 # ===== AI-Native API 路由 =====
 
@@ -255,6 +293,7 @@ async def get_collections():
     """获取所有向量集合信息"""
     try:
         from app.vector_db.collection_manager import global_collection_manager
+
         collections = await global_collection_manager.list_all_collections()
         return {"status": "ok", "collections": collections}
     except ImportError:
@@ -275,6 +314,7 @@ async def semantic_search(query: dict):
     """
     try:
         from app.rag_pipeline.retriever import global_context_retriever
+
         results = await global_context_retriever.retrieve_context(
             query=query.get("query") or query.get("文本", ""),
             collection_name=query.get("collection_name") or query.get("集合", "test_case_knowledge"),
@@ -300,6 +340,7 @@ async def dispatch_execution(request: dict):
     """
     try:
         from app.agents.dispatch_controller import DispatchController
+
         controller = DispatchController()
 
         # 中文/英文 key 双通适配
@@ -328,6 +369,7 @@ async def start_debate(request: dict):
     """
     try:
         from app.agents.debate_engine import DebateEngine
+
         engine = DebateEngine()
 
         # 中文/英文 key 双通适配
@@ -374,6 +416,7 @@ async def execute_single_agent(request: dict):
             return {"status": "error", "message": f"未知智能体: {agent_name}"}
 
         import importlib
+
         module = importlib.import_module(f"app.agents.{class_name.lower()}")
         agent_class = getattr(module, class_name, None)
         if not agent_class:

@@ -5,10 +5,10 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from qdrant_client.models import PointStruct
-from sqlalchemy import select, func, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db, async_session
+from app.database import async_session, get_db
 from app.models.knowledge import KnowledgeDoc
 from app.schemas.knowledge import (
     KnowledgeCreate,
@@ -37,9 +37,7 @@ async def list_knowledge(
     """获取知识条目列表（分页，多条件筛选）"""
     user_id = 当前用户["用户ID"]
     query = select(KnowledgeDoc).where(KnowledgeDoc.created_by == user_id)
-    count_query = (
-        select(func.count()).select_from(KnowledgeDoc).where(KnowledgeDoc.created_by == user_id)
-    )
+    count_query = select(func.count()).select_from(KnowledgeDoc).where(KnowledgeDoc.created_by == user_id)
 
     if project_id:
         query = query.where(KnowledgeDoc.project_id == project_id)
@@ -107,9 +105,7 @@ async def get_knowledge(
 ):
     """获取知识条目详情"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(KnowledgeDoc).where(KnowledgeDoc.id == doc_id, KnowledgeDoc.created_by == user_id)
-    )
+    result = await db.execute(select(KnowledgeDoc).where(KnowledgeDoc.id == doc_id, KnowledgeDoc.created_by == user_id))
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="知识条目不存在")
@@ -125,9 +121,7 @@ async def update_knowledge(
 ):
     """更新知识条目（同时重新同步向量库）"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(KnowledgeDoc).where(KnowledgeDoc.id == doc_id, KnowledgeDoc.created_by == user_id)
-    )
+    result = await db.execute(select(KnowledgeDoc).where(KnowledgeDoc.id == doc_id, KnowledgeDoc.created_by == user_id))
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="知识条目不存在")
@@ -158,9 +152,7 @@ async def delete_knowledge(
 ):
     """删除知识条目（同时删除向量库中的对应点）"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(KnowledgeDoc).where(KnowledgeDoc.id == doc_id, KnowledgeDoc.created_by == user_id)
-    )
+    result = await db.execute(select(KnowledgeDoc).where(KnowledgeDoc.id == doc_id, KnowledgeDoc.created_by == user_id))
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="知识条目不存在")
@@ -221,9 +213,7 @@ async def sync_knowledge(
 ):
     """手动触发指定知识条目同步到向量库"""
     user_id = 当前用户["用户ID"]
-    result = await db.execute(
-        select(KnowledgeDoc).where(KnowledgeDoc.id == doc_id, KnowledgeDoc.created_by == user_id)
-    )
+    result = await db.execute(select(KnowledgeDoc).where(KnowledgeDoc.id == doc_id, KnowledgeDoc.created_by == user_id))
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="知识条目不存在")
@@ -282,11 +272,7 @@ async def _sync_to_vector_db(doc: KnowledgeDoc) -> None:
 
         # 更新数据库中的向量同步状态
         async with async_session() as session:
-            stmt = (
-                update(KnowledgeDoc)
-                .where(KnowledgeDoc.id == doc.id)
-                .values(vector_id=point_id, vector_synced=True)
-            )
+            stmt = update(KnowledgeDoc).where(KnowledgeDoc.id == doc.id).values(vector_id=point_id, vector_synced=True)
             await session.execute(stmt)
             await session.commit()
 
@@ -294,11 +280,7 @@ async def _sync_to_vector_db(doc: KnowledgeDoc) -> None:
         # 同步失败不阻塞主流程，标记为未同步
         try:
             async with async_session() as session:
-                stmt = (
-                    update(KnowledgeDoc)
-                    .where(KnowledgeDoc.id == doc.id)
-                    .values(vector_synced=False)
-                )
+                stmt = update(KnowledgeDoc).where(KnowledgeDoc.id == doc.id).values(vector_synced=False)
                 await session.execute(stmt)
                 await session.commit()
         except Exception:

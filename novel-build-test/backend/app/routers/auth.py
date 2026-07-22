@@ -27,6 +27,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["认证"])
 
 class RefreshTokenRequest(BaseModel):
     """刷新令牌请求体"""
+
     refresh_token: str = Field(..., description="刷新令牌")
 
 

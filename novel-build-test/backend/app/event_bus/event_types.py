@@ -4,10 +4,8 @@
 必要的元数据和载荷，供生产者在 Redis 频道上发布、消费者订阅处理。
 """
 
-from datetime import datetime
-from typing import Any, Optional
 from dataclasses import dataclass, field
-
+from datetime import datetime
 
 # =============================================================================
 # 事件类型常量
@@ -37,6 +35,7 @@ SYSTEM_ERROR: str = "system.error"
 # 枚举 / 常量集合
 # =============================================================================
 
+
 class EventTypes:
     """事件类型常量集合，方便统一引用。"""
 
@@ -57,6 +56,7 @@ class EventTypes:
 # 数据结构
 # =============================================================================
 
+
 @dataclass
 class EventPayload:
     """事件载荷 — 所有事件的公共元数据结构。"""
@@ -65,7 +65,7 @@ class EventPayload:
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     source: str = ""
     data: dict = field(default_factory=dict)
-    correlation_id: Optional[str] = None
+    correlation_id: str | None = None
 
 
 @dataclass
@@ -75,7 +75,7 @@ class TestEvent:
     payload: EventPayload
     test_case_id: str
     status: str
-    duration_ms: Optional[float] = None
+    duration_ms: float | None = None
 
 
 @dataclass
@@ -86,7 +86,7 @@ class AgentEvent:
     agent_name: str
     task_id: str
     status: str
-    cost_yuan: Optional[float] = None
+    cost_yuan: float | None = None
 
 
 @dataclass

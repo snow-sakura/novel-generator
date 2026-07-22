@@ -3,7 +3,7 @@
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -32,11 +32,7 @@ async def list_workflow_templates(
     """获取工作流模板列表（分页，支持名称搜索）"""
     user_id = 当前用户["用户ID"]
     query = select(WorkflowTemplate).where(WorkflowTemplate.created_by == user_id)
-    count_query = (
-        select(func.count())
-        .select_from(WorkflowTemplate)
-        .where(WorkflowTemplate.created_by == user_id)
-    )
+    count_query = select(func.count()).select_from(WorkflowTemplate).where(WorkflowTemplate.created_by == user_id)
 
     if search:
         like_pattern = f"%{search}%"

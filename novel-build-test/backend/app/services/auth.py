@@ -112,9 +112,7 @@ async def refresh_token(db: AsyncSession, token: str) -> tuple[str, str] | None:
     return new_access_token, new_refresh_token
 
 
-async def change_password(
-    db: AsyncSession, user: User, current_password: str, new_password: str
-) -> None:
+async def change_password(db: AsyncSession, user: User, current_password: str, new_password: str) -> None:
     """修改用户密码
 
     Args:

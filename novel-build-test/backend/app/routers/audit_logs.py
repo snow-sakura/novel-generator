@@ -2,8 +2,8 @@
 
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -67,9 +67,13 @@ async def get_entity_audit_trail(
         AuditLog.entity_type == entity_type,
         AuditLog.entity_id == entity_id,
     )
-    count_query = select(func.count()).select_from(AuditLog).where(
-        AuditLog.entity_type == entity_type,
-        AuditLog.entity_id == entity_id,
+    count_query = (
+        select(func.count())
+        .select_from(AuditLog)
+        .where(
+            AuditLog.entity_type == entity_type,
+            AuditLog.entity_id == entity_id,
+        )
     )
 
     total_result = await db.execute(count_query)

@@ -20,13 +20,9 @@ class Setting(TimestampMixin, Base):
     __tablename__ = "settings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    key: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, comment="设置键名"
-    )
+    key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, comment="设置键名")
     value: Mapped[str] = mapped_column(Text, nullable=False, comment="设置值")
-    description: Mapped[str | None] = mapped_column(
-        String(500), nullable=True, comment="设置说明"
-    )
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="设置说明")
 
     def __repr__(self) -> str:
         return f"<Setting key={self.key}>"

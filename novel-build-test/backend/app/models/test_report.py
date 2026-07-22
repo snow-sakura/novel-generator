@@ -1,6 +1,6 @@
 """测试报告模型 — 记录一次测试执行的完整报告"""
 
-from sqlalchemy import Float, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import JSON, Float, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -42,12 +42,7 @@ class TestReport(TimestampMixin, Base):
     summary: Mapped[str | None] = mapped_column(Text, nullable=True, comment="报告摘要")
     details: Mapped[list | None] = mapped_column(JSON, nullable=True, comment="用例级详细结果")
     quality_score: Mapped[float | None] = mapped_column(Float, nullable=True, comment="AI质量评分(0-100)")
-    created_by: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, comment="创建者")
 
     def __repr__(self) -> str:
-        return (
-            f"<TestReport id={self.id} execution={self.execution_id} "
-            f"pass={self.passed}/{self.total_cases}>"
-        )
+        return f"<TestReport id={self.id} execution={self.execution_id} pass={self.passed}/{self.total_cases}>"

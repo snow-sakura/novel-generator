@@ -9,7 +9,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from .base import AgentBase, AgentResult
 
@@ -65,7 +65,7 @@ class DebateEngine(AgentBase):
         pro_side: str,
         con_side: str,
         max_rounds: int,
-    ) -> Optional[DebateResult]:
+    ) -> DebateResult | None:
         """尝试使用 AutoGen 框架进行原生多智能体辩论
 
         创建两个 AutoGen AssistantAgent 分别代表正方和反方，
@@ -132,10 +132,7 @@ class DebateEngine(AgentBase):
                 round_record.pro_argument = str(pro_reply)
 
                 # 反方发言
-                con_message = (
-                    f"正方在第 {round_num} 轮的论点是：{pro_reply}\n"
-                    f"作为反方，请反驳并阐述你的论点。"
-                )
+                con_message = f"正方在第 {round_num} 轮的论点是：{pro_reply}\n作为反方，请反驳并阐述你的论点。"
                 con_reply = await asyncio.to_thread(
                     con_agent.generate_reply,
                     messages=[{"role": "user", "content": con_message}],
@@ -155,12 +152,8 @@ class DebateEngine(AgentBase):
 
                 try:
                     consensus_data = json.loads(str(consensus_reply))
-                    round_record.consensus_score = float(
-                        consensus_data.get("consensus_score", 0.0)
-                    )
-                    round_record.consensus_reached = bool(
-                        consensus_data.get("consensus_reached", False)
-                    )
+                    round_record.consensus_score = float(consensus_data.get("consensus_score", 0.0))
+                    round_record.consensus_reached = bool(consensus_data.get("consensus_reached", False))
                 except (json.JSONDecodeError, ValueError, TypeError):
                     round_record.consensus_score = 0.0
                     round_record.consensus_reached = False
@@ -169,22 +162,15 @@ class DebateEngine(AgentBase):
 
                 if round_record.consensus_reached:
                     final_consensus = True
-                    final_decision = (
-                        f"在第 {round_num} 轮达成共识，"
-                        f"共识度 {round_record.consensus_score:.2f}"
-                    )
+                    final_decision = f"在第 {round_num} 轮达成共识，共识度 {round_record.consensus_score:.2f}"
                     break
 
             # 所有轮次结束后若未达成共识，进行仲裁
             if not final_consensus:
-                arbitration_prompt = (
-                    f"辩论「{topic}」经过 {len(rounds)} 轮辩论仍未达成共识。\n\n"
-                )
+                arbitration_prompt = f"辩论「{topic}」经过 {len(rounds)} 轮辩论仍未达成共识。\n\n"
                 for r in rounds:
                     arbitration_prompt += (
-                        f"第 {r.round_number} 轮：\n"
-                        f"  正方：{r.pro_argument[:300]}\n"
-                        f"  反方：{r.con_argument[:300]}\n\n"
+                        f"第 {r.round_number} 轮：\n  正方：{r.pro_argument[:300]}\n  反方：{r.con_argument[:300]}\n\n"
                     )
                 arbitration_prompt += "请作为仲裁者给出最终决策。"
                 arbitration_result = await asyncio.to_thread(
@@ -236,11 +222,7 @@ class DebateEngine(AgentBase):
             round_record = DebateRound(round_number=round_num)
 
             # 正方发言
-            pro_prompt = (
-                f"辩论议题：{topic}\n"
-                f"你的立场：{pro_side}\n"
-                f"当前轮次：第 {round_num} 轮 / 共 {max_rounds} 轮\n"
-            )
+            pro_prompt = f"辩论议题：{topic}\n你的立场：{pro_side}\n当前轮次：第 {round_num} 轮 / 共 {max_rounds} 轮\n"
             if last_con_argument:
                 pro_prompt += f"反方上轮论点：{last_con_argument}\n\n"
             pro_prompt += "请阐述你的论点，逻辑清晰，条理分明。"
@@ -301,12 +283,8 @@ class DebateEngine(AgentBase):
 
             try:
                 consensus_data = json.loads(consensus_content)
-                round_record.consensus_score = float(
-                    consensus_data.get("consensus_score", 0.0)
-                )
-                round_record.consensus_reached = bool(
-                    consensus_data.get("consensus_reached", False)
-                )
+                round_record.consensus_score = float(consensus_data.get("consensus_score", 0.0))
+                round_record.consensus_reached = bool(consensus_data.get("consensus_reached", False))
             except (json.JSONDecodeError, ValueError, TypeError):
                 round_record.consensus_score = 0.0
                 round_record.consensus_reached = False
@@ -318,10 +296,7 @@ class DebateEngine(AgentBase):
                     topic=topic,
                     rounds=rounds,
                     final_consensus=True,
-                    final_decision=(
-                        f"在第 {round_num} 轮达成共识，"
-                        f"共识度 {round_record.consensus_score:.2f}"
-                    ),
+                    final_decision=(f"在第 {round_num} 轮达成共识，共识度 {round_record.consensus_score:.2f}"),
                     total_cost=total_cost,
                     total_prompt_tokens=total_prompt_tokens,
                     total_completion_tokens=total_completion_tokens,
@@ -337,9 +312,7 @@ class DebateEngine(AgentBase):
         )
         for r in rounds:
             arbitration_prompt += (
-                f"--- 第 {r.round_number} 轮 ---\n"
-                f"正方：{r.pro_argument[:500]}\n"
-                f"反方：{r.con_argument[:500]}\n\n"
+                f"--- 第 {r.round_number} 轮 ---\n正方：{r.pro_argument[:500]}\n反方：{r.con_argument[:500]}\n\n"
             )
         arbitration_prompt += (
             f"请给出最终决策，包括采纳方案（正方/反方/折中）和理由。\n"
@@ -428,13 +401,15 @@ class DebateEngine(AgentBase):
         # 构建结构化输出
         rounds_data = []
         for r in debate_result.rounds:
-            rounds_data.append({
-                "round_number": r.round_number,
-                "pro_argument": r.pro_argument,
-                "con_argument": r.con_argument,
-                "consensus_score": r.consensus_score,
-                "consensus_reached": r.consensus_reached,
-            })
+            rounds_data.append(
+                {
+                    "round_number": r.round_number,
+                    "pro_argument": r.pro_argument,
+                    "con_argument": r.con_argument,
+                    "consensus_score": r.consensus_score,
+                    "consensus_reached": r.consensus_reached,
+                }
+            )
 
         output = json.dumps(
             {

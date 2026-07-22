@@ -24,22 +24,17 @@ class Requirement(TimestampMixin, Base):
     __tablename__ = "requirements"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    project_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目"
-    )
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id"), nullable=False, comment="所属项目")
     title: Mapped[str] = mapped_column(String(300), nullable=False, comment="需求标题")
     description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="需求描述")
     module: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="所属模块")
-    priority: Mapped[str] = mapped_column(
-        String(4), default="P2", comment="优先级: P0/P1/P2/P3"
-    )
+    priority: Mapped[str] = mapped_column(String(4), default="P2", comment="优先级: P0/P1/P2/P3")
     status: Mapped[str] = mapped_column(
-        String(20), default="draft",
+        String(20),
+        default="draft",
         comment="状态: draft/review/approved/implemented/rejected",
     )
-    created_by: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, comment="创建者"
-    )
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, comment="创建者")
 
     # 关联
     project = relationship("Project", backref="requirements")

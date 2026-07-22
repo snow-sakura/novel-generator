@@ -6,22 +6,18 @@
 
 import asyncio
 import datetime
-import json
 import logging
-import os
 import time
-from typing import Optional
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session
 from app.event_bus.event_types import (
-    EventPayload,
-    TestEvent,
-    TEST_EXECUTION_STARTED,
     TEST_EXECUTION_COMPLETED,
     TEST_EXECUTION_FAILED,
+    TEST_EXECUTION_STARTED,
+    EventPayload,
+    TestEvent,
 )
 from app.event_bus.producer import global_producer
 from app.models.test_execution import TestExecution
@@ -41,15 +37,13 @@ _running_tasks: dict[int, asyncio.Task] = {}
 async def _update_execution_status(
     execution_id: int,
     status: str,
-    error_message: Optional[str] = None,
-    summary: Optional[dict] = None,
+    error_message: str | None = None,
+    summary: dict | None = None,
 ) -> None:
     """更新数据库中执行记录的状态。"""
     try:
         async with async_session() as db:
-            result = await db.execute(
-                select(TestExecution).where(TestExecution.id == execution_id)
-            )
+            result = await db.execute(select(TestExecution).where(TestExecution.id == execution_id))
             execution = result.scalar_one_or_none()
             if not execution:
                 logger.error(f"执行记录不存在: id={execution_id}")
@@ -73,7 +67,7 @@ async def _publish_execution_event(
     event_type: str,
     execution_id: int,
     status: str,
-    duration_ms: Optional[float] = None,
+    duration_ms: float | None = None,
 ) -> None:
     """通过 Redis 事件总线发布执行状态事件。"""
     try:
@@ -152,7 +146,7 @@ async def _run_test_cases(execution_id: int, test_script: str) -> dict:
                 # 支持格式: TEST_RESULT: {name} {status} {duration_ms}
                 if line_text.startswith("TEST_RESULT:"):
                     try:
-                        parts = line_text[len("TEST_RESULT:"):].strip().split()
+                        parts = line_text[len("TEST_RESULT:") :].strip().split()
                         if len(parts) >= 2:
                             total_cases += 1
                             status = parts[1].lower()
@@ -203,19 +197,32 @@ async def _run_test_cases(execution_id: int, test_script: str) -> dict:
 
     except asyncio.CancelledError:
         _append_log(execution_id, "⚠️ 执行任务被取消")
-        return {"total_cases": 0, "passed": 0, "failed": 0, "skipped": 0,
-                "exit_code": -1, "script": test_script}
+        return {"total_cases": 0, "passed": 0, "failed": 0, "skipped": 0, "exit_code": -1, "script": test_script}
     except FileNotFoundError:
         error_msg = f"测试脚本不存在: {test_script}"
         _append_log(execution_id, f"❌ {error_msg}")
-        return {"total_cases": 0, "passed": 0, "failed": 1, "skipped": 0,
-                "exit_code": -1, "error": error_msg, "script": test_script}
+        return {
+            "total_cases": 0,
+            "passed": 0,
+            "failed": 1,
+            "skipped": 0,
+            "exit_code": -1,
+            "error": error_msg,
+            "script": test_script,
+        }
     except Exception as e:
         error_msg = f"执行异常: {e}"
         _append_log(execution_id, f"❌ {error_msg}")
         logger.exception(f"执行异常: execution_id={execution_id}")
-        return {"total_cases": 0, "passed": 0, "failed": 1, "skipped": 0,
-                "exit_code": -1, "error": str(e), "script": test_script}
+        return {
+            "total_cases": 0,
+            "passed": 0,
+            "failed": 1,
+            "skipped": 0,
+            "exit_code": -1,
+            "error": str(e),
+            "script": test_script,
+        }
 
 
 async def execute_test(
@@ -237,9 +244,7 @@ async def execute_test(
         # 更新状态为 running
         _append_log(execution_id, "正在初始化执行环境...")
         await _update_execution_status(execution_id, "running")
-        await _publish_execution_event(
-            TEST_EXECUTION_STARTED, execution_id, "running"
-        )
+        await _publish_execution_event(TEST_EXECUTION_STARTED, execution_id, "running")
         _append_log(execution_id, "✅ 状态已更新为 running")
 
         # 执行测试
@@ -274,8 +279,7 @@ async def execute_test(
         # 更新最终状态
         await _update_execution_status(execution_id, final_status, summary=summary)
         await _publish_execution_event(
-            TEST_EXECUTION_COMPLETED if final_status == "completed"
-            else TEST_EXECUTION_FAILED,
+            TEST_EXECUTION_COMPLETED if final_status == "completed" else TEST_EXECUTION_FAILED,
             execution_id,
             final_status,
             duration_ms=float(duration_ms),
@@ -286,9 +290,7 @@ async def execute_test(
     except Exception as e:
         logger.exception(f"执行过程异常: execution_id={execution_id}")
         await _update_execution_status(execution_id, "failed", error_message=str(e))
-        await _publish_execution_event(
-            TEST_EXECUTION_FAILED, execution_id, "failed"
-        )
+        await _publish_execution_event(TEST_EXECUTION_FAILED, execution_id, "failed")
         _append_log(execution_id, f"❌ 执行异常: {e}")
     finally:
         # 清理
