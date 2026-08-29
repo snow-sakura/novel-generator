@@ -56,6 +56,7 @@ async def _timeout_iterate(
     """逐块迭代异步生成器，首块用较短超时，后续块用较长超时"""
     ait = agen.__aiter__()
     is_first = True
+    t = first_chunk_timeout  # 提前赋值，避免 TimeoutError 分支中 t 未绑定
     while True:
         try:
             t = first_chunk_timeout if is_first else timeout
@@ -529,11 +530,12 @@ class GeneratorService:
 
     async def _call_with_retry(self, prompt: str, label: str, retries: int = 2) -> str:
         """带重试的流式调用，返回完整文本"""
+        text = ""
         for attempt in range(retries):
             text = ""
             try:
                 async for chunk in _timeout_iterate(
-                    self.llm.generate_stream(prompt),
+                    self.llm.generate_stream(prompt),  # type: ignore[arg-type]
                     timeout=120,
                     first_chunk_timeout=90,
                 ):
@@ -999,6 +1001,7 @@ class GeneratorService:
                 f.write("".join(lines))
         except Exception as e:
             _log(f"  保存大纲 Markdown 失败: {md_path} — {e}")
+        xmind_path = ""
         try:
             xmind_outline = (
                 outline if outline else {"chapters": chapters, "elements": elements}
@@ -1008,7 +1011,7 @@ class GeneratorService:
             with open(xmind_path, "wb") as f:
                 f.write(xmind_bytes)
         except Exception as e:
-            _log(f"  保存大纲 XMind 失败: {xmind_path} — {e}")
+            _log(f"  保存大纲 XMind 失败: {xmind_path or '(路径未创建)'} — {e}")
 
     # ── 生成记录辅助 ──
 
@@ -1077,13 +1080,14 @@ class GeneratorService:
         self, prompt: str, system_prompt: str = "", timeout: int = 120
     ) -> str:
         """流式调用 LLM 并收集完整结果，超时/失败后自动重试一次"""
+        result = ""
         for attempt in range(2):
             result = ""
 
             async def _collect():
                 nonlocal result
                 async for chunk in _timeout_iterate(
-                    self.llm.generate_stream(prompt, system_prompt),
+                    self.llm.generate_stream(prompt, system_prompt),  # type: ignore[arg-type]
                     timeout=timeout,
                     first_chunk_timeout=90,
                 ):
