@@ -301,7 +301,7 @@ def migrate_database():
 
         # ─── 性能索引：频繁查询的列 ───
         existing_indexes = {
-            r[1]
+            r[0]
             for r in db.execute(
                 text("SELECT name FROM sqlite_master WHERE type='index'")
             ).fetchall()
