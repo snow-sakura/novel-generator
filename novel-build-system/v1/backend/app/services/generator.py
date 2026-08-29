@@ -602,8 +602,8 @@ class GeneratorService:
         if old_folder != novel_folder and os.path.exists(old_folder):
             try:
                 os.renames(old_folder, novel_folder)
-            except Exception:
-                pass
+            except Exception as e:
+                _log(f"  重命名小说文件夹失败: {old_folder} → {novel_folder} — {e}")
         self._save_outline_mindmap(
             novel_folder,
             final_title,
@@ -620,8 +620,8 @@ class GeneratorService:
             ):
                 try:
                     os.remove(os.path.join(novel_folder, fname))
-                except Exception:
-                    pass
+                except Exception as e:
+                    _log(f"  删除临时文件失败: {fname} — {e}")
 
         _log(
             f"全部完成！标题:《{final_title}》 | 总字数:{actual_count} | 耗时:{time_cost:.1f}s"

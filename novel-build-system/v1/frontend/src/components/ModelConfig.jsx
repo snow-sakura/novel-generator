@@ -174,6 +174,7 @@ export default function ModelConfig({ models }) {
                 placeholder={`输入 ${currentProvider.label} 的 API Key...`}
                 className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-sm" />
               <button type="button" onClick={() => setShowKey(!showKey)}
+                aria-label={showKey ? '隐藏密钥' : '显示密钥'}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>

@@ -198,11 +198,13 @@ def migrate_database():
                         )
                     )
                     print(f"[DB迁移] 创建索引: {idx_name}", flush=True)
-                except Exception:
-                    pass  # SQLite 某些版本不支持 IF NOT EXISTS 的索引
+                except Exception as e:
+                    print(
+                        f"[DB迁移] 创建索引失败: {e}", flush=True
+                    )  # SQLite 某些版本不支持 IF NOT EXISTS 的索引
         try:
             db.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[DB迁移] 提交索引变更失败: {e}", flush=True)
     finally:
         db.close()

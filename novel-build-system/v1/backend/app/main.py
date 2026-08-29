@@ -292,8 +292,8 @@ async def backup_database():
     for old in backups[10:]:
         try:
             os.remove(os.path.join(backup_dir, old))
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[备份] 删除旧备份失败: {old} — {e}", flush=True)
 
     return {
         "status": "ok",

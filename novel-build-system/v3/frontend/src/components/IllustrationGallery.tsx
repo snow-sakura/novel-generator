@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { X, Loader2, Image, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { generateIllustration, fetchIllustrations, deleteIllustration } from '../services/api'
+import { toast } from '../lib/utils'
 
 const CHAPTER_NAMES = ['第一章', '第二章', '第三章', '第四章', '第五章', '第六章', '第七章', '第八章', '第九章', '第十章']
 
@@ -46,7 +47,7 @@ export default function IllustrationGallery({ novelId, chapters, demoMode, onClo
         return [...filtered, img]
       })
     } catch (e) {
-      alert(e.message || '配图生成失败')
+      toast.error(e.message || '配图生成失败')
     }
     setLoading(prev => {
       const next = new Set(prev)
@@ -61,7 +62,7 @@ export default function IllustrationGallery({ novelId, chapters, demoMode, onClo
       await deleteIllustration(novelId, chapterIndex)
       setIllustrations(prev => prev.filter(i => i.chapter_index !== chapterIndex))
     } catch (e) {
-      alert(e.message || '删除失败')
+      toast.error(e.message || '删除失败')
     }
     setLoading(prev => {
       const next = new Set(prev)

@@ -215,7 +215,7 @@ export default function NovelForm({ onGenerate }) {
                 {params.selectedGenres.map(g => (
                   <span key={g} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs">
                     {g}
-                    <button type="button" onClick={() => toggleGenre(g)}
+                    <button type="button" onClick={() => toggleGenre(g)} aria-label="移除题材"
                       className="hover:text-orange-900"><X className="w-3 h-3" /></button>
                   </span>
                 ))}
@@ -245,7 +245,7 @@ export default function NovelForm({ onGenerate }) {
               {(params.selectedStyles || []).map(s => (
                 <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs">
                   {s}
-                  <button type="button" onClick={() => toggleStyle(s)}
+                  <button type="button" onClick={() => toggleStyle(s)} aria-label="移除风格"
                     className="hover:text-orange-900"><X className="w-3 h-3" /></button>
                 </span>
               ))}
