@@ -135,24 +135,28 @@ export default function MultiStepLog() {
   const stepIdx = STEP_KEYS.indexOf(currentStep)
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       {connecting && (
-        <div className="bg-blue-50 border-b border-blue-200 rounded-t-xl px-4 py-3 flex items-center gap-2">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 rounded-t-xl px-4 py-3 flex items-center gap-2">
           <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
           <span className="text-sm text-blue-700 font-medium">正在连接后端服务...</span>
         </div>
       )}
       <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-orange-500" />
-            生成日志
-            {generating && (
-              <span className="text-xs font-normal text-gray-400">（{thinkingLogs.length} 条）</span>
-            )}
-          </h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-800">生成日志</h3>
+              {generating && (
+                <p className="text-xs text-gray-400">{thinkingLogs.length} 条日志</p>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {STEP_CONFIG.map((step, i) => {
             const key = step.key
             const logs = getLogsForStep(key)
@@ -163,21 +167,21 @@ export default function MultiStepLog() {
 
             return (
               <div key={key} className={cn(
-                'border rounded-xl overflow-hidden transition-all',
-                isActive && 'border-orange-200 bg-orange-50/40',
+                'border-2 rounded-xl overflow-hidden transition-all',
+                isActive && 'border-orange-300 bg-orange-50/50 shadow-sm',
                 isPast && !isActive && 'border-green-200 bg-green-50/30',
-                !isActive && !isPast && 'border-gray-200 bg-gray-50/30',
+                !isActive && !isPast && 'border-gray-100 bg-white',
               )}>
                 <button
                   type="button"
                   onClick={() => toggle(key)}
-                  className="flex items-center gap-3 w-full text-left px-4 py-3 hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-3 w-full text-left px-4 py-3.5 hover:bg-gray-50/50 transition-colors"
                 >
                   <span className={cn(
-                    'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold',
-                    isPast && 'bg-green-500 text-white',
-                    isActive && 'bg-orange-500 text-white',
-                    !isPast && !isActive && 'bg-gray-300 text-gray-500',
+                    'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold',
+                    isPast && 'bg-gradient-to-br from-green-400 to-green-500 text-white shadow-sm',
+                    isActive && 'bg-gradient-to-br from-orange-400 to-rose-500 text-white shadow-md',
+                    !isPast && !isActive && 'bg-gray-200 text-gray-500',
                   )}>
                     {isPast ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
                   </span>
@@ -196,12 +200,12 @@ export default function MultiStepLog() {
                     )}>{step.desc}</span>
                   </span>
                   {hasLogs && !isOpen && (
-                    <span className="text-[11px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
                       {logs.length}
                     </span>
                   )}
                   {isActive && (
-                    <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                    <span className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse" />
                   )}
                   {isOpen
                     ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />

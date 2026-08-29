@@ -94,7 +94,7 @@ npm run dev
 - [AISQA 功能清单](novel-build-test/docs/v1/功能清单.md)
 - [AISQA 前端设计规范](novel-build-test/docs/v1/前端设计规范.md)
 - [AISQA 模块架构](novel-build-test/docs/v1/模块架构.md)
-- [AISQA TODO 清单](novel-build-test/TODO.md)
+- [AISQA TODO 清单](novel-build-test/todo.md)
 
 ## 版本历史
 

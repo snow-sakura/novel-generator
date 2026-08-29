@@ -1,22 +1,17 @@
 import { useState, useEffect } from 'react'
-import { Tags, BookOpen, ChevronDown, ChevronRight, X, Sparkles, Loader2 } from 'lucide-react'
+import { Sparkles, Check, X } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { fetchGenres } from '../services/api'
 
-const DEMO_GENRES_MALE = ['科幻末世', '都市脑洞', '玄幻脑洞', '修仙仙侠', '神医赘婿', '末日求生', '游戏竞技', '穿越历史', '悬疑推理', '无敌爽文']
-const DEMO_GENRES_FEMALE = ['古代言情', '现代言情', '幻想言情', '重生逆袭', '豪门总裁', '宫斗宅斗', '仙侠奇缘', '甜宠恋爱']
-const DEMO_STYLES = ['轻松搞笑', '热血燃系', '悬疑烧脑', '甜宠治愈', '暗黑深沉', '沙雕吐槽', '文艺致郁', '极简写实']
-
 export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
   const [gender, setGender] = useState('男频')
-  const [genre, setGenre] = useState('都市脑洞')
+  const [selectedGenres, setSelectedGenres] = useState(['都市脑洞'])
   const [selectedStyles, setSelectedStyles] = useState(['轻松搞笑'])
   const [chapterCount, setChapterCount] = useState(2)
   const [perChapterMin, setPerChapterMin] = useState(800)
   const [perChapterMax, setPerChapterMax] = useState(2500)
   const [genres, setGenres] = useState([])
   const [styles, setStyles] = useState([])
-  const [expandedSection, setExpandedSection] = useState('genres')
 
   useEffect(() => {
     fetchGenres(gender).then(data => {
@@ -27,16 +22,22 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
 
   function handleGenderChange(g) {
     setGender(g)
+    setSelectedGenres([])
     fetchGenres(g).then(data => {
       const gs = data.genres || []
       setGenres(gs)
-      if (gs.length > 0) setGenre(gs[0])
       if (data.styles) setStyles(data.styles)
     })
   }
 
-  function toggleSection(section) {
-    setExpandedSection(prev => prev === section ? null : section)
+  function toggleGenre(genre) {
+    setSelectedGenres(prev => {
+      const idx = prev.indexOf(genre)
+      if (idx >= 0) {
+        return prev.filter(g => g !== genre)
+      }
+      return [...prev, genre]
+    })
   }
 
   function toggleStyle(style) {
@@ -52,14 +53,12 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
 
   const wordCount = Math.round(chapterCount * (perChapterMin + perChapterMax) / 2)
 
-  const displayGenres = genres.length > 0 ? genres : (gender === '男频' ? DEMO_GENRES_MALE : DEMO_GENRES_FEMALE)
-  const displayStyles = styles.length > 0 ? styles : DEMO_STYLES
-
   function handleConfirm() {
     onConfirm({
       seed_text: seedText,
       gender,
-      genre,
+      genre: selectedGenres.join('+'),
+      selectedGenres,
       style: selectedStyles.join('+'),
       selectedStyles,
       chapter_count: chapterCount,
@@ -70,121 +69,154 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-orange-200 shadow-sm overflow-hidden">
-      <div className="bg-gradient-to-r from-orange-50 to-rose-50 px-4 py-3 border-b border-orange-100 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-orange-500" />
-          <span className="text-sm font-semibold text-gray-800">选择创作参数</span>
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+      {/* 标题栏 */}
+      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-rose-50 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shadow-sm">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">创作参数设置</h3>
+              <p className="text-xs text-gray-500 mt-0.5">调整参数后开始创作</p>
+            </div>
+          </div>
+          <button onClick={onCancel}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-xl transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <button onClick={onCancel} className="p-1 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-lg transition-all">
-          <X className="w-4 h-4" />
-        </button>
       </div>
 
-      <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
-        <div className="flex gap-2">
-          {['男频', '女频'].map(g => (
-            <button key={g} type="button" onClick={() => handleGenderChange(g)}
-              className={cn('flex-1 py-2 rounded-xl text-sm font-medium border transition-all',
-                gender === g
-                  ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white border-transparent shadow-sm'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300')}>
-              {g === '男频' ? '♂ ' : '♀ '}{g}
-            </button>
-          ))}
+      <div className="p-5 space-y-5 overflow-y-auto flex-1">
+        {/* 频道选择 */}
+        <div>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5 block">频道</label>
+          <div className="flex gap-2">
+            {[{ value: '男频', icon: '♂', label: '男频' }, { value: '女频', icon: '♀', label: '女频' }, { value: '无频', icon: '📚', label: '通用' }].map(g => (
+              <button key={g.value} type="button" onClick={() => handleGenderChange(g.value)}
+                className={cn(
+                  'flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all flex items-center justify-center gap-1.5',
+                  gender === g.value
+                    ? 'bg-gradient-to-br from-orange-400 to-rose-500 text-white border-transparent shadow-md'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                )}>
+                <span className="text-lg">{g.icon}</span>
+                {g.label}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* 题材选择 */}
         <div>
-          <button type="button" onClick={() => toggleSection('genres')}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5 w-full text-left hover:text-gray-900 transition-colors">
-            <Tags className="w-4 h-4" />
-            题材
-            {expandedSection === 'genres' ? <ChevronDown className="w-3.5 h-3.5 ml-auto" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
-          </button>
-          {expandedSection === 'genres' && (
-            <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
-              {displayGenres.map(g => (
-                <button key={g} type="button" onClick={() => setGenre(g)}
-                  className={cn('px-2 py-1.5 rounded-lg text-xs border transition-all text-center',
-                    genre === g
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5 block">
+            题材 <span className="text-orange-500 normal-case font-medium">（可多选）</span>
+          </label>
+          <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1">
+            {[...new Set(genres.length > 0 ? genres : ['东方玄幻', '异世大陆', '高武世界', '修真文明', '都市异能', '古代言情', '现代言情', '玄幻言情'])].map(g => {
+              const selected = selectedGenres.includes(g)
+              return (
+                <button key={g} type="button" onClick={() => toggleGenre(g)}
+                  className={cn(
+                    'px-2 py-2.5 rounded-xl text-xs font-medium border-2 transition-all text-center flex items-center justify-center gap-1',
+                    selected
                       ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300')}>
+                      : 'bg-white text-gray-600 border-gray-100 hover:border-orange-300 hover:bg-orange-50'
+                  )}>
+                  {selected && <Check className="w-3 h-3" />}
                   {g}
                 </button>
+              )
+            })}
+          </div>
+          {selectedGenres.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {selectedGenres.map(g => (
+                <span key={g} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-orange-100 to-rose-100 text-orange-700 rounded-lg text-xs font-medium">
+                  {g}
+                  <button type="button" onClick={() => toggleGenre(g)} className="hover:text-orange-900 ml-0.5">×</button>
+                </span>
               ))}
             </div>
           )}
         </div>
 
+        {/* 风格选择 */}
         <div>
-          <button type="button" onClick={() => toggleSection('styles')}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5 w-full text-left hover:text-gray-900 transition-colors">
-            <BookOpen className="w-4 h-4" />
-            风格 <span className="text-xs text-orange-500 font-normal">（可多选）</span>
-            {expandedSection === 'styles' ? <ChevronDown className="w-3.5 h-3.5 ml-auto" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
-          </button>
-          {expandedSection === 'styles' && (
-            <div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {displayStyles.map(s => {
-                  const selected = selectedStyles.includes(s)
-                  return (
-                    <button key={s} type="button" onClick={() => toggleStyle(s)}
-                      className={cn('px-2 py-1.5 rounded-lg text-xs border transition-all text-center',
-                        selected
-                          ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300')}>
-                      {s}
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {selectedStyles.map(s => (
-                  <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs">
-                    {s}
-                    <button type="button" onClick={() => toggleStyle(s)} className="hover:text-orange-900"><X className="w-3 h-3" /></button>
-                  </span>
-                ))}
-              </div>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5 block">
+            风格 <span className="text-orange-500 normal-case font-medium">（可多选）</span>
+          </label>
+          <div className="grid grid-cols-3 gap-2 max-h-28 overflow-y-auto pr-1">
+            {[...new Set(styles.length > 0 ? styles : ['轻松搞笑', '热血燃系', '悬疑烧脑', '甜宠治愈', '暗黑深沉', '沙雕吐槽'])].map(s => {
+              const selected = selectedStyles.includes(s)
+              return (
+                <button key={s} type="button" onClick={() => toggleStyle(s)}
+                  className={cn(
+                    'px-2 py-2.5 rounded-xl text-xs font-medium border-2 transition-all text-center flex items-center justify-center gap-1',
+                    selected
+                      ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-100 hover:border-orange-300 hover:bg-orange-50'
+                  )}>
+                  {selected && <Check className="w-3 h-3" />}
+                  {s}
+                </button>
+              )
+            })}
+          </div>
+          {selectedStyles.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {selectedStyles.map(s => (
+                <span key={s} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-orange-100 to-rose-100 text-orange-700 rounded-lg text-xs font-medium">
+                  {s}
+                  <button type="button" onClick={() => toggleStyle(s)} className="hover:text-orange-900 ml-0.5">×</button>
+                </span>
+              ))}
             </div>
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-orange-50 to-rose-50 rounded-xl p-3 border border-orange-100 space-y-2">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">章节数</label>
-            <div className="flex items-center gap-2">
-              <input type="range" min={1} max={50} value={chapterCount}
-                onChange={e => setChapterCount(Number(e.target.value))}
-                className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500" />
-              <span className="text-sm font-medium text-orange-600 w-8 text-right">{chapterCount}</span>
+        {/* 字数设置 */}
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl p-4 border border-gray-200">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1.5 block">章节数</label>
+              <input type="number" min={1} value={chapterCount}
+                onChange={e => setChapterCount(Math.max(1, Number(e.target.value)))}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-center font-semibold bg-white" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1.5 block">每章最小字数</label>
+              <input type="number" min={100} value={perChapterMin}
+                onChange={e => setPerChapterMin(Math.max(100, Number(e.target.value)))}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-center font-semibold bg-white" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1.5 block">每章最大字数</label>
+              <input type="number" min={perChapterMin} value={perChapterMax}
+                onChange={e => setPerChapterMax(Math.max(perChapterMin + 1, Number(e.target.value)))}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-center font-semibold bg-white" />
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">每章字数</label>
-            <div className="flex items-center gap-2">
-              <input type="number" min={200} max={perChapterMax} value={perChapterMin}
-                onChange={e => setPerChapterMin(Number(e.target.value))}
-                className="w-full px-2 py-1 text-xs border border-gray-200 rounded-lg focus:border-orange-400 outline-none" />
-              <span className="text-gray-400 text-xs">~</span>
-              <input type="number" min={perChapterMin} max={20000} value={perChapterMax}
-                onChange={e => setPerChapterMax(Number(e.target.value))}
-                className="w-full px-2 py-1 text-xs border border-gray-200 rounded-lg focus:border-orange-400 outline-none" />
-            </div>
-          </div>
-          <div className="flex items-center justify-between text-xs text-gray-500 pt-1 border-t border-orange-100">
-            <span>目标字数</span>
-            <span className="font-bold text-orange-600">{wordCount.toLocaleString()} 字</span>
+          {perChapterMin >= perChapterMax && (
+            <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+              <span>⚠</span> 每章最小字数必须小于最大字数
+            </p>
+          )}
+          <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+            <span className="text-xs text-gray-500">目标总字数</span>
+            <span className="text-sm font-bold text-orange-600">{wordCount.toLocaleString()} 字</span>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-gray-100 p-3">
+      {/* 底部按钮 */}
+      <div className="px-5 py-4 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100/50 flex-shrink-0">
         <button onClick={handleConfirm}
-          className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-rose-600 transition-all shadow-sm flex items-center justify-center gap-2 text-sm">
+          className="w-full py-3 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-rose-600 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm">
           <Sparkles className="w-4 h-4" />
-          开始生成
+          开始生成小说
         </button>
       </div>
     </div>

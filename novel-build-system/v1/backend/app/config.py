@@ -6,11 +6,14 @@ load_dotenv()
 
 
 class Settings:
-    # LLM Provider
-    llm_provider: str = os.getenv("LLM_PROVIDER", "opencode")
+    # LLM Provider（默认从 .env 读取，未配置则回退 openai）
+    llm_provider: str = os.getenv("LLM_PROVIDER", "openai")
+    # 前端显示的友好名称（如 AMD Radeon / DeepSeek / OpenCode Zen），未配置则用 llm_provider
+    llm_provider_label: str = os.getenv("LLM_PROVIDER_LABEL", "")
 
-    # OpenAI
+    # OpenAI（兼容接口，含 AMD Radeon 等 OpenAI 兼容服务）
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    openai_base_url: str = os.getenv("OPENAI_BASE_URL", "")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
     # Anthropic
@@ -21,10 +24,10 @@ class Settings:
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     ollama_model: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 
-    # OpenCode Zen
+    # OpenCode Zen（可选，需在 .env 中显式配置，无代码硬编码默认值）
     opencode_api_key: str = os.getenv("OPENCODE_API_KEY", "")
-    opencode_base_url: str = os.getenv("OPENCODE_BASE_URL", "https://opencode.ai/zen/v1")
-    opencode_model: str = os.getenv("OPENCODE_MODEL", "deepseek-v4-flash-free")
+    opencode_base_url: str = os.getenv("OPENCODE_BASE_URL", "")
+    opencode_model: str = os.getenv("OPENCODE_MODEL", "")
 
     # 自定义模型（前端配置）
     custom_model_provider: str = os.getenv("CUSTOM_MODEL_PROVIDER", "")
@@ -56,13 +59,33 @@ def get_model_config_from_req(model_config: dict = None) -> dict:
     # 回退到环境变量
     provider = settings.llm_provider
     if provider == "openai":
-        return {"provider": "openai", "base_url": "", "model": settings.openai_model, "api_key": settings.openai_api_key}
+        return {
+            "provider": "openai",
+            "base_url": settings.openai_base_url,
+            "model": settings.openai_model,
+            "api_key": settings.openai_api_key,
+        }
     elif provider == "anthropic":
-        return {"provider": "anthropic", "base_url": "", "model": settings.anthropic_model, "api_key": settings.anthropic_api_key}
+        return {
+            "provider": "anthropic",
+            "base_url": "",
+            "model": settings.anthropic_model,
+            "api_key": settings.anthropic_api_key,
+        }
     elif provider == "ollama":
-        return {"provider": "ollama", "base_url": settings.ollama_base_url, "model": settings.ollama_model, "api_key": ""}
+        return {
+            "provider": "ollama",
+            "base_url": settings.ollama_base_url,
+            "model": settings.ollama_model,
+            "api_key": "",
+        }
     elif provider == "opencode":
-        return {"provider": "opencode", "base_url": settings.opencode_base_url, "model": settings.opencode_model, "api_key": settings.opencode_api_key}
+        return {
+            "provider": "opencode",
+            "base_url": settings.opencode_base_url,
+            "model": settings.opencode_model,
+            "api_key": settings.opencode_api_key,
+        }
     elif settings.custom_model_provider:
         return {
             "provider": settings.custom_model_provider,

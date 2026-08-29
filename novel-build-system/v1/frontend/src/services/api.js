@@ -49,7 +49,6 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
     ? `${API_BASE}/generate/continue?record_id=${continueRecordId}`
     : `${API_BASE}/generate`
 
-  console.log('[SSE] 开始请求:', url, params)
   fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -58,7 +57,6 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
   })
     .then(async (response) => {
       clearTimeout(timeoutId)
-      console.log('[SSE] 连接成功, status:', response.status)
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
         throw new Error(err.error || `请求失败 (${response.status})`)
@@ -79,10 +77,8 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
             const dataStr = line.slice(6).trim()
             try {
               const parsed = JSON.parse(dataStr)
-              console.log('[SSE]', currentEvent, parsed)
               onEvent(currentEvent, parsed)
             } catch {
-              console.log('[SSE]', currentEvent, dataStr)
               onEvent(currentEvent, dataStr)
             }
           }
@@ -92,7 +88,6 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
     })
     .catch((err) => {
       clearTimeout(timeoutId)
-      console.log('[SSE] 请求失败:', err.message)
       if (err.name === 'AbortError') onError('已停止')
       else onError(err.message || '网络错误')
     })
@@ -112,13 +107,13 @@ export async function fetchRecordStatus(recordId) {
 
 // ─── 对话式生成 ───
 
-export function chatGenerate(message, onEvent, onComplete, onError) {
+export function chatGenerate(message, onEvent, onComplete, onError, params) {
   const controller = new AbortController()
 
   fetch(`${API_BASE}/chat/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, params: params || {} }),
     signal: controller.signal,
   })
     .then(async (response) => {
@@ -142,10 +137,8 @@ export function chatGenerate(message, onEvent, onComplete, onError) {
             const dataStr = line.slice(6).trim()
             try {
               const parsed = JSON.parse(dataStr)
-              console.log('[SSE]', currentEvent, parsed)
               onEvent(currentEvent, parsed)
             } catch {
-              console.log('[SSE]', currentEvent, dataStr)
               onEvent(currentEvent, dataStr)
             }
           }
@@ -154,7 +147,6 @@ export function chatGenerate(message, onEvent, onComplete, onError) {
       onComplete()
     })
     .catch((err) => {
-      console.log('[SSE] 对话请求失败:', err.message)
       if (err.name === 'AbortError') onError('已停止')
       else onError(err.message || '网络错误')
     })
@@ -163,14 +155,23 @@ export function chatGenerate(message, onEvent, onComplete, onError) {
 
 // ─── Demo 模式 ───
 
-export async function generateNovelDemo(params, onEvent, onComplete, onError) {
-  try {
-    for await (const chunk of mockGenerateStream()) {
-      onEvent(chunk.event, chunk.data)
+export function generateNovelDemo(params, onEvent, onComplete, onError) {
+  const controller = new AbortController()
+  const { signal } = controller
+
+  ;(async () => {
+    try {
+      for await (const chunk of mockGenerateStream(signal)) {
+        onEvent(chunk.event, chunk.data)
+      }
+      onComplete()
+    } catch (err) {
+      if (err.name === 'AbortError') onError('已停止')
+      else onError(err.message || 'Demo 生成失败')
     }
-    onComplete()
-  } catch (err) { onError(err.message || 'Demo 生成失败') }
-  return { controller: null }
+  })()
+
+  return { controller }
 }
 
 // ─── CRUD ───

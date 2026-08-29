@@ -26,7 +26,7 @@ export default function ConfigStatus() {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg text-xs text-green-700">
         <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{customModel.provider === 'opencode' ? 'OpenCode' : customModel.provider}</span>
+        <span>{customModel.label || customModel.provider || '未选择'}</span>
         <span className="text-gray-400 ml-1">({customModel.model})</span>
       </div>
     )

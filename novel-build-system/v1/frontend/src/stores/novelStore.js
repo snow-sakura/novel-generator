@@ -32,6 +32,7 @@ const DEFAULT_PARAMS = {
   seed_text: '',
   gender: '男频',
   genre: '都市脑洞',
+  selectedGenres: ['都市脑洞'],
   style: '轻松搞笑',
   selectedStyles: ['轻松搞笑'],
   styles: '轻松搞笑',
@@ -116,8 +117,10 @@ export const useNovelStore = create((set) => ({
   appendChapterText: (text) =>
     set((state) => {
       if (state.chapterTexts.length === 0) return {}
-      const texts = [...state.chapterTexts]
-      texts[texts.length - 1] += text
+      // 使用可变操作减少数组复制
+      const texts = state.chapterTexts.slice()
+      const lastIndex = texts.length - 1
+      texts[lastIndex] = (texts[lastIndex] || '') + text
       return { chapterTexts: texts, currentContent: state.currentContent + text }
     }),
   setTitle: (title) => set({ currentTitle: title }),

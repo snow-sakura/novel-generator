@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Clock, BookOpen, Monitor, RefreshCw, CheckCircle, XCircle, Loader2, AlertTriangle, ExternalLink, Trash2, Download, StopCircle } from 'lucide-react'
+import { Clock, BookOpen, Monitor, RefreshCw, CheckCircle, XCircle, Loader2, AlertTriangle, ExternalLink, Trash2, Download, StopCircle, Sparkles, Plus } from 'lucide-react'
 import { fetchCompletedNovels, fetchRecords, fetchRecordStatus, deleteRecord, cleanupData, isGitHubPages } from '../services/api'
 import NovelCard from '../components/NovelCard'
 import { cn } from '../lib/utils'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function HistoryPage() {
   const navigate = useNavigate()
@@ -25,6 +26,11 @@ export default function HistoryPage() {
   // 轮询 in_progress 记录
   const pollingRef = useRef(null)
   const [pollingRecords, setPollingRecords] = useState({})
+  
+  // 对话框状态
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
 
   const syncUrl = useCallback((t, p) => {
     setSearchParams({ tab: t, page: String(p) }, { replace: true })
@@ -35,21 +41,27 @@ export default function HistoryPage() {
   useEffect(() => {
     // 开始轮询 in_progress 记录
     const inProgressIds = records.filter(r => r.status === 'in_progress').map(r => r.id)
-    if (inProgressIds.length > 0) {
-      pollingRef.current = setInterval(async () => {
-        for (const id of inProgressIds) {
-          const status = await fetchRecordStatus(id)
-          if (status) {
-            setPollingRecords(prev => ({ ...prev, [id]: status }))
-            // 如果状态变为非 in_progress，刷新列表
-            if (status.status !== 'in_progress') {
-              loadData()
-            }
+    if (inProgressIds.length === 0) return
+
+    let isCancelled = false
+    pollingRef.current = setInterval(async () => {
+      if (isCancelled) return
+      for (const id of inProgressIds) {
+        const status = await fetchRecordStatus(id)
+        if (status && !isCancelled) {
+          setPollingRecords(prev => ({ ...prev, [id]: status }))
+          // 如果状态变为非 in_progress，刷新列表
+          if (status.status !== 'in_progress') {
+            loadData()
           }
         }
-      }, 3000)
+      }
+    }, 3000)
+
+    return () => {
+      isCancelled = true
+      if (pollingRef.current) clearInterval(pollingRef.current)
     }
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
   }, [records])
 
   const handleTabChange = (t) => {
@@ -90,19 +102,30 @@ export default function HistoryPage() {
     syncUrl(tab, p)
   }
 
-  async function handleDeleteRecord(id) {
-    if (!window.confirm('确定删除此生成记录？')) return
+  function handleDeleteRecord(id) {
+    setDeleteTarget(id)
+    setShowDeleteConfirm(true)
+  }
+
+  async function confirmDeleteRecord() {
+    setShowDeleteConfirm(false)
+    if (!deleteTarget) return
     try {
-      await deleteRecord(id)
-      setRecords(prev => prev.filter(r => r.id !== id))
+      await deleteRecord(deleteTarget)
+      setRecords(prev => prev.filter(r => r.id !== deleteTarget))
       setRecordTotal(prev => prev - 1)
     } catch (err) {
       alert('删除失败: ' + err.message)
     }
+    setDeleteTarget(null)
   }
 
-  async function handleCleanup() {
-    if (!window.confirm('将清理孤立的生成记录和无效数据，是否继续？')) return
+  function handleCleanup() {
+    setShowCleanupConfirm(true)
+  }
+
+  async function confirmCleanup() {
+    setShowCleanupConfirm(false)
     try {
       const result = await cleanupData()
       if (result) {
@@ -148,11 +171,12 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* 页面标题 */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">创作历史</h1>
-          <p className="text-gray-500 mt-1 text-sm">
+          <h1 className="text-xl font-bold text-gray-900">创作历史</h1>
+          <p className="text-gray-500 mt-0.5 text-sm">
             {demoMode ? (
               <span className="flex items-center gap-1"><Monitor className="w-4 h-4" /> Demo 模式</span>
             ) : (
@@ -163,46 +187,65 @@ export default function HistoryPage() {
         <div className="flex gap-2">
           {!demoMode && (
             <button onClick={handleCleanup}
-              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm transition-colors flex items-center gap-1.5">
+              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5">
               <RefreshCw className="w-4 h-4" />
-              清理无效数据
+              清理数据
             </button>
           )}
           <button onClick={() => navigate('/')}
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm transition-colors">
+            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 shadow-md hover:shadow-lg">
+            <Plus className="w-4 h-4" />
             创作新小说
           </button>
         </div>
       </div>
 
-      <div className="flex gap-1 border-b border-gray-200">
+      {/* Tab 导航 */}
+      <div className="flex gap-1.5 p-1.5 bg-gray-100 rounded-xl">
         {[
-          { key: 'novels', label: '已完成小说', count: novelTotal },
-          { key: 'records', label: '生成记录', count: recordTotal },
+          { key: 'novels', label: '已完成小说', count: novelTotal, icon: BookOpen },
+          { key: 'records', label: '生成记录', count: recordTotal, icon: Clock },
         ].map(t => (
           <button key={t.key} onClick={() => handleTabChange(t.key)}
             className={cn(
-              'px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px',
+              'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all',
               tab === t.key
-                ? 'text-orange-600 border-orange-500'
-                : 'text-gray-500 border-transparent hover:text-gray-700'
+                ? 'bg-white text-orange-600 shadow-md'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
             )}>
+            <t.icon className="w-4 h-4" />
             {t.label}
-            {!demoMode && <span className="ml-1.5 text-xs opacity-60">({t.count})</span>}
+            {!demoMode && <span className="text-xs opacity-60">({t.count})</span>}
           </button>
         ))}
       </div>
 
+      {/* 内容区域 */}
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center justify-center h-48">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shadow-md">
+              <RefreshCw className="w-5 h-5 text-white animate-spin" />
+            </div>
+            <p className="text-sm text-gray-400 font-medium">加载中...</p>
+          </div>
         </div>
       ) : tab === 'novels' ? (
         novels.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-16 text-center text-gray-400">
-            <div className="text-5xl mb-4">📖</div>
-            <p className="text-lg">还没有创作过小说</p>
-            <button onClick={() => navigate('/')} className="mt-4 text-orange-500 hover:underline">开始你的第一篇创作</button>
+          /* 空状态 - 小说列表 */
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-100 to-rose-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+              <BookOpen className="w-8 h-8 text-orange-500" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">还没有创作过小说</h3>
+            <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+              开始你的第一篇创作，AI 将为你生成一部完整的小说
+            </p>
+            <button onClick={() => navigate('/')}
+              className="px-6 py-3 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-rose-600 transition-all shadow-md hover:shadow-lg inline-flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              开始创作
+            </button>
           </div>
         ) : (
           <>
@@ -216,9 +259,20 @@ export default function HistoryPage() {
         )
       ) : (
         records.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-16 text-center text-gray-400">
-            <div className="text-5xl mb-4">📋</div>
-            <p className="text-lg">暂无生成记录</p>
+          /* 空状态 - 记录列表 */
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+              <Clock className="w-8 h-8 text-blue-500" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">暂无生成记录</h3>
+            <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+              生成记录会在你创作小说时自动创建
+            </p>
+            <button onClick={() => navigate('/')}
+              className="px-6 py-3 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-rose-600 transition-all shadow-md hover:shadow-lg inline-flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              开始创作
+            </button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -233,22 +287,22 @@ export default function HistoryPage() {
                 : 0
 
               return (
-                <div key={r.id} className={cn('bg-white rounded-xl border p-4 transition-all hover:shadow-sm', sc.border)}>
+                <div key={r.id} className={cn('bg-white rounded-xl border p-5 transition-all hover:shadow-md', sc.border)}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       {/* 状态徽章 */}
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium', sc.bg, sc.color)}>
-                          <Icon className={cn('w-3 h-3', isInProgress && 'animate-spin')} />
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold', sc.bg, sc.color)}>
+                          <Icon className={cn('w-3.5 h-3.5', isInProgress && 'animate-spin')} />
                           {sc.label}
                         </span>
                         {merged.completed_chapters > 0 && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 font-medium">
                             {merged.completed_chapters}/{merged.total_chapters} 章
                           </span>
                         )}
                         {failureStep && (
-                          <span className="text-[10px] text-red-400 bg-red-50 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] text-red-500 bg-red-50 px-2 py-0.5 rounded-md font-medium">
                             {failureStep}阶段失败
                           </span>
                         )}
@@ -256,43 +310,43 @@ export default function HistoryPage() {
 
                       {/* 进度条（in_progress） */}
                       {isInProgress && merged.total_chapters > 0 && (
-                        <div className="w-full h-1.5 bg-gray-100 rounded-full mb-2 overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all duration-500"
+                        <div className="w-full h-2 bg-gray-100 rounded-full mb-3 overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all duration-500 shadow-sm"
                             style={{ width: `${progressPct}%` }} />
                         </div>
                       )}
 
-                      <p className="text-sm text-gray-700 truncate">{merged.seed_text || '未知种子'}</p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-sm text-gray-700 truncate font-medium">{merged.seed_text || '未知种子'}</p>
+                      <p className="text-xs text-gray-400 mt-1.5">
                         {new Date(merged.created_at).toLocaleString('zh-CN')}
                       </p>
                       {merged.error_message && (
-                        <p className="text-xs text-red-500 mt-1 truncate">{merged.error_message.replace(/^\[\w+\]\s*/, '')}</p>
+                        <p className="text-xs text-red-500 mt-1.5 truncate">{merged.error_message.replace(/^\[\w+\]\s*/, '')}</p>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {merged.status === 'completed' && merged.novel_id && (
                         <button onClick={() => navigate(`/novel/${merged.novel_id}`)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
-                          <ExternalLink className="w-3 h-3" /> 查看
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-all shadow-sm hover:shadow-md">
+                          <ExternalLink className="w-3.5 h-3.5" /> 查看
                         </button>
                       )}
                       {(merged.status === 'failed' || merged.status === 'cancelled') && (
                         <button onClick={() => navigate(`/?continue=true&record_id=${merged.id}`)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors">
-                          <RefreshCw className="w-3 h-3" /> 继续
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 transition-all shadow-sm hover:shadow-md">
+                          <RefreshCw className="w-3.5 h-3.5" /> 继续
                         </button>
                       )}
                       {isInProgress && (
                         <button onClick={() => navigate(`/?continue=true&record_id=${merged.id}`)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
-                          <ExternalLink className="w-3 h-3" /> 查看进度
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all shadow-sm hover:shadow-md">
+                          <ExternalLink className="w-3.5 h-3.5" /> 查看进度
                         </button>
                       )}
                       <button onClick={() => handleDeleteRecord(r.id)}
-                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
+                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -305,18 +359,50 @@ export default function HistoryPage() {
           </div>
         )
       )}
+
+      {/* 删除确认对话框 */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => { setShowDeleteConfirm(false); setDeleteTarget(null) }}
+        onConfirm={confirmDeleteRecord}
+        title="确定删除？"
+        message="删除后将无法恢复，是否继续？"
+        type="danger"
+        confirmText="删除"
+        cancelText="取消"
+        confirmColor="danger"
+      />
+
+      {/* 清理确认对话框 */}
+      <ConfirmDialog
+        open={showCleanupConfirm}
+        onClose={() => setShowCleanupConfirm(false)}
+        onConfirm={confirmCleanup}
+        title="清理数据"
+        message="将清理孤立的生成记录和无效数据，是否继续？"
+        type="warning"
+        confirmText="确认清理"
+        cancelText="取消"
+        confirmColor="warning"
+      />
     </div>
   )
 }
 
 function Pagination({ page, totalPages, onChange }) {
   return (
-    <div className="flex items-center justify-center gap-2">
+    <div className="flex items-center justify-center gap-2 pt-4">
       <button onClick={() => onChange(Math.max(1, page - 1))} disabled={page <= 1}
-        className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-30 hover:bg-gray-50">上一页</button>
-      <span className="text-sm text-gray-500">{page} / {totalPages}</span>
+        className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-all shadow-sm hover:shadow-md">
+        上一页
+      </button>
+      <span className="text-sm text-gray-500 px-3 font-medium">
+        {page} / {totalPages}
+      </span>
       <button onClick={() => onChange(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
-        className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-30 hover:bg-gray-50">下一页</button>
+        className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-all shadow-sm hover:shadow-md">
+        下一页
+      </button>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, ArrowLeft, Loader2, CheckCircle, StopCircle } from 'lucide-react'
+import { Sparkles, ArrowLeft, Loader2, CheckCircle, StopCircle, Plus } from 'lucide-react'
 import { useChatStore } from '../stores/chatStore'
 import { chatGenerate, cancelRecord } from '../services/api'
 import ChatMessage from '../components/ChatMessage'
@@ -34,7 +34,18 @@ export default function ChatPage() {
 
   function handleOptionsConfirm(params) {
     setShowOptions(false)
-    const combinedText = `种子：${params.seed_text}\n频道：${params.gender}\n题材：${params.genre}\n风格：${params.style}\n章节数：${params.chapter_count}\n每章字数：${params.per_chapter_min}-${params.per_chapter_max}\n\n请根据以上设置创作小说。`
+    const seedText = params.seed_text
+
+    // 记录用户选择的故事参数，供右侧看板展示
+    const meta = {
+      step: 'parsing',
+      seedText,
+      gender: params.gender,
+      genre: params.genre,
+      style: params.style,
+      word_count: params.word_count,
+    }
+    setNovelData(meta)
 
     const assistantMsg = { role: 'assistant', content: '', streaming: true }
     addMessage(assistantMsg)
@@ -49,16 +60,22 @@ export default function ChatPage() {
           setCurrentStep('parsing')
           updateNovelData({ step: 'parsing' })
           break
-        case 'parse_done':
-          updateLastMessage('✅ **故事要素分析完成**\n\n' + formatElements(data))
+        case 'parse_done': {
+          const elems = (data && data.elements && Object.keys(data.elements).length > 0)
+            ? data.elements
+            : (data && data.protagonist ? data : {})
+          updateLastMessage(
+            '✅ **故事要素分析完成**\n\n' + formatElements(elems)
+          )
           break
+        }
         case 'outline':
           setCurrentStep('outlining')
           updateNovelData({ step: 'outlining' })
           break
         case 'outline_thinking': {
           const type = data?.type || ''
-          if (type !== 'chapter') {
+          if (type && type !== 'chapter' && type !== '_progress') {
             updateLastMessage('📐 **正在构建大纲：' + type + '层** ...')
           }
           break
@@ -83,8 +100,13 @@ export default function ChatPage() {
         case 'chapter_end': {
           const title = data?.title || ''
           const words = data?.word_count || 0
+          const index = data?.index
           const state = useChatStore.getState()
-          const idx = (state.novelData?.chapters || []).findIndex(c => c.title === title)
+          // 优先用后端返回的 index 定位，避免同名章节错位
+          let idx = (typeof index === 'number') ? index : -1
+          if (idx < 0) {
+            idx = (state.novelData?.chapters || []).findIndex(c => c.title === title)
+          }
           if (idx >= 0) {
             const texts = [...(state.novelData?.chapterTexts || [])]
             texts[idx] = '[completed]'
@@ -96,8 +118,9 @@ export default function ChatPage() {
           break
         }
         case 'content': {
-          const prev = getLatestAssistantContent()
-          if (data && typeof data === 'string') {
+          // 只把正文流式追加到消息，不混入日志
+          if (data && typeof data === 'string' && data.trim()) {
+            const prev = getLatestAssistantContent()
             updateLastMessage(prev + data)
           }
           break
@@ -119,9 +142,13 @@ export default function ChatPage() {
           break
         }
         case 'log': {
-          const msg = typeof data === 'string' ? data : (data?.text || data?.data || '')
-          if (msg && !msg.startsWith('  ')) {
-            updateLastMessage(getLatestAssistantContent() + '\n' + msg)
+          // 日志仅用于侧边进度展示，不混入正文消息流，避免正文被日志污染
+          const msg = (data && typeof data === 'object') ? (data.text || data.data || '') : (data || '')
+          if (msg) {
+            const state = useChatStore.getState()
+            const meta = state.novelData || {}
+            updateNovelData({ lastLog: msg })
+            void meta
           }
           break
         }
@@ -141,7 +168,7 @@ export default function ChatPage() {
       setGenerating(false)
     }
 
-    const { controller } = chatGenerate(combinedText, onEvent, onComplete, onError)
+    const { controller } = chatGenerate(seedText, onEvent, onComplete, onError, params)
     if (controller) {
       setAbortController(controller)
     }
@@ -212,58 +239,97 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
-      <div className="flex items-center justify-between mb-3 flex-shrink-0">
+    <div className="h-[calc(100vh-4rem)] flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* 顶部导航栏 */}
+      <div className="flex items-center justify-between px-5 py-3 bg-white/80 backdrop-blur-sm border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/')}
-            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors">
-            <ArrowLeft className="w-4 h-4" />返回
+            className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors text-sm font-medium">
+            <ArrowLeft className="w-4 h-4" /> 返回
           </button>
-          <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-orange-500" />
-            AI 对话创作
-          </h1>
+          <div className="h-5 w-px bg-gray-200" />
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
+            <h1 className="text-sm font-bold text-gray-900">AI 对话创作</h1>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {generating && (
             <button onClick={() => setShowStopConfirm(true)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
               <StopCircle className="w-3.5 h-3.5" />
               停止生成
             </button>
           )}
           {novelData?.novelId && (
             <button onClick={handleViewNovel}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-lg hover:from-orange-600 hover:to-rose-600 transition-all">
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-lg hover:from-orange-600 hover:to-rose-600 transition-all shadow-md">
               <CheckCircle className="w-3.5 h-3.5" />
               查看小说
             </button>
           )}
           <button onClick={handleNewChat}
-            className="px-3 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Plus className="w-3.5 h-3.5" />
             新对话
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-4 min-h-0">
-        <div className="flex-1 flex flex-col bg-white rounded-xl border border-gray-200 min-w-0">
-          <div className="flex-1 overflow-y-auto py-2">
-            {messages.map((msg, i) => (
-              <ChatMessage key={i} message={msg} isLast={i === messages.length - 1} />
-            ))}
-            {generating && (
-              <div className="px-4 py-2">
-                <span className="inline-flex items-center gap-1.5 text-xs text-orange-500">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  生成中...
-                </span>
+      {/* 主内容区 */}
+      <div className="flex-1 flex gap-4 min-h-0 p-4">
+        {/* 左侧聊天区 */}
+        <div className="flex-1 flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm min-w-0 overflow-hidden">
+          {/* 消息列表 */}
+          <div className="flex-1 overflow-y-auto py-4">
+            {messages.length <= 1 ? (
+              /* 空状态 - 欢迎界面 */
+              <div className="h-full flex flex-col items-center justify-center text-center px-8">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center mb-6 shadow-xl">
+                  <Sparkles className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">开始创作你的小说</h2>
+                <p className="text-sm text-gray-500 mb-8 max-w-md leading-relaxed">
+                  告诉我你想要的故事灵感，我会为你自动生成一部完整的小说
+                </p>
+                <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
+                  {[
+                    '一个外卖员在送餐途中意外获得了一本会发光的古书',
+                    '重生回到高考前，这一次我要改变命运',
+                    '在末日废土中，我发现了一个地下避难所',
+                    '穿越到古代，成为一个被贬的将军',
+                  ].map((example, i) => (
+                    <button key={i} onClick={() => handleSend(example)}
+                      className="p-3.5 text-left text-xs text-gray-600 bg-gray-50 rounded-xl border border-gray-100 hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm transition-all leading-relaxed">
+                      "{example}"
+                    </button>
+                  ))}
+                </div>
               </div>
+            ) : (
+              /* 消息列表 */
+              <>
+                {messages.slice(1).map((msg, i) => (
+                  <ChatMessage key={i + 1} message={msg} isLast={i + 1 === messages.length - 1} />
+                ))}
+                {generating && (
+                  <div className="px-5 py-3">
+                    <div className="flex items-center gap-2 text-orange-500">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-xs">AI 正在思考...</span>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </>
             )}
-            <div ref={messagesEndRef} />
           </div>
+
+          {/* 选项选择器 - 悬浮在输入框上方 */}
           {showOptions && pendingSeed && !generating && (
-            <div className="px-4 pb-3">
+            <div className="px-5 pb-3">
               <ChatOptionSelector
                 seedText={pendingSeed}
                 onConfirm={handleOptionsConfirm}
@@ -271,27 +337,33 @@ export default function ChatPage() {
               />
             </div>
           )}
+
+          {/* 输入框 */}
           <ChatInput onSend={handleSend} disabled={generating || showOptions} />
         </div>
 
-        <div className="w-72 flex-shrink-0 overflow-y-auto">
+        {/* 右侧状态面板 - 在移动端隐藏 */}
+        <div className="hidden lg:block w-72 flex-shrink-0 overflow-y-auto">
           <NovelStatusPanel novelData={novelData} />
         </div>
       </div>
 
+      {/* 停止确认弹窗 */}
       {showStopConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowStopConfirm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowStopConfirm(false)}>
           <div className="bg-white rounded-2xl w-[90vw] max-w-sm shadow-2xl p-6 text-center" onClick={e => e.stopPropagation()}>
-            <StopCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <StopCircle className="w-7 h-7 text-white" />
+            </div>
             <h2 className="text-lg font-bold text-gray-900 mb-2">确认停止生成？</h2>
-            <p className="text-sm text-gray-500 mb-6">已生成的内容将自动保存。</p>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">已生成的内容将自动保存。</p>
             <div className="flex gap-3 justify-center">
               <button onClick={handleStop}
-                className="px-5 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-all text-sm">
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl font-semibold hover:from-red-600 hover:to-rose-600 transition-all text-sm shadow-md">
                 确认停止
               </button>
               <button onClick={() => setShowStopConfirm(false)}
-                className="px-5 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all text-sm">
+                className="px-6 py-2.5 bg-white border-2 border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all text-sm">
                 取消
               </button>
             </div>

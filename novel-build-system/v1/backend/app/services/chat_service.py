@@ -1,11 +1,11 @@
 """AI 对话生成服务 — 将小说生成管线包装为对话式交互"""
+
 import json
 import re
 from typing import AsyncGenerator
 
 from app.llm.provider import LLMProvider
 from app.services.generator import GeneratorService
-
 
 
 class ChatService:
@@ -20,31 +20,36 @@ class ChatService:
         genre: str = "都市脑洞",
         style: str = "轻松搞笑",
         word_count: int = 3000,
+        chapter_count: int = None,
+        per_chapter_min: int = 800,
+        per_chapter_max: int = 2500,
         record_id: int = None,
     ) -> AsyncGenerator[dict, None]:
-        """对话式生成：将生成管线步骤映射为聊天友好的事件"""
+        """对话式生成：复用核心管线，将生成步骤透传为聊天事件
+
+        前端在 ChatOptionSelector 中已选择频道/题材/风格/章节数/每章字数，
+        后端仅在这些参数缺失时用意图分析兜底推断。
+        """
         try:
             if record_id:
                 yield {"event": "record_id", "data": record_id}
 
-            # 步骤1：解析意图 → 智能评估种子句所属的频道/题材/风格
-            yield {"event": "parse", "data": {"status": "analyzing", "message": "正在分析故事要素..."}}
+            # 仅当用户未在选项器中选择时，才用 LLM 推断参数
+            if not (gender and genre and style and word_count):
+                intent = await self._analyze_intent(message)
+                if intent.get("gender"):
+                    gender = intent["gender"]
+                if intent.get("genre"):
+                    genre = intent["genre"]
+                if intent.get("style"):
+                    style = intent["style"]
+                if intent.get("word_count"):
+                    word_count = intent["word_count"]
 
-            intent = await self._analyze_intent(message)
-            if intent.get("gender"): gender = intent["gender"]
-            if intent.get("genre"): genre = intent["genre"]
-            if intent.get("style"): style = intent["style"]
-            if intent.get("word_count"): word_count = intent["word_count"]
+            if chapter_count is None:
+                chapter_count = max(2, word_count // 2000)
 
-            yield {"event": "parse_done", "data": {
-                "message": "分析完成",
-                "inferred": {"gender": gender, "genre": genre, "style": style, "word_count": word_count},
-                "elements": intent.get("elements", {}),
-            }}
-
-            # 步骤2-4：复用 GeneratorService 的核心管线，但把输出映射为对话格式
-            chapter_count = max(2, word_count // 2000)
-
+            # 透传 generator 的全部事件，结构与主生成管线完全一致
             async for event in self.generator.generate(
                 seed_text=message,
                 gender=gender,
@@ -52,26 +57,11 @@ class ChatService:
                 style=style,
                 word_count=word_count,
                 chapter_count=chapter_count,
-                per_chapter_min=800,
-                per_chapter_max=2500,
+                per_chapter_min=per_chapter_min,
+                per_chapter_max=per_chapter_max,
                 record_id=record_id,
             ):
-                # 透传大部分事件
-                if event["event"] in (
-                    "parse", "parse_done", "outline", "outline_thinking",
-                    "outline_done", "chapter_start", "content", "chapter_end",
-                    "title", "complete", "error", "record_id",
-                ):
-                    yield event
-                elif event["event"] == "log":
-                    # 过滤缩进日志，只传主要消息
-                    msg = event["data"]
-                    if isinstance(msg, dict):
-                        text = msg.get("text", "")
-                        if not text.startswith("  "):
-                            yield event
-                    elif isinstance(msg, str) and not msg.startswith("  "):
-                        yield event
+                yield event
 
         except Exception as e:
             yield {"event": "error", "data": {"message": str(e)}}
@@ -105,6 +95,9 @@ JSON："""
             return json.loads(result[start:end])
         except (ValueError, json.JSONDecodeError):
             return {
-                "gender": "男频", "genre": "都市脑洞", "style": "轻松搞笑",
-                "word_count": 3000, "elements": {},
+                "gender": "男频",
+                "genre": "都市脑洞",
+                "style": "轻松搞笑",
+                "word_count": 3000,
+                "elements": {},
             }

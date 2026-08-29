@@ -39,50 +39,85 @@ def migrate_database():
             added = []
             # v1.0 → v1.1 新增列
             if "gender" not in columns:
-                db.execute(text("ALTER TABLE novels ADD COLUMN gender VARCHAR(10) DEFAULT '男频'"))
+                db.execute(
+                    text(
+                        "ALTER TABLE novels ADD COLUMN gender VARCHAR(10) DEFAULT '男频'"
+                    )
+                )
                 added.append("gender")
             if "per_chapter_min" not in columns:
-                db.execute(text("ALTER TABLE novels ADD COLUMN per_chapter_min INTEGER DEFAULT 800"))
+                db.execute(
+                    text(
+                        "ALTER TABLE novels ADD COLUMN per_chapter_min INTEGER DEFAULT 800"
+                    )
+                )
                 added.append("per_chapter_min")
             if "per_chapter_max" not in columns:
-                db.execute(text("ALTER TABLE novels ADD COLUMN per_chapter_max INTEGER DEFAULT 2500"))
+                db.execute(
+                    text(
+                        "ALTER TABLE novels ADD COLUMN per_chapter_max INTEGER DEFAULT 2500"
+                    )
+                )
                 added.append("per_chapter_max")
             if "outline" not in columns:
-                db.execute(text("ALTER TABLE novels ADD COLUMN outline TEXT DEFAULT ''"))
+                db.execute(
+                    text("ALTER TABLE novels ADD COLUMN outline TEXT DEFAULT ''")
+                )
                 added.append("outline")
             if "model_config" not in columns:
-                db.execute(text("ALTER TABLE novels ADD COLUMN model_config TEXT DEFAULT '{}'"))
+                db.execute(
+                    text("ALTER TABLE novels ADD COLUMN model_config TEXT DEFAULT '{}'")
+                )
                 added.append("model_config")
             if added:
                 db.commit()
                 print(f"[DB迁移] novels 表新增列: {', '.join(added)}", flush=True)
 
         if "generation_records" in tables:
-            rec_columns = {c["name"] for c in inspector.get_columns("generation_records")}
+            rec_columns = {
+                c["name"] for c in inspector.get_columns("generation_records")
+            }
             rec_added = []
             if "thinking_logs" not in rec_columns:
-                db.execute(text("ALTER TABLE generation_records ADD COLUMN thinking_logs TEXT DEFAULT '[]'"))
+                db.execute(
+                    text(
+                        "ALTER TABLE generation_records ADD COLUMN thinking_logs TEXT DEFAULT '[]'"
+                    )
+                )
                 rec_added.append("thinking_logs")
             if "chapter_states" not in rec_columns:
-                db.execute(text("ALTER TABLE generation_records ADD COLUMN chapter_states TEXT DEFAULT '[]'"))
+                db.execute(
+                    text(
+                        "ALTER TABLE generation_records ADD COLUMN chapter_states TEXT DEFAULT '[]'"
+                    )
+                )
                 rec_added.append("chapter_states")
             if rec_added:
                 db.commit()
-                print(f"[DB迁移] generation_records 表新增列: {', '.join(rec_added)}", flush=True)
+                print(
+                    f"[DB迁移] generation_records 表新增列: {', '.join(rec_added)}",
+                    flush=True,
+                )
 
         # 回溯生成记录：为已有 novels 创建 GenerationRecord
         if "novels" in tables and "generation_records" in tables:
             novel_count = db.query(Novel).count()
             record_count = db.query(GenerationRecord).count()
             if novel_count > 0 and record_count == 0:
-                print(f"[DB迁移] 为 {novel_count} 篇已有小说回溯生成记录...", flush=True)
+                print(
+                    f"[DB迁移] 为 {novel_count} 篇已有小说回溯生成记录...", flush=True
+                )
                 for novel in db.query(Novel).all():
-                    is_failed = (not novel.content or
-                                 novel.content.startswith("[生成失败]") or
-                                 "生成中断" in (novel.title or ""))
+                    is_failed = (
+                        not novel.content
+                        or novel.content.startswith("[生成失败]")
+                        or "生成中断" in (novel.title or "")
+                    )
                     chapters_list = []
                     try:
-                        chapters_list = json.loads(novel.chapters) if novel.chapters else []
+                        chapters_list = (
+                            json.loads(novel.chapters) if novel.chapters else []
+                        )
                     except (json.JSONDecodeError, TypeError):
                         pass
 
@@ -93,22 +128,29 @@ def migrate_database():
 
                     record = GenerationRecord(
                         novel_id=novel.id,
-                        params=json.dumps({
-                            "seed_text": novel.seed_text or "",
-                            "gender": novel.gender or "男频",
-                            "genre": novel.genre or "都市脑洞",
-                            "style": novel.style or "轻松搞笑",
-                            "word_count": novel.word_count or 3000,
-                            "per_chapter_min": novel.per_chapter_min or 800,
-                            "per_chapter_max": novel.per_chapter_max or 2500,
-                        }, ensure_ascii=False),
+                        params=json.dumps(
+                            {
+                                "seed_text": novel.seed_text or "",
+                                "gender": novel.gender or "男频",
+                                "genre": novel.genre or "都市脑洞",
+                                "style": novel.style or "轻松搞笑",
+                                "word_count": novel.word_count or 3000,
+                                "per_chapter_min": novel.per_chapter_min or 800,
+                                "per_chapter_max": novel.per_chapter_max or 2500,
+                            },
+                            ensure_ascii=False,
+                        ),
                         completed_chapters=completed,
                         total_chapters=len(chapters_list),
                         status="failed" if is_failed else "completed",
                         content_sofar=novel.content[:50000] if novel.content else "",
-                        error_message="生成中断（v1.2 之前的记录）" if is_failed else "",
+                        error_message="生成中断（v1.2 之前的记录）"
+                        if is_failed
+                        else "",
                         seed_text=novel.seed_text or "",
-                        created_at=novel.created_at if novel.created_at else datetime.now(),
+                        created_at=novel.created_at
+                        if novel.created_at
+                        else datetime.now(),
                         updated_at=datetime.now(),
                     )
                     db.add(record)
@@ -117,7 +159,8 @@ def migrate_database():
 
         # model_configs 表迁移
         if "model_configs" not in tables:
-            db.execute(text("""
+            db.execute(
+                text("""
                 CREATE TABLE IF NOT EXISTS model_configs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     provider VARCHAR(50) NOT NULL DEFAULT 'opencode',
@@ -129,8 +172,37 @@ def migrate_database():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """))
+            """)
+            )
             db.commit()
             print("[DB迁移] 创建 model_configs 表", flush=True)
+
+        # 添加索引（IF NOT EXISTS 安全幂等）
+        existing_indexes = (
+            {idx["name"] for idx in inspector.get_indexes("generation_records")}
+            if "generation_records" in tables
+            else set()
+        )
+        indexes_to_add = [
+            ("idx_gr_novel_id", "generation_records", "novel_id"),
+            ("idx_gr_status", "generation_records", "status"),
+            ("idx_gr_created_at", "generation_records", "created_at"),
+            ("idx_novel_created_at", "novels", "created_at"),
+        ]
+        for idx_name, table, col in indexes_to_add:
+            if idx_name not in existing_indexes and table in tables:
+                try:
+                    db.execute(
+                        text(
+                            f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({col})"
+                        )
+                    )
+                    print(f"[DB迁移] 创建索引: {idx_name}", flush=True)
+                except Exception:
+                    pass  # SQLite 某些版本不支持 IF NOT EXISTS 的索引
+        try:
+            db.commit()
+        except Exception:
+            pass
     finally:
         db.close()

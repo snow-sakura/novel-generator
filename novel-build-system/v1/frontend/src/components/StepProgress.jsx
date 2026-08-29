@@ -1,12 +1,6 @@
-import { useNovelStore, STEPS } from '../stores/novelStore'
+import { useNovelStore, STEPS, STEP_CONFIG } from '../stores/novelStore'
 import { cn } from '../lib/utils'
-
-const STEP_CONFIG = [
-  { key: STEPS.PARSING, label: '要素解析', desc: '分析故事六要素' },
-  { key: STEPS.OUTLINING, label: '大纲规划', desc: '构建章节结构' },
-  { key: STEPS.WRITING, label: '逐章生成', desc: '创作小说正文' },
-  { key: STEPS.TITLING, label: '生成标题', desc: '拟定小说标题' },
-]
+import { CheckCircle2, Clock, Loader2 } from 'lucide-react'
 
 export default function StepProgress() {
   const { currentStep, chapters } = useNovelStore()
@@ -16,50 +10,62 @@ export default function StepProgress() {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">生成进度</h3>
-      <div className="flex items-center justify-center gap-1">
+      <div className="flex items-center gap-2 mb-4">
+        <Clock className="w-4 h-4 text-orange-500" />
+        <h3 className="text-sm font-semibold text-gray-800">生成进度</h3>
+      </div>
+      
+      <div className="flex items-center justify-between gap-2">
         {STEP_CONFIG.map((step, i) => {
           const isActive = i === currentIdx
           const isPast = i < currentIdx || (currentStep === STEPS.DONE && i < STEP_CONFIG.length)
 
           return (
-            <div key={step.key} className="flex items-center gap-1 flex-1">
-              <div className="flex items-center gap-1.5 flex-1 justify-center">
+            <div key={step.key} className="flex items-center flex-1 last:flex-none">
+              <div className="flex flex-col items-center gap-2">
                 <div
                   className={cn(
-                    'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all',
-                    isPast && 'bg-green-500 text-white',
-                    isActive && 'bg-orange-500 text-white ring-2 ring-orange-200',
+                    'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm',
+                    isPast && 'bg-gradient-to-br from-green-400 to-green-500 text-white',
+                    isActive && 'bg-gradient-to-br from-orange-400 to-rose-500 text-white ring-4 ring-orange-100',
                     !isPast && !isActive && 'bg-gray-100 text-gray-400'
                   )}
                 >
-                  {isPast ? '✓' : i + 1}
+                  {isPast ? (
+                    <CheckCircle2 className="w-5 h-5" />
+                  ) : isActive ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    i + 1
+                  )}
                 </div>
-                <div className="flex flex-col items-center min-w-0">
-                  <span
-                    className={cn(
-                      'text-xs font-medium transition-colors whitespace-nowrap',
-                      isActive && 'text-orange-700',
-                      isPast && 'text-green-700',
-                      !isPast && !isActive && 'text-gray-400'
-                    )}
-                  >
+                <div className="text-center">
+                  <p className={cn(
+                    'text-xs font-semibold whitespace-nowrap',
+                    isActive && 'text-orange-600',
+                    isPast && 'text-green-600',
+                    !isPast && !isActive && 'text-gray-400'
+                  )}>
                     {step.label}
-                    {isActive && currentStep !== STEPS.DONE && (
-                      <span className="inline-block ml-1 w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse align-middle" />
-                    )}
-                  </span>
-                  <span className="text-[10px] text-gray-400 leading-tight">
-                    {isActive ? (isWriting && chapters.length > 0 ? `已完成 ${chapters.length} 章` : step.desc) : step.desc}
-                  </span>
+                  </p>
+                  <p className={cn(
+                    'text-[10px] mt-0.5 whitespace-nowrap',
+                    isActive && 'text-orange-500',
+                    isPast && 'text-green-500',
+                    !isPast && !isActive && 'text-gray-300'
+                  )}>
+                    {isWriting && i === currentIdx && chapters.length > 0
+                      ? `${chapters.length} 章`
+                      : step.desc}
+                  </p>
                 </div>
               </div>
               {i < STEP_CONFIG.length - 1 && (
                 <div className={cn(
-                  'h-px flex-1 mx-1',
+                  'h-1 flex-1 mx-2 rounded-full transition-colors',
                   i < currentIdx || (currentStep === STEPS.DONE && i < STEP_CONFIG.length)
-                    ? 'bg-green-400'
-                    : 'bg-gray-200'
+                    ? 'bg-gradient-to-r from-green-400 to-green-500'
+                    : 'bg-gray-100'
                 )} />
               )}
             </div>

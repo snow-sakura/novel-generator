@@ -15,8 +15,8 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env .env.local  # 编辑 API Key
-python -m app.main
+cp .env.example .env  # 编辑 API Key
+bash run.sh           # 自动激活 venv + 启动服务
 ```
 
 ### 前端
@@ -31,67 +31,197 @@ npm run dev
 
 ## 技术栈
 
-- 前端：Vite + React + TailwindCSS + Zustand
-- 后端：Python FastAPI + LangChain + SQLite
-- 模型：支持 OpenAI / Anthropic / Ollama / OpenCode Zen / MiMo V2.5 切换
+| 层级 | 技术 |
+|------|------|
+| 前端 | Vite + React 18 + TailwindCSS 3 + Zustand + Lucide Icons |
+| 后端 | Python FastAPI + LangChain + CrewAI + SQLAlchemy 2.0 + SQLite |
+| 模型 | OpenCode Zen / DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax |
+| 构建 | Vite (前端) + Uvicorn (后端) |
 
 ## 项目结构
 
 ```
 novel-generator/
-├── backend/            # Python FastAPI 后端
+├── backend/                    # Python FastAPI 后端
 │   ├── app/
-│   │   ├── routers/    # API 路由（生成/查询/导出）
-│   │   ├── services/   # 生成管线 + Prompt 模板
-│   │   └── llm/        # LLM Provider 工厂
-│   └── requirements.txt
-├── frontend/           # Vite + React 前端
+│   │   ├── routers/            # API 路由
+│   │   │   ├── generate.py     # 生成 + 记录管理 + SSE
+│   │   │   ├── chat.py         # AI 对话式生成
+│   │   │   ├── novel.py        # 小说 CRUD
+│   │   │   ├── export.py       # 导出（MD/TPT/PDF/ZIP/XMind）
+│   │   │   ├── prompts.py      # 提示词模板
+│   │   │   └── model_config.py # 模型配置持久化
+│   │   ├── services/
+│   │   │   ├── generator.py    # 生成管线核心（CrewAI 多智能体）
+│   │   │   ├── chat_service.py # 对话式生成包装器
+│   │   │   ├── prompts.py      # Prompt 模板
+│   │   │   ├── xmind.py        # XMind 思维导图生成
+│   │   │   └── export.py       # 导出服务
+│   │   ├── llm/
+│   │   │   └── provider.py     # 多 Provider LLM 工厂
+│   │   ├── models/             # SQLAlchemy ORM 模型
+│   │   ├── data.py             # 题材/风格/模型数据
+│   │   ├── config.py           # 配置管理
+│   │   ├── database.py         # 数据库连接 + 迁移
+│   │   └── main.py             # 应用入口
+│   ├── .env                    # 环境变量（不提交）
+│   ├── .env.example            # 环境变量模板
+│   └── run.sh                  # 启动脚本
+├── frontend/                   # Vite + React 前端
 │   └── src/
-│       ├── pages/      # 创作/阅读/历史页面
-│       ├── components/ # UI 组件
-│       └── services/   # API 调用 + Demo 模式
-├── docs/               # 设计文档 + 生成的小说文件
-│   ├── novel/          # 生成的小说文件（自动创建）
-│   ├── prd/            # PRD 文档（V1-V3）
-│   └── spec/           # 技术设计 + API + 数据库文档
-└── .github/workflows/  # GitHub Pages 自动部署
+│       ├── pages/              # 页面组件
+│       │   ├── CreatePage.jsx  # 创作页（垂直布局 + TAB）
+│       │   ├── NovelPage.jsx   # 阅读页（大纲/章节/导出）
+│       │   ├── HistoryPage.jsx # 历史记录（标签页 + 卡片）
+│       │   ├── ChatPage.jsx    # AI 对话页
+│       │   └── PromptRefPage.jsx # 提示词参考
+│       ├── components/         # 通用组件
+│       │   ├── NovelForm.jsx   # 创作表单（TAB 布局）
+│       │   ├── StepProgress.jsx # 步骤进度条
+│       │   ├── MultiStepLog.jsx # 多步骤日志
+│       │   ├── NovelCard.jsx   # 小说卡片
+│       │   ├── ChatOptionSelector.jsx # 对话选项
+│       │   ├── SettingsModal.jsx # 设置弹窗
+│       │   └── ConfirmDialog.jsx # 确认弹窗
+│       ├── stores/             # Zustand 状态管理
+│       ├── services/           # API 调用
+│       └── lib/                # 工具函数
+├── docs/                       # 设计文档
+├── backups/                    # 数据库自动备份
+└── novels_index.json           # 小说索引文件
 ```
 
-## Demo 模式说明
+## 核心流程
 
-部署到 GitHub Pages 时，前端自动进入 Demo 模式：
+```
+种子句 → 选择(频道/题材/风格[多选]/字数)
+→ 后端 CrewAI 四智能体管线
+   (要素解析 → 大纲规划 → 逐章生成 → 标题生成)
+→ SSE 流式推送前端
+→ 自动存储到 docs/novel/{title}/ + DB
+```
 
-- 使用预生成的样例小说模拟完整 SSE 生成流程
-- 支持体验：要素解析 → 大纲规划 → 逐章生成 → 标题生成
-- 展示 StepProgress 进度条 + ThinkingLog 思考日志 + NovelReader 阅读器
-- 可查看样例小说详情页面
+## 多智能体架构
+
+| 角色 | 职责 |
+|------|------|
+| 故事要素分析师 | 从种子句中提取六维故事要素 |
+| 小说大纲架构师 | 构建六层完整大纲（战略/人物/设定/结构/节奏/风格） |
+| 小说章节作家 | 逐章流式生成正文 |
+| 小说标题专家 | 根据全文生成吸引人的标题 |
 
 ## 模型配置
 
-后端支持多模型切换，在 `backend/.env` 中配置：
+### 默认配置（OpenCode Zen 免费模型）
 
 ```env
-LLM_PROVIDER=opencode  # 可选：openai / anthropic / ollama / opencode
-
-# OpenCode Zen（默认）
+LLM_PROVIDER=opencode
 OPENCODE_API_KEY=sk-xxx
 OPENCODE_BASE_URL=https://opencode.ai/zen/v1
-OPENCODE_MODEL=mimo-v2.5-free  # 可选: mimo-v2.5-free, deepseek-v4-flash-free, hy3-free
+OPENCODE_MODEL=mimo-v2.5-free
 ```
 
-可用免费模型：MiMo-V2.5 (小米) / DeepSeek V4 Flash / Hy3 / Nemotron-3 Ultra
+### 可用免费模型
 
-国产模型（需 API Key）：DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零一万物 / 硅基流动
+| 模型 | 说明 |
+|------|------|
+| `mimo-v2.5-free` | MiMo V2.5（小米） |
+| `deepseek-v4-flash-free` | DeepSeek V4 Flash |
+| `hy3-free` | 混元 3 |
+| `nemotron-3-ultra-free` | Nemotron 3 Ultra |
+
+### 国产模型（需 API Key）
+
+DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零一万物 / 硅基流动
 
 前端可通过设置页面切换模型，配置持久化到数据库。
 
-可用的免费模型（OpenCode Zen）：
-- `mimo-v2.5-free` — MiMo V2.5（小米，限免）
-- `deepseek-v4-flash-free` — DeepSeek V4 Flash
-- `hy3-free` — 混元 3
-- `nemotron-3-ultra-free` — Nemotron 3 Ultra
+## API 端点
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| POST | `/api/v1/generate` | SSE 流式生成小说 |
+| POST | `/api/v1/generate/continue?record_id=X` | 从失败/取消点继续 |
+| POST | `/api/v1/chat/generate` | AI 对话式生成 |
+| GET | `/api/v1/records` | 生成记录列表（分页） |
+| GET | `/api/v1/records/{id}` | 记录详情 |
+| GET | `/api/v1/records/{id}/status` | 轻量状态轮询 |
+| POST | `/api/v1/records/{id}/cancel` | 取消生成 |
+| POST | `/api/v1/records/{id}/reset` | 重置卡住的记录 |
+| DELETE | `/api/v1/records/{id}` | 删除记录 |
+| POST | `/api/v1/cleanup` | 清理孤立数据 |
+| GET | `/api/v1/novels` | 小说列表 |
+| GET | `/api/v1/novels/{id}` | 小说详情 |
+| GET | `/api/v1/novels/{id}/export` | 导出全文 |
+| GET | `/api/v1/novels/{id}/export/chapters` | 逐章 ZIP |
+| GET | `/api/v1/novels/{id}/export/outline` | 大纲导出 |
+| GET | `/api/v1/models/list` | 国产模型列表 |
+| GET | `/api/v1/genres/list?gender=` | 题材列表 |
+| GET | `/api/v1/model-config` | 获取模型配置 |
+| PUT | `/api/v1/model-config` | 保存模型配置 |
+| GET | `/api/v1/prompts` | 提示词模板 |
+| GET | `/api/v1/config/check` | 配置状态检查 |
+| GET | `/health` | 健康检查（含数据库统计 + 磁盘空间） |
+| POST | `/api/v1/backup` | 数据库备份 |
+
+## 健康检查
+
+`GET /health` 返回：
+
+```json
+{
+  "status": "ok",
+  "version": "v1.3.1",
+  "database": {
+    "novels": 16,
+    "records": 21,
+    "in_progress": 0,
+    "stale_records": 0
+  },
+  "disk": {
+    "total_gb": 256.0,
+    "used_gb": 141.2,
+    "free_gb": 114.8
+  }
+}
+```
+
+## SSE 事件流
+
+`event: xxx\ndata: {...}\n\n` 格式。
+
+事件类型：`parse`, `parse_done`, `outline`, `outline_thinking`, `outline_done`, `chapter_start`, `content`, `chapter_end`, `title`, `log`, `complete`, `error`, `record_id`, `continue_from`
+
+## 安全特性
+
+- **API Key 脱敏**：GET 响应中 API Key 仅显示后 4 位
+- **CORS 限制**：仅允许 localhost:5173/5174
+- **请求体限制**：最大 10MB
+- **数据库索引**：优化查询性能
+- **自动备份**：最多保留 10 个备份
 
 ## 版本历史
+
+### v1.5.0 (2026-08-28)
+
+**后端优化:**
+- API Key 脱敏（GET 响应仅返回后 4 位）
+- CORS 限制为开发域名
+- cancelled 状态保护（finally 不再覆盖）
+- SSE 流式逻辑提取为公共函数
+- Session 统一使用 Depends(get_db)
+- 数据库索引优化（4 个索引）
+- 请求体大小限制（10MB）
+- 全局异常处理
+- 增强健康检查（数据库统计 + 磁盘空间）
+- 数据库备份端点
+
+**前端优化:**
+- 全局风格统一（渐变色/圆角/阴影）
+- 可访问性（aria-label）
+- 移动端适配
+- 页面过渡动画
+- 构建零错误
 
 ### v1.4.0 (2026-07-08)
 
@@ -103,38 +233,37 @@ OPENCODE_MODEL=mimo-v2.5-free  # 可选: mimo-v2.5-free, deepseek-v4-flash-free,
 ### v1.3.0 (2026-07-05)
 
 **新增功能:**
-- 生成日志持久化 — 完整生成日志存储到DB
-- 继续生成内容回显 — 自动回显已生成章节内容
-- 回到顶部按钮 — 悬浮圆角回到顶部按钮
-- 存储结构调整 — 所有小说文件统一存储至docs/novel/
+- 生成日志持久化
+- 继续生成内容回显
+- 回到顶部按钮
+- 存储结构调整
 
 ### v1.2.0 (2026-07-05)
 
 **新增功能:**
-- 题材/风格可折叠 — 支持点击折叠收起
-- 大纲自动导出XMind — 自动生成思维导图文件
-- 生成记录系统 — 记录每次生成的参数、进度、状态
-- 失败继续生成 — 从失败记录重建参数重新生成
+- 题材/风格可折叠
+- 大纲自动导出XMind
+- 生成记录系统
+- 失败继续生成
 
 ### v1.1.0 (2026-07-05)
 
 **新增功能:**
-- 男频/女频频道 — 区分读者群体
-- 番茄小说题材库 — 男频19类、女频18类
-- 番茄小说风格库 — 15种常见写作风格
-- 目标字数扩展 — 500~500,000字
-- 自定义模型配置 — 支持多种国产模型
+- 男频/女频频道
+- 番茄小说题材库/风格库
+- 目标字数扩展
+- 自定义模型配置
 
 ### v1.0.0 (2026-07-05)
 
 **初始版本:**
-- Vite + React前端
-- Python FastAPI后端
-- SSE流式生成
-- 多Provider支持
+- Vite + React 前端
+- Python FastAPI 后端
+- SSE 流式生成
+- 多 Provider 支持
 - 导出格式：Markdown/TXT/PDF
-- 前端Demo模式
-- GitHub Actions自动部署
+- 前端 Demo 模式
+- GitHub Actions 自动部署
 
 ## 许可证
 

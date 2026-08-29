@@ -47,3 +47,12 @@ body {
 @keyframes logFadeIn {
   to { opacity: 1; }
 }
+
+/* 页面切换淡入动画 */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: pageIn 0.25s ease-out;
+}

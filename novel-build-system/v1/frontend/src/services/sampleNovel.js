@@ -46,23 +46,23 @@ export const SAMPLE_OUTLINE_THINKING = [
   { index: 3, title: '第四章 交叉路口', summary: '主角决定行动，修复bug也修复人生' },
 ]
 
-export async function* mockGenerateStream() {
+export async function* mockGenerateStream(signal) {
   yield { event: 'log', data: '📝 开始生成 男频·科幻末世·快节奏爽文 小说...' }
-  await delay(500)
+  await delay(500, signal)
   yield { event: 'parse', data: '正在分析故事要素...' }
   yield { event: 'log', data: '📝 正在分析故事要素...' }
-  await delay(600)
+  await delay(600, signal)
   yield { event: 'parse_done', data: SAMPLE_ELEMENTS }
   yield { event: 'log', data: '✅ 要素分析完成' }
 
   yield { event: 'log', data: '📐 正在规划章节大纲...' }
   yield { event: 'outline', data: '正在思考章节结构...' }
   yield { event: 'log', data: '📐 规划章节：目标3000字，每章800-2500字，预计4章' }
-  await delay(400)
+  await delay(400, signal)
   for (const item of SAMPLE_OUTLINE_THINKING) {
     yield { event: 'log', data: `  📋 第${item.index + 1}章《${item.title}》: ${item.summary.substring(0, 30)}...` }
     yield { event: 'outline_thinking', data: item }
-    await delay(200)
+    await delay(200, signal)
   }
   yield { event: 'log', data: '✅ 大纲规划完成：共 4 章' }
   yield { event: 'outline_done', data: JSON.parse(SAMPLE_NOVEL.chapters) }
@@ -77,7 +77,7 @@ export async function* mockGenerateStream() {
       const paras = chapterContents[i].split('\n\n')
       for (const para of paras) {
         yield { event: 'content', data: para + '\n\n' }
-        await delay(randomDelay(100, 250))
+        await delay(randomDelay(100, 250), signal)
       }
     }
     yield { event: 'log', data: `  ✅ 第${i+1}章完成（${(chapterContents[i] || '').length}字）` }
@@ -86,10 +86,24 @@ export async function* mockGenerateStream() {
 
   yield { event: 'log', data: '🏷️ 正在生成标题...' }
   yield { event: 'title', data: '正在生成标题...' }
-  await delay(400)
+  await delay(400, signal)
   yield { event: 'log', data: `🎉 全部完成！标题《${SAMPLE_NOVEL.title}》，总字数${SAMPLE_NOVEL.actual_count}` }
   yield { event: 'complete', data: { novel_id: 0, title: SAMPLE_NOVEL.title, total_words: SAMPLE_NOVEL.actual_count, time_cost: SAMPLE_NOVEL.time_cost } }
 }
 
-function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
+function delay(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal && signal.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'))
+      return
+    }
+    const timer = setTimeout(resolve, ms)
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        clearTimeout(timer)
+        reject(new DOMException('Aborted', 'AbortError'))
+      }, { once: true })
+    }
+  })
+}
 function randomDelay(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }

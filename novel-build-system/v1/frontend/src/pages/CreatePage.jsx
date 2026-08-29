@@ -1,26 +1,15 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { X, BookOpen, Loader2, FileText, CheckCircle, Sparkles, StopCircle, AlertTriangle } from 'lucide-react'
+import { X, BookOpen, Loader2, FileText, CheckCircle, Sparkles, StopCircle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import { useNovelStore, STEPS } from '../stores/novelStore'
 import { generateNovel, generateNovelDemo, fetchRecord, cancelRecord, fetchModelConfig } from '../services/api'
 import NovelForm from '../components/NovelForm'
 import StepProgress from '../components/StepProgress'
 import ConfigStatus from '../components/ConfigStatus'
 import MultiStepLog from '../components/MultiStepLog'
-import { cn } from '../lib/utils'
+import { cn, renderMarkdown } from '../lib/utils'
 
-function renderMD(text) {
-  if (!text) return ''
-  let html = text
-    .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold my-3 text-gray-800">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold my-4 text-gray-900 text-left">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold my-5 text-gray-900 text-left">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '</p><p class="text-base leading-relaxed mb-4 text-gray-800">')
-    .replace(/\n/g, '<br/>')
-  return '<p class="text-base leading-relaxed mb-4 text-gray-800">' + html + '</p>'
-}
+const renderMD = (text) => renderMarkdown(text, { size: 'base' })
 
 function ChapterModal({ chapterIndex, chapter, content, onClose }) {
   const contentRef = useRef(null)
@@ -42,7 +31,7 @@ function ChapterModal({ chapterIndex, chapter, content, onClose }) {
             </span>
             <h2 className="text-lg font-bold text-gray-900">{chapter.title || `第${chapterIndex + 1}章`}</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -74,12 +63,12 @@ function CompleteDialog({ data, onConfirm, onCancel }) {
         </p>
         <div className="flex gap-3 justify-center">
           <button onClick={onConfirm}
-            className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-rose-600 transition-all shadow-sm flex items-center gap-2">
+            className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-rose-600 transition-all shadow-md flex items-center gap-2">
             <CheckCircle className="w-4 h-4" />
             确认进入详情页
           </button>
           <button onClick={onCancel}
-            className="px-6 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all">
+            className="px-6 py-2.5 bg-white border-2 border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all">
             取消，继续浏览
           </button>
         </div>
@@ -108,6 +97,7 @@ export default function CreatePage() {
   const [completeData, setCompleteData] = useState(null)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showStopConfirm, setShowStopConfirm] = useState(false)
+  const [showForm, setShowForm] = useState(false)
   const timersRef = useRef([])
   const generatingRef = useRef(false)
 
@@ -169,7 +159,6 @@ export default function CreatePage() {
     }))
   }, [chapters, chapterTexts])
 
-  // 仅在逐章生成阶段及之后才显示 TOC
   const showToc = currentStep === STEPS.WRITING || currentStep === STEPS.TITLING ||
                   currentStep === STEPS.DONE || currentStep === STEPS.ERROR
   const writingActive = currentStep === STEPS.WRITING
@@ -319,49 +308,75 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {currentStep === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-red-800">生成失败</p>
-            <p className="text-sm text-red-600 mt-1">{useNovelStore.getState().errorMessage}</p>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+          <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-4 h-4 text-red-500" />
           </div>
-          <button onClick={reset} className="text-sm text-red-500 hover:text-red-700 underline flex-shrink-0">重新开始</button>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-800">生成失败</p>
+            <p className="text-sm text-red-600 mt-1 leading-relaxed">{useNovelStore.getState().errorMessage}</p>
+          </div>
+          <button onClick={reset} className="text-sm font-semibold text-red-500 hover:text-red-700 underline flex-shrink-0">重新开始</button>
         </div>
       )}
 
-      <div className="flex items-start justify-between">
+      {/* 标题区域 - 紧凑设计 */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-gray-900">
             {storeContinueId || (isContinue && continueRecordId) ? '继续生成' : '创作新小说'}
           </h1>
-          <p className="text-gray-500 mt-1 text-sm">
+          <p className="text-gray-500 mt-0.5 text-sm">
             {demoMode ? '🎯 Demo 模式' : '输入一句话，AI 自动生成完整故事'}
-            {storeContinueId || (isContinue && continueRecordId) ? '（接续上次失败进度）' : ''}
           </p>
         </div>
         <ConfigStatus />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-5 items-stretch">
-        <div className="w-full lg:w-2/5 xl:w-2/5 flex-shrink-0">
-          <div className="bg-white rounded-xl border border-gray-200 p-5 sticky top-20 max-h-[calc(100vh-8rem)] overflow-y-auto">
-            <NovelForm onGenerate={handleGenerate} />
-          </div>
+      {/* 主内容区 - 上下布局 */}
+      <div className="space-y-4">
+        {/* 上方：创作参数表单 */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* 表单标题栏 - 可点击折叠/展开 */}
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
+                <Sparkles className="w-3 h-3 text-white" />
+              </div>
+              <span className="text-sm font-semibold text-gray-700">创作参数</span>
+            </div>
+            {showForm ? (
+              <ChevronUp className="w-4 h-4 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            )}
+          </button>
+          {/* 表单内容 - 可折叠 */}
+          {showForm && (
+            <div className="p-4">
+              <NovelForm onGenerate={handleGenerate} />
+            </div>
+          )}
         </div>
-        <div className="flex-1 min-w-0 space-y-4 flex flex-col">
+
+        {/* 下方：状态/进度区域 */}
+        <div className="space-y-3">
           {(generating || currentStep === 'error') && <StepProgress />}
 
           {/* 停止生成按钮 */}
           {generating && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-xl p-3 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-sm text-red-700 font-medium">生成进行中</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-sm" />
+                <span className="text-sm text-red-700 font-semibold">生成进行中</span>
               </div>
               <button onClick={handleStopGeneration}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-red-500 rounded-lg hover:bg-red-600 active:bg-red-700 transition-all shadow-sm">
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 rounded-lg hover:from-red-600 hover:to-rose-600 active:from-red-700 active:to-rose-700 transition-all shadow-md">
                 <StopCircle className="w-4 h-4" />
                 停止 (Esc)
               </button>
@@ -374,8 +389,10 @@ export default function CreatePage() {
           {showToc && chapters.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4 text-orange-500" />
+                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
+                    <BookOpen className="w-3 h-3 text-white" />
+                  </div>
                   章节目录
                   <span className="text-xs text-gray-400 font-normal">
                     （{chapterContentList.filter(c => c.hasContent).length}/{chapters.length} 章）
@@ -431,10 +448,12 @@ export default function CreatePage() {
 
           {/* 空状态占位 */}
           {!showToc && !showContentPlaceholder && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[360px] flex flex-col items-center justify-center">
-              <div className="text-5xl mb-4">✍️</div>
-              <p className="text-gray-400">填写左侧表单，点击「开始生成」</p>
-              <p className="text-sm text-gray-300 mt-1">AI 将为你创作一篇完整的小说</p>
+            <div className="bg-white rounded-xl border border-gray-200 p-8 min-h-[200px] flex flex-col items-center justify-center shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center mb-4 shadow-md">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <p className="text-gray-500 text-sm font-medium">点击上方「创作参数」展开表单，填写后点击生成</p>
+              <p className="text-xs text-gray-400 mt-1">AI 将为你创作一篇完整的小说</p>
             </div>
           )}
         </div>
@@ -463,18 +482,20 @@ export default function CreatePage() {
       {showStopConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowStopConfirm(false)}>
           <div className="bg-white rounded-2xl w-[90vw] max-w-sm shadow-2xl p-6 text-center" onClick={e => e.stopPropagation()}>
-            <StopCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <StopCircle className="w-7 h-7 text-white" />
+            </div>
             <h2 className="text-lg font-bold text-gray-900 mb-2">确认停止生成？</h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
               已生成的章节将自动保存，你可以在历史记录中继续生成。
             </p>
             <div className="flex gap-3 justify-center">
               <button onClick={confirmStop}
-                className="px-5 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-all text-sm">
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl font-semibold hover:from-red-600 hover:to-rose-600 transition-all text-sm shadow-md">
                 确认停止
               </button>
               <button onClick={() => setShowStopConfirm(false)}
-                className="px-5 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all text-sm">
+                className="px-6 py-2.5 bg-white border-2 border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all text-sm">
                 取消
               </button>
             </div>
