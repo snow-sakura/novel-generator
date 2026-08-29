@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { FileText, History, Sparkles, MessageSquare, BookOpen, Settings } from 'lucide-react'
-import CreatePage from './pages/CreatePage'
-import NovelPage from './pages/NovelPage'
-import HistoryPage from './pages/HistoryPage'
-import ChatPage from './pages/ChatPage'
-import PromptRefPage from './pages/PromptRefPage'
+import { FileText, History, Sparkles, MessageSquare, BookOpen, Settings, Loader2 } from 'lucide-react'
 import SettingsModal from './components/SettingsModal'
 import ToastContainer from './components/ToastContainer'
 import { cn } from './lib/utils'
+
+// 路由级代码分割 — 首屏仅加载当前页面
+const CreatePage = lazy(() => import('./pages/CreatePage'))
+const NovelPage = lazy(() => import('./pages/NovelPage'))
+const HistoryPage = lazy(() => import('./pages/HistoryPage'))
+const ChatPage = lazy(() => import('./pages/ChatPage'))
+const PromptRefPage = lazy(() => import('./pages/PromptRefPage'))
 
 const NAV_ITEMS = [
   { to: '/', icon: FileText, label: '创作' },
@@ -93,19 +95,30 @@ function PageTransition({ children }) {
   )
 }
 
+function PageLoading() {
+  return (
+    <div className="flex items-center justify-center py-32">
+      <Loader2 className="w-6 h-6 animate-spin text-orange-400" />
+      <span className="ml-2 text-sm text-gray-400">加载中...</span>
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-novel-bg">
         <Navbar />
         <main className="max-w-5xl mx-auto px-4 py-6">
-          <Routes>
-            <Route path="/" element={<PageTransition><CreatePage /></PageTransition>} />
-            <Route path="/novel/:id" element={<PageTransition><NovelPage /></PageTransition>} />
-            <Route path="/history" element={<PageTransition><HistoryPage /></PageTransition>} />
-            <Route path="/chat" element={<PageTransition><ChatPage /></PageTransition>} />
-            <Route path="/prompts" element={<PageTransition><PromptRefPage /></PageTransition>} />
-          </Routes>
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              <Route path="/" element={<PageTransition><CreatePage /></PageTransition>} />
+              <Route path="/novel/:id" element={<PageTransition><NovelPage /></PageTransition>} />
+              <Route path="/history" element={<PageTransition><HistoryPage /></PageTransition>} />
+              <Route path="/chat" element={<PageTransition><ChatPage /></PageTransition>} />
+              <Route path="/prompts" element={<PageTransition><PromptRefPage /></PageTransition>} />
+            </Routes>
+          </Suspense>
         </main>
         <footer className="text-center py-6 text-xs text-gray-300 border-t border-gray-100/50 mt-8">
            <span>番茄小说生成器 V3 · AI Novel Generator</span>
