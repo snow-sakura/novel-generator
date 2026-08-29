@@ -1,10 +1,28 @@
-# 番茄小说生成智能体 V3
+# 番茄小说生成智能体 V3 — 灵魂版
 
-一句话输入，AI 自动生成完整小说。
+> **一句话输入，AI 自动生成完整小说**
 
 > 🎯 **在线 Demo：** https://snow-sakura.github.io/novel-generator/
 >
 > Demo 模式无需后端，可在浏览器中直接体验完整生成流程。
+
+## 界面预览
+
+### 创作页面
+
+![创作页面](../screenshots/v3-create.png)
+
+### 对话式创作
+
+![对话式创作](../screenshots/v3-chat.png)
+
+### 历史记录
+
+![历史记录](../screenshots/v3-history.png)
+
+### 模板库
+
+![模板库](../screenshots/v3-prompts.png)
 
 ## 快速启动
 

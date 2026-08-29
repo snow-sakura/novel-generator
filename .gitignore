@@ -11,6 +11,7 @@ dist/
 
 # Node
 node_modules/
+dist/
 
 # IDE
 .idea/
@@ -37,6 +38,10 @@ test-results/
 
 # Test cache
 .pytest_cache/
+
+# Novel Build System — 生成的小说内容
+novel-build-system/docs/novel/
+novel-build-system/.workbuddy/
 
 # Novel Build Test — AISQA
 novel-build-test/backend/.venv/

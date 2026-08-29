@@ -1,10 +1,20 @@
-# 番茄小说生成智能体 V1
+# 番茄小说生成智能体 V1 — 骨架版
 
-一句话输入，AI 自动生成完整小说。
+> **一句话输入，AI 自动生成完整小说**
 
 > 🎯 **在线 Demo：** https://snow-sakura.github.io/novel-generator/
 >
 > Demo 模式无需后端，可在浏览器中直接体验完整生成流程。
+
+## 界面预览
+
+### 创作页面
+
+![创作页面](../screenshots/v1-create.png)
+
+### 历史记录
+
+![历史记录](../screenshots/v1-history.png)
 
 ## 快速启动
 
