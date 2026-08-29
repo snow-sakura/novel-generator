@@ -28,37 +28,37 @@
 
 ### 创作页面 — 一句话开启创作之旅
 
-![创作页面](docs/screenshots/v3-create.png)
+![创作页面](novel-build-system/docs/screenshots/v3-create.png)
 
 > V3 创作页面：左侧表单配置频道/题材/风格，右侧实时显示生成进度
 
 ### 对话式创作 — 像聊天一样写小说
 
-![对话式创作](docs/screenshots/v3-chat.png)
+![对话式创作](novel-build-system/docs/screenshots/v3-chat.png)
 
 > 对话页面：输入种子句后，AI 通过对话引导你完成创作参数配置
 
 ### 历史记录 — 管理你的所有作品
 
-![历史记录](docs/screenshots/v3-history.png)
+![历史记录](novel-build-system/docs/screenshots/v3-history.png)
 
 > 历史页面：查看所有生成记录，支持继续生成、导出、删除等操作
 
 ### 模板库 — 预设提示词参考
 
-![模板库](docs/screenshots/v3-prompts.png)
+![模板库](novel-build-system/docs/screenshots/v3-prompts.png)
 
 > 模板页面：浏览和参考各类创作提示词模板
 
 ### V1 创作页面 — 经典骨架版
 
-![V1 创作页面](docs/screenshots/v1-create.png)
+![V1 创作页面](novel-build-system/docs/screenshots/v1-create.png)
 
 > V1 创作页面：简洁的表单布局，专注核心生成功能
 
 ### V1 历史记录
 
-![V1 历史记录](docs/screenshots/v1-history.png)
+![V1 历史记录](novel-build-system/docs/screenshots/v1-history.png)
 
 > V1 历史页面：卡片式展示已生成的小说
 
