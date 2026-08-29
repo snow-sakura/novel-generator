@@ -63,6 +63,7 @@ export default function ChatMessage({ message, isLast }) {
       {!isUser && !isStreaming && message.content && (
         <div className="flex-shrink-0 self-end">
           <button onClick={handleCopy}
+            aria-label="复制"
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
             title="复制">
             {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}

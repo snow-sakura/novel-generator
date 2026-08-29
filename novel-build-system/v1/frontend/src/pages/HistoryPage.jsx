@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Clock, BookOpen, Monitor, RefreshCw, CheckCircle, XCircle, Loader2, AlertTriangle, ExternalLink, Trash2, Download, StopCircle, Sparkles, Plus } from 'lucide-react'
 import { fetchCompletedNovels, fetchRecords, fetchRecordStatus, deleteRecord, cleanupData, isGitHubPages } from '../services/api'
 import NovelCard from '../components/NovelCard'
-import { cn } from '../lib/utils'
+import { cn, toast } from '../lib/utils'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function HistoryPage() {
@@ -115,7 +115,7 @@ export default function HistoryPage() {
       setRecords(prev => prev.filter(r => r.id !== deleteTarget))
       setRecordTotal(prev => prev - 1)
     } catch (err) {
-      alert('删除失败: ' + err.message)
+      toast.error('删除失败: ' + err.message)
     }
     setDeleteTarget(null)
   }
@@ -129,11 +129,11 @@ export default function HistoryPage() {
     try {
       const result = await cleanupData()
       if (result) {
-        alert(`清理完成：${result.cleaned.orphaned_records} 条孤立记录、${result.cleaned.orphaned_novels} 部无效小说已清理`)
+        toast.success(`清理完成：${result.cleaned.orphaned_records} 条孤立记录、${result.cleaned.orphaned_novels} 部无效小说已清理`)
         loadData()
       }
     } catch (err) {
-      alert('清理失败: ' + err.message)
+      toast.error('清理失败: ' + err.message)
     }
   }
 

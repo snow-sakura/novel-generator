@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Play, Pause, Square, SkipBack, SkipForward, Volume2, ChevronUp, ChevronDown, Headphones, Download, Cloud, Globe } from 'lucide-react'
 import { fetchTTSVoices, generateTTS, generateAllTTS, getTTSAudioUrl, fetchTTSStatus, deleteTTSAudio } from '../services/api'
 
@@ -203,7 +203,7 @@ export default function TTSController({ novelId, content, chapters, onClose }) {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-      <button onClick={() => setExpanded(!expanded)}
+      <button onClick={() => setExpanded(!expanded)} aria-label={expanded ? '收起' : '展开'}
         className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-5 bg-white border border-gray-200 rounded-t-lg flex items-center justify-center text-gray-400 hover:text-gray-600">
         {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
       </button>
@@ -226,26 +226,26 @@ export default function TTSController({ novelId, content, chapters, onClose }) {
             </div>
 
             <div className="flex items-center gap-1">
-              <button onClick={handlePrev} disabled={currentCh === 0}
+              <button onClick={handlePrev} disabled={currentCh === 0} aria-label="上一章"
                 className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors">
                 <SkipBack className="w-4 h-4" />
               </button>
               {playing ? (
-                <button onClick={handlePause}
+                <button onClick={handlePause} aria-label="暂停"
                   className="p-2 text-white bg-purple-500 hover:bg-purple-600 rounded-full transition-colors">
                   <Pause className="w-4 h-4" />
                 </button>
               ) : (
-                <button onClick={handlePlay}
+                <button onClick={handlePlay} aria-label="播放"
                   className="p-2 text-white bg-purple-500 hover:bg-purple-600 rounded-full transition-colors">
                   <Play className="w-4 h-4" />
                 </button>
               )}
-              <button onClick={handleStop} disabled={!playing && !paused}
+              <button onClick={handleStop} disabled={!playing && !paused} aria-label="停止"
                 className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors">
                 <Square className="w-4 h-4" />
               </button>
-              <button onClick={handleNext} disabled={currentCh >= chaptersList.length - 1}
+              <button onClick={handleNext} disabled={currentCh >= chaptersList.length - 1} aria-label="下一章"
                 className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors">
                 <SkipForward className="w-4 h-4" />
               </button>
@@ -265,7 +265,7 @@ export default function TTSController({ novelId, content, chapters, onClose }) {
                     <>
                       {chapterGenerated ? (
                         <a href={chapterAudioUrl} download={`chapter_${currentCh + 1}.mp3`}
-                          className="p-1 text-gray-400 hover:text-purple-600 transition-colors" title="下载音频">
+                          className="p-1 text-gray-400 hover:text-purple-600 transition-colors" title="下载音频" aria-label="下载音频">
                           <Download className="w-3.5 h-3.5" />
                         </a>
                       ) : (

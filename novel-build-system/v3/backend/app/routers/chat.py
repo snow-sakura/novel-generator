@@ -1,7 +1,10 @@
 """AI 对话式生成 — SSE 流式接口"""
 
 import json
+import logging
 from fastapi import APIRouter, Depends, HTTPException
+
+logger = logging.getLogger(__name__)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -32,8 +35,10 @@ def _mark_record_failed(record_id: int, error_msg: str):
 
             record.updated_at = datetime.now()
             db.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(
+            "_mark_record_failed: 标记记录 %d 为失败状态时出错: %s", record_id, e
+        )
     finally:
         db.close()
 

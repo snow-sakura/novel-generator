@@ -42,7 +42,7 @@ export default function RefinePanel({ versions, onSelect, onClose }) {
               <p className="text-xs text-gray-500">共 {versions.length} 个版本</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="关闭">
             <X className="w-5 h-5" />
           </button>
         </div>

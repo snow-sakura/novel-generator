@@ -66,7 +66,7 @@ export default function SettingsModal({ open, onClose }) {
             </div>
             <h2 className="text-lg font-bold text-gray-900">设置</h2>
           </div>
-          <button onClick={handleClose} className="btn-ghost p-1.5">
+          <button onClick={handleClose} className="btn-ghost p-1.5" aria-label="关闭">
             <X className="w-5 h-5" />
           </button>
         </div>

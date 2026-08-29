@@ -31,7 +31,7 @@ function ChapterModal({ chapterIndex, chapter, content, onClose }) {
             </span>
             <h2 className="text-lg font-bold text-gray-900">{chapter.title || `第${chapterIndex + 1}章`}</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+          <button onClick={onClose} aria-label="关闭" className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>

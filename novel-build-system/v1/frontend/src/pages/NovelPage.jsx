@@ -73,7 +73,9 @@ export default function NovelPage() {
             setThinkingLogs(rec.thinking_logs)
             setShowLogs(true)
           }
-        } catch {}
+        } catch (err) {
+          console.error('加载记录失败:', err)
+        }
       }
     } catch (err) { setError(err.message) }
     finally { setLoading(false) }

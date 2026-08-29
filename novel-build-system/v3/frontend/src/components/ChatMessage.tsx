@@ -1,9 +1,9 @@
 import { Sparkles, User, Loader2 } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { cn, escapeHtml } from '../lib/utils'
 
-function renderMD(text) {
+function renderMD(text: string): string {
   if (!text) return ''
-  let html = text
+  let html = escapeHtml(text)
     .replace(/^### (.+)$/gm, '<h3 class="text-base font-bold my-2 text-gray-800">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold my-3 text-gray-900">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold my-4 text-gray-900">$1</h1>')

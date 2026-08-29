@@ -1,4 +1,4 @@
-import { mockGenerateStream, SAMPLE_NOVEL, SAMPLE_CHAPTERS, mockGenerateOpenings, mockGenerateDialogue, type SSEMessage } from './sampleNovel'
+import { mockGenerateStream, SAMPLE_NOVEL, mockGenerateOpenings, mockGenerateDialogue, type SSEMessage } from './sampleNovel'
 
 const API_BASE = '/api/v3'
 
@@ -188,7 +188,6 @@ export function generateNovel(
     ? `/generate/continue?record_id=${continueRecordId}`
     : '/generate'
 
-  console.log('[SSE] 开始请求:', url, params)
   return createSSEClient(url, params, {
     timeout: 600000,
     timeoutMsg: '请求超时（10分钟）',
@@ -801,7 +800,9 @@ export async function saveModelConfig(config: Record<string, unknown>): Promise<
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     })
-  } catch {}
+  } catch (e) {
+    console.error('保存模型配置失败:', e)
+  }
 }
 
 // ─── 生成记录 ───
@@ -830,7 +831,9 @@ export async function cancelRecord(id: number | string | null): Promise<void> {
   if (isGitHubPages() || !id) return
   try {
     await fetch(`${API_BASE}/records/${id}/cancel`, { method: 'POST' })
-  } catch {}
+  } catch (e) {
+    console.error('取消生成记录失败:', e)
+  }
 }
 
 export async function cleanupData(): Promise<CleanupResult | null> {

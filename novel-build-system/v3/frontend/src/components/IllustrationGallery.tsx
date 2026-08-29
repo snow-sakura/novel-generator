@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { X, Loader2, Image, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { generateIllustration, fetchIllustrations, deleteIllustration } from '../services/api'
 
@@ -80,7 +80,7 @@ export default function IllustrationGallery({ novelId, chapters, demoMode, onClo
             <h2 className="text-lg font-bold text-gray-900">AI 配图</h2>
             <span className="text-xs text-gray-400">（{illustrations.length}/{totalChapters} 章已配图）</span>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="关闭">
             <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>
@@ -119,7 +119,7 @@ export default function IllustrationGallery({ novelId, chapters, demoMode, onClo
                                 {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                                 重新生成
                               </button>
-                              <button onClick={() => handleDelete(i)} disabled={isDeleting}
+                              <button onClick={() => handleDelete(i)} disabled={isDeleting} aria-label="删除配图"
                                 className="flex items-center gap-1 px-2 py-1 text-xs bg-white/90 rounded-lg hover:bg-white text-red-500 transition-colors">
                                 {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                               </button>

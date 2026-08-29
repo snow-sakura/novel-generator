@@ -77,7 +77,7 @@ export default function ChaptersModal({ chapters, chapterTexts, onClose, onViewC
             <h2 className="text-lg font-bold text-gray-900">章节细纲</h2>
             <span className="text-xs text-gray-400">（共 {chapters.length} 章）</span>
           </div>
-          <button onClick={onClose} className="btn-ghost p-1.5"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="btn-ghost p-1.5" aria-label="关闭"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="flex border-b border-gray-100 overflow-x-auto px-4">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, ChevronDown, ChevronRight, FileCode, Loader2, AlertCircle } from 'lucide-react'
+import { BookOpen, ChevronDown, FileCode, AlertCircle } from 'lucide-react'
 import { cn } from '../lib/utils'
 
 const API_BASE = '/api/v3'

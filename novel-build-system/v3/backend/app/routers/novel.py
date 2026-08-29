@@ -1,9 +1,12 @@
 """小说 CRUD API"""
 
 import json
+import logging
 import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
@@ -129,8 +132,10 @@ async def get_novel(novel_id: int, db: Session = Depends(get_db)):
             tree = GeneratorService._dict_to_tree(outline)
             if tree:
                 outline["_tree"] = tree
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(
+                "get_novel: 生成大纲思维导图失败 (novel_id=%d): %s", novel_id, e
+            )
 
     return {
         "id": novel.id,

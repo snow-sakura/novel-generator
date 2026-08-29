@@ -23,7 +23,9 @@ class Settings:
 
     # OpenCode Zen
     opencode_api_key: str = os.getenv("OPENCODE_API_KEY", "")
-    opencode_base_url: str = os.getenv("OPENCODE_BASE_URL", "https://opencode.ai/zen/v1")
+    opencode_base_url: str = os.getenv(
+        "OPENCODE_BASE_URL", "https://opencode.ai/zen/v1"
+    )
     opencode_model: str = os.getenv("OPENCODE_MODEL", "deepseek-v4-flash-free")
 
     # 自定义模型（前端配置）
@@ -38,6 +40,9 @@ class Settings:
     # Server
     host: str = os.getenv("HOST", "0.0.0.0")
     port: int = int(os.getenv("PORT", "8000"))
+
+    # CORS（逗号分隔，为空则使用默认 localhost）
+    cors_origins: str = os.getenv("CORS_ORIGINS", "")
 
 
 settings = Settings()
@@ -56,13 +61,33 @@ def get_model_config_from_req(model_config: dict = None) -> dict:
     # 回退到环境变量
     provider = settings.llm_provider
     if provider == "openai":
-        return {"provider": "openai", "base_url": "", "model": settings.openai_model, "api_key": settings.openai_api_key}
+        return {
+            "provider": "openai",
+            "base_url": "",
+            "model": settings.openai_model,
+            "api_key": settings.openai_api_key,
+        }
     elif provider == "anthropic":
-        return {"provider": "anthropic", "base_url": "", "model": settings.anthropic_model, "api_key": settings.anthropic_api_key}
+        return {
+            "provider": "anthropic",
+            "base_url": "",
+            "model": settings.anthropic_model,
+            "api_key": settings.anthropic_api_key,
+        }
     elif provider == "ollama":
-        return {"provider": "ollama", "base_url": settings.ollama_base_url, "model": settings.ollama_model, "api_key": ""}
+        return {
+            "provider": "ollama",
+            "base_url": settings.ollama_base_url,
+            "model": settings.ollama_model,
+            "api_key": "",
+        }
     elif provider == "opencode":
-        return {"provider": "opencode", "base_url": settings.opencode_base_url, "model": settings.opencode_model, "api_key": settings.opencode_api_key}
+        return {
+            "provider": "opencode",
+            "base_url": settings.opencode_base_url,
+            "model": settings.opencode_model,
+            "api_key": settings.opencode_api_key,
+        }
     elif settings.custom_model_provider:
         return {
             "provider": settings.custom_model_provider,

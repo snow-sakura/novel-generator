@@ -82,7 +82,7 @@ export default function ChatOptionSelector({ seedText, onConfirm, onCancel }) {
               <p className="text-xs text-gray-500 mt-0.5">调整参数后开始创作</p>
             </div>
           </div>
-          <button onClick={onCancel}
+          <button onClick={onCancel} aria-label="关闭"
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-xl transition-colors">
             <X className="w-5 h-5" />
           </button>

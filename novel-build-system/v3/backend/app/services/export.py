@@ -1,6 +1,10 @@
 """导出服务：Markdown / TXT / PDF"""
+
 import io
+import logging
 from xml.sax.saxutils import escape as xml_escape
+
+logger = logging.getLogger(__name__)
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -9,10 +13,12 @@ from reportlab.lib.units import mm
 try:
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.cidfonts import UnicodeCIDFont
-    pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
-    CN_FONT = 'STSong-Light'
-except Exception:
-    CN_FONT = 'Helvetica'
+
+    pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+    CN_FONT = "STSong-Light"
+except Exception as e:
+    logger.warning("export: 注册中文字体 STSong-Light 失败，回退到 Helvetica: %s", e)
+    CN_FONT = "Helvetica"
 
 
 def export_markdown(title: str, content: str) -> str:
@@ -23,6 +29,7 @@ def export_markdown(title: str, content: str) -> str:
 def export_txt(title: str, content: str) -> str:
     """导出为纯文本格式（去除 Markdown 标记）"""
     import re
+
     text = content
     text = re.sub(r"^#+\s*", "", text, flags=re.MULTILINE)
     text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)

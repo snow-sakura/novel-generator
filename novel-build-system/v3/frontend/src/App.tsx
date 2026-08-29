@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { FileText, History, Sparkles, MessageSquare, BookOpen, Settings, ChevronDown, Github } from 'lucide-react'
+import { FileText, History, Sparkles, MessageSquare, BookOpen, Settings } from 'lucide-react'
 import CreatePage from './pages/CreatePage'
 import NovelPage from './pages/NovelPage'
 import HistoryPage from './pages/HistoryPage'

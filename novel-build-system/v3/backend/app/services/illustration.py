@@ -1,6 +1,10 @@
 """AI 配图服务 (F11) — 视觉描述提取 + 图片生成"""
+
+import logging
 from datetime import datetime
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from app.llm.provider import LLMProvider
 from app.services.prompts import ILLUSTRATION_PROMPT
@@ -17,7 +21,8 @@ async def _extract_prompt(llm: LLMProvider, chapter_text: str) -> str:
     try:
         async for chunk in llm.generate_stream(prompt):
             result += chunk
-    except Exception:
+    except Exception as e:
+        logger.warning("_extract_prompt: LLM 提取视觉提示词失败: %s", e)
         return ""
     return result.strip() or ""
 
@@ -27,6 +32,7 @@ async def _generate_image_url(prompt: str) -> Optional[str]:
     if not prompt:
         return None
     import urllib.parse
+
     encoded = urllib.parse.quote(prompt[:500])
     return POLLINATIONS_URL.format(prompt=encoded)
 

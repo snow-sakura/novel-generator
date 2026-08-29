@@ -1,9 +1,12 @@
 """生成小说 API（SSE 流式接口 + 生成记录管理 + 继续生成）"""
 
 import json
+import logging
 import re
 from typing import Optional
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -91,7 +94,8 @@ async def suggest_theme(req: ThemeSuggestRequest):
             if t in result:
                 return {"theme": t}
         return {"theme": THEMES[0]}
-    except Exception:
+    except Exception as e:
+        logger.warning("suggest_theme: AI 主题推荐失败，回退到随机选择: %s", e)
         import random
 
         return {"theme": random.choice(THEMES)}

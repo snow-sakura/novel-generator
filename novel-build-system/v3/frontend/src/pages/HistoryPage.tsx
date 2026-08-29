@@ -324,7 +324,7 @@ export default function HistoryPage() {
                           <Loader2 className="w-3 h-3 animate-spin" /> 查看
                         </button>
                       )}
-                      <button onClick={() => handleDeleteRecord(r.id)} disabled={isDeleting}
+                      <button onClick={() => handleDeleteRecord(r.id)} disabled={isDeleting} aria-label="删除记录"
                         className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                         {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                       </button>

@@ -113,7 +113,7 @@ export default function DialogueGenerator({ bible, novelId, chapters = [], demoM
             <MessageSquare className="w-4 h-4 text-indigo-500" />
             <span className="text-sm font-semibold text-gray-800">角色对话</span>
           </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600" aria-label="关闭">
             <X className="w-4 h-4" />
           </button>
         </div>

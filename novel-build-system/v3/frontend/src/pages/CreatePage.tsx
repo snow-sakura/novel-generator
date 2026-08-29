@@ -10,7 +10,7 @@ import ConfigStatus from '../components/ConfigStatus'
 import MultiStepLog from '../components/MultiStepLog'
 import EmotionCurveChart from '../components/EmotionCurveChart'
 import NovelReader from '../components/NovelReader'
-import { cn } from '../lib/utils'
+import { cn, escapeHtml } from '../lib/utils'
 
 function ChapterModal({ chapterIndex, chapter, content, onClose }) {
   const contentRef = useRef(null)
@@ -33,7 +33,7 @@ function ChapterModal({ chapterIndex, chapter, content, onClose }) {
             </span>
             <h2 className="text-lg font-bold text-gray-900">{chapter.title || `第${chapterIndex + 1}章`}</h2>
           </div>
-          <button onClick={onClose} className="btn-ghost p-1.5">
+          <button onClick={onClose} className="btn-ghost p-1.5" aria-label="关闭">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -86,9 +86,9 @@ function CompleteDialog({ data, onConfirm, onCancel }) {
   )
 }
 
-function renderMD(text) {
+function renderMD(text: string): string {
   if (!text) return ''
-  let html = text
+  let html = escapeHtml(text)
     .replace(/^### (.+)$/gm, '</p><h3 class="text-lg font-bold my-3 text-gray-800 text-left">$1</h3><p>')
     .replace(/^## (.+)$/gm, '</p><h2 class="text-xl font-bold my-4 text-gray-900 text-left">$1</h2><p>')
     .replace(/^# (.+)$/gm, '</p><h1 class="text-2xl font-bold my-5 text-gray-900 text-left">$1</h1><p>')
@@ -107,7 +107,7 @@ function ScrollToTopButton() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
   return visible ? (
-    <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+    <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="回到顶部"
       className="fixed bottom-6 right-6 z-50 w-10 h-10 rounded-full bg-white border border-gray-200 shadow-lg hover:shadow-xl hover:bg-gray-50 flex items-center justify-center transition-all animate-fade-in">
       <ChevronUp className="w-5 h-5 text-gray-500" />
     </button>

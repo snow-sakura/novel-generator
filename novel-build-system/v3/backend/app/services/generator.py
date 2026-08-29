@@ -2,11 +2,14 @@
 
 import asyncio
 import json
+import logging
 import os
 import re
 import time
 from datetime import datetime
 from typing import AsyncGenerator, Optional
+
+logger = logging.getLogger(__name__)
 
 from app.llm.provider import LLMProvider
 from app.database import SessionLocal
@@ -822,8 +825,13 @@ class GeneratorService:
             if old_folder != novel_folder and os.path.exists(old_folder):
                 try:
                     os.renames(old_folder, novel_folder)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(
+                        "generate: 重命名小说文件夹 '%s' -> '%s' 失败: %s",
+                        old_folder,
+                        novel_folder,
+                        e,
+                    )
             save_outline_mindmap(
                 novel_folder,
                 final_title,
@@ -840,8 +848,8 @@ class GeneratorService:
                 ):
                     try:
                         os.remove(os.path.join(novel_folder, fname))
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning("generate: 清理临时文件 '%s' 失败: %s", fname, e)
 
             _log(
                 f"全部完成！标题:《{final_title}》 | 总字数:{actual_count} | 耗时:{time_cost:.1f}s"

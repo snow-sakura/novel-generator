@@ -239,7 +239,9 @@ export async function saveModelConfig(config) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     })
-  } catch {}
+  } catch (error) {
+    console.error('保存模型配置失败:', error)
+  }
 }
 
 // ─── 生成记录 ───
@@ -268,7 +270,9 @@ export async function cancelRecord(id) {
   if (isGitHubPages() || !id) return
   try {
     await fetch(`${API_BASE}/records/${id}/cancel`, { method: 'POST' })
-  } catch {}
+  } catch (error) {
+    console.error('取消记录失败:', error)
+  }
 }
 
 export async function cleanupData() {

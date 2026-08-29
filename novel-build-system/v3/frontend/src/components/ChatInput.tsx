@@ -43,6 +43,7 @@ export default function ChatInput({ onSend, disabled }) {
         <button
           type="submit"
           disabled={disabled || !text.trim()}
+          aria-label="发送"
           className={cn(
             'flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all',
             disabled || !text.trim()

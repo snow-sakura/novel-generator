@@ -22,7 +22,7 @@ export default function BibleViewer({ bible, novelId, onClose }) {
             <BookOpen className="w-4 h-4 text-indigo-500" />
             <span className="text-sm font-semibold text-gray-800">设定档案</span>
           </div>
-          <button onClick={onClose} className="btn-ghost p-1">
+          <button onClick={onClose} className="btn-ghost p-1" aria-label="关闭">
             <X className="w-4 h-4" />
           </button>
         </div>

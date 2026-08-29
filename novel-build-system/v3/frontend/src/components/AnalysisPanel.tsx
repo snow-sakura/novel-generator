@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Loader2, BarChart3, FileText, Clock, Users, TrendingUp, ListOrdered, AlignLeft, BookOpen } from 'lucide-react'
 import { analyzeNovel } from '../services/api'
 
@@ -60,7 +60,7 @@ export default function AnalysisPanel({ novelId, demoMode, onClose }) {
             <BarChart3 className="w-5 h-5 text-emerald-500" />
             <h2 className="text-lg font-bold text-gray-900">统计分析</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="关闭">
             <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>

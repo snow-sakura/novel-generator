@@ -81,10 +81,20 @@ export function smoothLine(points: Point[]): string {
   return d
 }
 
-/** 简易 Markdown → HTML */
+/** HTML 转义，防止 XSS — 必须在 Markdown→HTML 转换前调用 */
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/** 简易 Markdown → HTML（安全：先转义再转换） */
 export function renderMD(text: string): string {
   if (!text) return ''
-  let html = text
+  let html = escapeHtml(text)
     .replace(/^### (.+)$/gm, '</p><h3 class="text-lg font-bold my-3 text-gray-800 text-left">$1</h3><p>')
     .replace(/^## (.+)$/gm, '</p><h2 class="text-xl font-bold my-4 text-gray-900 text-left">$1</h2><p>')
     .replace(/^# (.+)$/gm, '</p><h1 class="text-2xl font-bold my-5 text-gray-900 text-left">$1</h1><p>')

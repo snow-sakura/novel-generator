@@ -1,6 +1,7 @@
 """写作助手 API (F9) — 续写 + 智能改写"""
+
 import json
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -30,12 +31,14 @@ class SmartRewriteRequest(BaseModel):
 async def assist_continue(req: ContinueRequest):
     """SSE 续写：从上下文末尾继续生成"""
     if not req.context.strip():
-        return {"error": "上下文不能为空"}
+        raise HTTPException(status_code=400, detail="上下文不能为空")
 
     config_status = get_provider_config_status()
     if not config_status["configured"]:
+
         async def error_stream():
             yield f"event: error\ndata: {json.dumps({'message': config_status['error']}, ensure_ascii=False)}\n\n"
+
         return StreamingResponse(error_stream(), media_type="text/event-stream")
 
     llm = get_llm_provider(None)
@@ -62,14 +65,18 @@ async def assist_continue(req: ContinueRequest):
 async def assist_rewrite(req: SmartRewriteRequest):
     """SSE 智能改写：按用户指令改写段落"""
     if not req.content.strip():
-        return {"error": "内容不能为空"}
+        raise HTTPException(status_code=400, detail="内容不能为空")
+    if len(req.content) > 50000:
+        raise HTTPException(status_code=400, detail="内容长度不能超过 50000 字符")
     if not req.instruction.strip():
-        return {"error": "改写指令不能为空"}
+        raise HTTPException(status_code=400, detail="改写指令不能为空")
 
     config_status = get_provider_config_status()
     if not config_status["configured"]:
+
         async def error_stream():
             yield f"event: error\ndata: {json.dumps({'message': config_status['error']}, ensure_ascii=False)}\n\n"
+
         return StreamingResponse(error_stream(), media_type="text/event-stream")
 
     llm = get_llm_provider(None)

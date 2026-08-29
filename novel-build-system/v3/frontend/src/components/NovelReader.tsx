@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { ChevronUp, PenLine, RefreshCw, Expand, Minimize2, History, Check, Loader2, ChevronDown, Quote, Plus, Send, Wand2, X } from 'lucide-react'
 import { useNovelStore } from '../stores/novelStore'
 import { refineParagraph, fetchParagraphVersions, assistContinue, assistRewrite } from '../services/api'
-import { cn, toast } from '../lib/utils'
+import { cn, toast, escapeHtml } from '../lib/utils'
 
-function renderMarkdown(text) {
+function renderMarkdown(text: string): string {
   if (!text) return ''
-  let html = text
+  let html = escapeHtml(text)
     .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold my-3 text-gray-800">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold my-4 text-gray-900 text-left">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold my-5 text-gray-900 text-left">$1</h1>')
@@ -90,7 +90,9 @@ function RefineSidebar({ selectedParagraph, novelId, onClose, onApply, onInsertC
     try {
       const data = await fetchParagraphVersions(novelId, chapterIndex, paragraphIndex)
       setVersions(data.versions || [])
-    } catch {}
+    } catch (e) {
+      console.error('加载版本历史失败:', e)
+    }
   }
 
   function handleApply(text) {
@@ -120,7 +122,7 @@ function RefineSidebar({ selectedParagraph, novelId, onClose, onApply, onInsertC
           </div>
           <span className="text-sm font-semibold text-gray-800">段落润色</span>
         </div>
-        <button onClick={onClose} className="btn-ghost p-1">
+        <button onClick={onClose} className="btn-ghost p-1" aria-label="关闭">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -554,7 +556,7 @@ export default function NovelReader({ novelId = undefined, initialContent = unde
         </div>
 
         {sections.length > 3 && (
-          <button onClick={() => scrollToSection(sections[0]?.id)}
+          <button onClick={() => scrollToSection(sections[0]?.id)} aria-label="回到顶部"
             className="absolute bottom-4 right-4 p-2 bg-white border border-gray-200 rounded-full shadow-md hover:shadow-lg hover:bg-gray-50 transition-all z-10">
             <ChevronUp className="w-4 h-4 text-gray-500" />
           </button>

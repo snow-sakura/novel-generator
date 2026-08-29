@@ -105,6 +105,7 @@ export default function PromptRefPage() {
                 <div className="flex items-center gap-2">
                   {isOpen && (
                     <button onClick={(e) => { e.stopPropagation(); handleCopy(p.content, p.name) }}
+                      aria-label="复制"
                       className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                       title="复制">
                       {copied === p.name ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}

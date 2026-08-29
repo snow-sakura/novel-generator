@@ -65,7 +65,7 @@ export default function SettingsModal({ open, onClose }) {
               <p className="text-xs text-gray-500">配置模型和自定义提示词</p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+          <button onClick={handleClose} aria-label="关闭" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>

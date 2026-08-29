@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Quote, BookOpen, Sparkles, Hash, Loader2, ChevronRight, Heart, Copy, Check } from 'lucide-react'
 import { fetchQuotes } from '../services/api'
 
@@ -51,7 +51,9 @@ export default function GoldenQuotesPanel({ novelId, demoMode, onClose }) {
       await navigator.clipboard.writeText(text)
       setCopiedId(id)
       setTimeout(() => setCopiedId(null), 2000)
-    } catch {}
+    } catch (e) {
+      console.error('复制金句失败:', e)
+    }
   }
 
   const allQuotes = data?.chapters?.flatMap(ch =>
@@ -71,7 +73,7 @@ export default function GoldenQuotesPanel({ novelId, demoMode, onClose }) {
               <span className="text-xs text-gray-400 ml-1">共 {data.stats.total_quotes} 句</span>
             )}
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="关闭">
             <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>
@@ -173,13 +175,13 @@ function QuoteCard({ quote, colorIndex, favorites, onToggle, copiedId, onCopy })
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onCopy(quote.text, quote.id)}
-            className="p-1 hover:bg-white/60 rounded transition-colors" title="复制">
+            className="p-1 hover:bg-white/60 rounded transition-colors" title="复制" aria-label="复制">
             {copiedId === quote.id
               ? <Check className="w-3.5 h-3.5 text-emerald-500" />
               : <Copy className="w-3.5 h-3.5 text-gray-400" />}
           </button>
           <button onClick={() => onToggle(quote.id)}
-            className="p-1 hover:bg-white/60 rounded transition-colors" title="收藏">
+            className="p-1 hover:bg-white/60 rounded transition-colors" title="收藏" aria-label="收藏">
             <Heart className={`w-3.5 h-3.5 ${isFav ? 'text-rose-500 fill-rose-500' : 'text-gray-400'}`} />
           </button>
         </div>

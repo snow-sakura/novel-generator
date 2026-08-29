@@ -7,6 +7,55 @@ export function cn(...inputs) {
 }
 
 /**
+ * 轻量 Toast 通知
+ */
+let _toastContainer = null
+function _getContainer() {
+  if (!_toastContainer) {
+    _toastContainer = document.createElement('div')
+    _toastContainer.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'
+    document.body.appendChild(_toastContainer)
+  }
+  return _toastContainer
+}
+
+function _showToast(message, type = 'info') {
+  const el = document.createElement('div')
+  const colors = {
+    success: 'background:#065f46;color:#fff;',
+    error: 'background:#991b1b;color:#fff;',
+    info: 'background:#1e40af;color:#fff;',
+  }
+  el.style.cssText = `${colors[type] || colors.info}padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.15);pointer-events:auto;opacity:0;transform:translateX(40px);transition:all .3s ease;max-width:360px;word-break:break-word;`
+  el.textContent = message
+  _getContainer().appendChild(el)
+  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateX(0)' })
+  setTimeout(() => {
+    el.style.opacity = '0'
+    el.style.transform = 'translateX(40px)'
+    setTimeout(() => el.remove(), 300)
+  }, 3000)
+}
+
+export const toast = {
+  success: (msg) => _showToast(msg, 'success'),
+  error: (msg) => _showToast(msg, 'error'),
+  info: (msg) => _showToast(msg, 'info'),
+}
+
+/**
+ * HTML 转义，防止 XSS
+ */
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
  * 统一的 Markdown 渲染函数
  * @param {string} text - 要渲染的 Markdown 文本
  * @param {Object} options - 配置选项
@@ -53,7 +102,7 @@ export function renderMarkdown(text, options = {}) {
   
   const classes = sizeClasses[size] || sizeClasses.base
   
-  let html = text
+  let html = escapeHtml(text)
     // 标题
     .replace(/^### (.+)$/gm, `<h3 class="${classes.h3}${showBorders ? ' pb-1 border-b border-gray-100' : ''}">$1</h3>`)
     .replace(/^## (.+)$/gm, `<h2 class="${classes.h2}${showBorders ? ' pb-2 border-b border-gray-200' : ''}">$1</h2>`)

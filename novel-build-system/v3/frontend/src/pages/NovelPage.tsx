@@ -175,7 +175,9 @@ export default function NovelPage() {
           if (rec && rec.thinking_logs?.length > 0) {
             setThinkingLogs(rec.thinking_logs)
           }
-        } catch {}
+        } catch (e) {
+          console.error('加载生成日志失败:', e)
+        }
       }
     } catch (err) { setError(err.message) }
     finally { setLoading(false) }
@@ -257,7 +259,7 @@ export default function NovelPage() {
             </button>
           )}
           {!demoMode && (
-            <button onClick={handleDelete} disabled={deleting}
+            <button onClick={handleDelete} disabled={deleting} aria-label="删除小说"
               className="flex items-center gap-1 px-3 py-2 text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-all">
               {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
             </button>
@@ -569,7 +571,7 @@ export default function NovelPage() {
 
       {/* ─── 回到顶部 ─── */}
       {showScrollTop && (
-        <button onClick={scrollToTop}
+        <button onClick={scrollToTop} aria-label="回到顶部"
           className="fixed bottom-8 z-50 w-11 h-11 rounded-full gradient-brand text-white shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center animate-fade-in"
           style={{ right: 'max(1rem, calc((100vw - 1024px) / 2 + 1rem))' }}>
           <ArrowUp className="w-5 h-5" />

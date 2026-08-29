@@ -1,9 +1,12 @@
 """FastAPI 应用入口"""
 
 import json
+import logging
 import os
 import traceback
 import uvicorn
+
+logger = logging.getLogger(__name__)
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
@@ -179,13 +182,17 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(RequestSizeLimitMiddleware)
 
-# ─── CORS — 限制为开发环境域名，生产环境请配置具体域名 ───
-ALLOWED_ORIGINS = [
+# ─── CORS — 支持环境变量配置，生产环境请设置 CORS_ORIGINS ───
+_default_origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
 ]
+if settings.cors_origins:
+    ALLOWED_ORIGINS = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+else:
+    ALLOWED_ORIGINS = _default_origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -195,14 +202,15 @@ app.add_middleware(
 )
 
 
-# ─── 全局异常处理 — 统一错误响应格式 ───
+# ─── 全局异常处理 — 统一错误响应格式，不泄露内部细节 ───
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     print(f"[ERROR] {request.method} {request.url.path}: {exc}", flush=True)
     traceback.print_exc()
+    # 不向客户端暴露 str(exc)，防止内部路径/SQL/堆栈泄露
     return JSONResponse(
         status_code=500,
-        content={"detail": "服务器内部错误", "error": str(exc)},
+        content={"detail": "服务器内部错误，请稍后重试"},
     )
 
 
@@ -312,8 +320,8 @@ async def backup_database():
     for old in backups[10:]:
         try:
             os.remove(os.path.join(backup_dir, old))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("backup_database: 清理旧备份 '%s' 失败: %s", old, e)
 
     return {
         "status": "ok",
