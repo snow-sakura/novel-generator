@@ -193,15 +193,12 @@ export function generateNovel(
     timeout: 600000,
     timeoutMsg: '请求超时（10分钟）',
     onEvent(event, data) {
-      console.log('[SSE]', event, data)
       onEvent(event, data)
     },
     onComplete() {
-      console.log('[SSE] 完成')
       onComplete()
     },
     onError(msg) {
-      console.log('[SSE] 请求失败:', msg)
       onError(msg)
     },
   })
@@ -230,7 +227,6 @@ export function chatGenerate(
     timeout: 600000,
     timeoutMsg: '请求超时或已停止',
     onEvent(event, data) {
-      console.log('[SSE]', event, data)
       onEvent(event, data)
     },
     onComplete,

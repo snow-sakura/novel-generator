@@ -1,4 +1,5 @@
 """模型配置持久化 API — 支持多配置存储"""
+
 from datetime import datetime
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -26,10 +27,14 @@ def _get_or_seed_env_default(db):
     env_api_key = settings.opencode_api_key or ""
 
     # 查找已入库的 .env 配置（按 provider + model_id 精准匹配）
-    existing = db.query(ModelConfig).filter(
-        ModelConfig.provider == "opencode-mimo",
-        ModelConfig.model_id == env_model,
-    ).first()
+    existing = (
+        db.query(ModelConfig)
+        .filter(
+            ModelConfig.provider == "opencode-mimo",
+            ModelConfig.model_id == env_model,
+        )
+        .first()
+    )
     if existing:
         # 更新可能过时的字段
         existing.base_url = env_base_url
@@ -40,10 +45,14 @@ def _get_or_seed_env_default(db):
         return existing
 
     # 检查是否有 stale 的 opencode-mimo 配置（model_id 已过时）
-    stale = db.query(ModelConfig).filter(
-        ModelConfig.provider == "opencode-mimo",
-        ModelConfig.is_default == True,
-    ).first()
+    stale = (
+        db.query(ModelConfig)
+        .filter(
+            ModelConfig.provider == "opencode-mimo",
+            ModelConfig.is_default == True,
+        )
+        .first()
+    )
     if stale:
         stale.model_id = env_model
         stale.base_url = env_base_url
@@ -72,23 +81,37 @@ async def get_model_config(db: Session = Depends(get_db)):
     config = db.query(ModelConfig).filter(ModelConfig.is_default == True).first()
     if config and config.provider and config.model_id:
         # 如果 active 配置是 opencode-mimo 但 model_id 与 .env 不一致 → 更新
-        if config.provider == "opencode-mimo" and config.model_id != (settings.opencode_model or "deepseek-v4-flash-free"):
+        if config.provider == "opencode-mimo" and config.model_id != (
+            settings.opencode_model or "deepseek-v4-flash-free"
+        ):
             config = _get_or_seed_env_default(db)
+        raw_key = config.api_key or ""
+        masked_key = (
+            (raw_key[:8] + "***" + raw_key[-4:])
+            if len(raw_key) > 12
+            else ("***" if raw_key else "")
+        )
         return {
             "provider": config.provider,
             "label": config.label,
             "base_url": config.base_url,
             "model_id": config.model_id,
-            "api_key": config.api_key or "",
+            "api_key": masked_key,
         }
     # 无有效配置时从 .env 种子并返回
     env_config = _get_or_seed_env_default(db)
+    raw_key = env_config.api_key or ""
+    masked_key = (
+        (raw_key[:8] + "***" + raw_key[-4:])
+        if len(raw_key) > 12
+        else ("***" if raw_key else "")
+    )
     return {
         "provider": env_config.provider,
         "label": env_config.label,
         "base_url": env_config.base_url,
         "model_id": env_config.model_id,
-        "api_key": env_config.api_key or "",
+        "api_key": masked_key,
     }
 
 
@@ -100,16 +123,25 @@ async def save_model_config(data: ModelConfigSchema, db: Session = Depends(get_d
         db.commit()
         return {"status": "ok"}
 
-    config = db.query(ModelConfig).filter(
-        ModelConfig.provider == data.provider,
-        ModelConfig.model_id == data.model_id,
-    ).first()
+    config = (
+        db.query(ModelConfig)
+        .filter(
+            ModelConfig.provider == data.provider,
+            ModelConfig.model_id == data.model_id,
+        )
+        .first()
+    )
 
     now = datetime.now()
+    # 如果前端发送的是掩码后的 key（含 ***），保留数据库中的原始 key
+    api_key = data.api_key
+    if config and api_key and "***" in api_key:
+        api_key = config.api_key or ""
+
     if config:
         config.label = data.label
         config.base_url = data.base_url
-        config.api_key = data.api_key
+        config.api_key = api_key
         config.is_default = True
         config.updated_at = now
     else:
@@ -118,7 +150,7 @@ async def save_model_config(data: ModelConfigSchema, db: Session = Depends(get_d
             label=data.label,
             base_url=data.base_url,
             model_id=data.model_id,
-            api_key=data.api_key,
+            api_key=api_key,
             is_default=True,
             created_at=now,
             updated_at=now,

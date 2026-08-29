@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react'
 import { Sparkles, AlertTriangle, ChevronDown, ChevronRight, Tags, X, BookOpen, Eye, Zap, Sliders, Shield, PenLine, Type, Layers, StopCircle, Palette, FileDown } from 'lucide-react'
 import { useNovelStore, LENGTH_RANGES } from '../stores/novelStore'
 import { cn } from '../lib/utils'
+import { DEMO_GENRES_MALE, DEMO_GENRES_FEMALE, DEMO_STYLES } from '../lib/constants'
 import { fetchGenres, suggestTheme } from '../services/api'
 
-const DEMO_GENRES_MALE = ['科幻末世', '都市脑洞', '玄幻脑洞', '修仙仙侠', '神医赘婿', '末日求生', '游戏竞技', '穿越历史', '悬疑推理', '无敌爽文']
-const DEMO_GENRES_FEMALE = ['古代言情', '现代言情', '幻想言情', '重生逆袭', '豪门总裁', '宫斗宅斗', '仙侠奇缘', '甜宠恋爱']
-const DEMO_STYLES = ['轻松搞笑', '热血燃系', '悬疑烧脑', '甜宠治愈', '暗黑深沉', '沙雕吐槽', '文艺致郁', '极简写实']
 const THEMES = ['救赎', '成长', '选择', '正义', '爱情', '自由', '牺牲', '希望', '孤独']
 
 function SectionHeader({ icon: Icon, label, count, badge, expanded, onToggle, color = 'orange' }) {

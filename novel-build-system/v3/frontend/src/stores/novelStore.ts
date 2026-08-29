@@ -44,8 +44,8 @@ export function calcWordCount({ chapter_count, per_chapter_min, per_chapter_max 
 
 export const LENGTH_RANGES: Record<string, { label: string; min: number; max: number }> = {
   short: { label: '短篇', min: 800, max: 1500 },
-  medium: { label: '中篇', min: 2000, max: 2500 },
-  long: { label: '长篇', min: 2000, max: 2500 },
+  medium: { label: '中篇', min: 1500, max: 3000 },
+  long: { label: '长篇', min: 3000, max: 8000 },
 }
 
 interface NovelParams {

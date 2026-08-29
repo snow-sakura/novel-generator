@@ -55,10 +55,12 @@ cd frontend && npm run build
 
 ## 架构关键
 
-- **前端**: Vite + React 18 + TailwindCSS 3 + Zustand + React Router；无 TypeScript
+- **前端**: Vite + React 18 + TypeScript + TailwindCSS 3 + Zustand + React Router
 - **后端**: FastAPI + LangChain + CrewAI + SQLAlchemy 2.0 + SQLite
+- **共享常量**: `frontend/src/lib/constants.ts` — LABEL_MAP (~140 entries)、flattenDict、addItemRows、DEMO_GENRES/STYLES
 - **多 Provider 工厂**: `backend/app/llm/provider.py` — 统一 `generate_stream` / `validate` 接口
 - **生成管线**: `backend/app/services/generator.py` — CrewAI 编配 + 流式逐章生成
+- **章节工具**: `backend/app/services/chapter_utils.py` — extract_chapters（单一来源，quotes/tts/illustration 共用）
 - **CrewAI 智能体**: `backend/app/services/agents.py` — 四角色 Agent 定义（仅角色/目标/背景，不含 llm 参数）
 - **数据硬编码**: `backend/app/data.py` — 男频19类/女频18类/15种风格 + 国产模型列表
 - **大纲六层结构**: 战略层 → 人物层 → 设定层 → 结构层 → 节奏层 → 风格层

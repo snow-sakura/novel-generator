@@ -1,4 +1,5 @@
 """生成小说 API（SSE 流式接口 + 生成记录管理 + 继续生成）"""
+
 import json
 import re
 from typing import Optional
@@ -20,6 +21,15 @@ from app.data import get_categories_by_gender, STYLES, GENDERS, CHINESE_MODELS, 
 router = APIRouter(prefix="/api/v3")
 
 
+def _sse_error_stream(message: str, error_type: str = "error") -> StreamingResponse:
+    """创建 SSE 错误事件流"""
+
+    async def error_stream():
+        yield f"event: error\ndata: {json.dumps({'message': message, 'type': error_type}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(error_stream(), media_type="text/event-stream")
+
+
 class GenerateRequest(BaseModel):
     seed_text: str
     gender: str = "男频"
@@ -33,13 +43,13 @@ class GenerateRequest(BaseModel):
     custom_prompts: Optional[dict] = None
     record_id: Optional[int] = None  # 用于继续生成
     # V3 继承字段
-    pov: str = "第三人称有限"          # 视角：第一人称/第三人称有限/上帝视角
-    pacing: str = "标准型"             # 节奏：紧凑型/标准型/舒缓型
-    style_intensity: str = "中度"      # 风格强度：轻度/中度/重度
-    enable_suspense: bool = True       # 启用悬念
-    enable_twist: bool = True          # 启用反转
+    pov: str = "第三人称有限"  # 视角：第一人称/第三人称有限/上帝视角
+    pacing: str = "标准型"  # 节奏：紧凑型/标准型/舒缓型
+    style_intensity: str = "中度"  # 风格强度：轻度/中度/重度
+    enable_suspense: bool = True  # 启用悬念
+    enable_twist: bool = True  # 启用反转
     # V3 新增字段
-    theme: str = ""                    # 核心主题
+    theme: str = ""  # 核心主题
     aesthetic_intensity: str = "中度"  # 美学强度：关闭/轻度/中度/重度
     # F7 对比模式
     opening_text: Optional[str] = None  # 已选开头（对比模式续生用）
@@ -59,6 +69,7 @@ async def suggest_theme(req: ThemeSuggestRequest):
     config_status = get_provider_config_status()
     if not config_status["configured"]:
         import random
+
         return {"theme": random.choice(THEMES)}
 
     llm = get_llm_provider()
@@ -82,6 +93,7 @@ async def suggest_theme(req: ThemeSuggestRequest):
         return {"theme": THEMES[0]}
     except Exception:
         import random
+
         return {"theme": random.choice(THEMES)}
 
 
@@ -126,35 +138,44 @@ async def generate_openings(req: OpeningsRequest):
     seen = set()
 
     # 1) 用户当前视角 + 用户当前节奏
-    STYLE_VARIANTS.append({
-        "label": f"{user_pov}·{user_pace}",
-        "pov": user_pov, "pacing": user_pace,
-        "desc": f"使用你选择的视角和节奏",
-        "tag": "当前设置",
-    })
+    STYLE_VARIANTS.append(
+        {
+            "label": f"{user_pov}·{user_pace}",
+            "pov": user_pov,
+            "pacing": user_pace,
+            "desc": f"使用你选择的视角和节奏",
+            "tag": "当前设置",
+        }
+    )
     seen.add((user_pov, user_pace))
 
     # 2) 用户视角 + 其他节奏
     for pace, pace_desc in PACE_OPTIONS:
         if pace != user_pace and (user_pov, pace) not in seen:
-            STYLE_VARIANTS.append({
-                "label": f"{user_pov}·{pace}",
-                "pov": user_pov, "pacing": pace,
-                "desc": pace_desc,
-                "tag": "视角",
-            })
+            STYLE_VARIANTS.append(
+                {
+                    "label": f"{user_pov}·{pace}",
+                    "pov": user_pov,
+                    "pacing": pace,
+                    "desc": pace_desc,
+                    "tag": "视角",
+                }
+            )
             seen.add((user_pov, pace))
             break
 
     # 3) 其他视角 + 用户节奏
     for pov in POV_OPTIONS:
         if pov != user_pov and (pov, user_pace) not in seen:
-            STYLE_VARIANTS.append({
-                "label": f"{pov}·{user_pace}",
-                "pov": pov, "pacing": user_pace,
-                "desc": f"换用{pov}视角",
-                "tag": "视角",
-            })
+            STYLE_VARIANTS.append(
+                {
+                    "label": f"{pov}·{user_pace}",
+                    "pov": pov,
+                    "pacing": user_pace,
+                    "desc": f"换用{pov}视角",
+                    "tag": "视角",
+                }
+            )
             seen.add((pov, user_pace))
             break
 
@@ -162,12 +183,15 @@ async def generate_openings(req: OpeningsRequest):
     for pov in POV_OPTIONS:
         for pace, pace_desc in PACE_OPTIONS:
             if (pov, pace) not in seen and len(STYLE_VARIANTS) < 5:
-                STYLE_VARIANTS.append({
-                    "label": f"{pov}·{pace}",
-                    "pov": pov, "pacing": pace,
-                    "desc": f"{pov}视角 + {pace_desc}",
-                    "tag": "探索",
-                })
+                STYLE_VARIANTS.append(
+                    {
+                        "label": f"{pov}·{pace}",
+                        "pov": pov,
+                        "pacing": pace,
+                        "desc": f"{pov}视角 + {pace_desc}",
+                        "tag": "探索",
+                    }
+                )
                 seen.add((pov, pace))
                 break
         if len(STYLE_VARIANTS) >= 5:
@@ -178,12 +202,16 @@ async def generate_openings(req: OpeningsRequest):
 
         openings = []
         for idx, variant in enumerate(STYLE_VARIANTS):
-            log_text = f"  ✍️ 生成版本 {idx+1}/{len(STYLE_VARIANTS)}：{variant['label']}"
+            log_text = (
+                f"  ✍️ 生成版本 {idx + 1}/{len(STYLE_VARIANTS)}：{variant['label']}"
+            )
             yield f"event: log\ndata: {json.dumps({'step': 'openings', 'type': 'info', 'text': log_text}, ensure_ascii=False)}\n\n"
             try:
                 text = await service._generate_opening(
-                    seed_text=req.seed_text, gender=req.gender,
-                    genre=req.genre, style=req.style,
+                    seed_text=req.seed_text,
+                    gender=req.gender,
+                    genre=req.genre,
+                    style=req.style,
                     pacing=variant["pacing"],
                     pov=variant.get("pov", req.pov),
                     style_intensity=req.style_intensity,
@@ -191,15 +219,17 @@ async def generate_openings(req: OpeningsRequest):
                     target_words=500,
                 )
                 if text and len(text) > 100:
-                    openings.append({
-                        "index": idx,
-                        "label": variant["label"],
-                        "pov": variant.get("pov", req.pov),
-                        "pacing": variant["pacing"],
-                        "desc": variant["desc"],
-                        "tag": variant.get("tag", ""),
-                        "text": text,
-                    })
+                    openings.append(
+                        {
+                            "index": idx,
+                            "label": variant["label"],
+                            "pov": variant.get("pov", req.pov),
+                            "pacing": variant["pacing"],
+                            "desc": variant["desc"],
+                            "tag": variant.get("tag", ""),
+                            "text": text,
+                        }
+                    )
                     yield f"event: opening_version\ndata: {json.dumps(openings[-1], ensure_ascii=False)}\n\n"
                     succ_text = f"  ✅ {variant['label']} 完成（{len(text)}字）"
                     yield f"event: log\ndata: {json.dumps({'step': 'openings', 'type': 'success', 'text': succ_text}, ensure_ascii=False)}\n\n"
@@ -223,16 +253,24 @@ async def generate_openings(req: OpeningsRequest):
 async def generate_novel(req: GenerateRequest):
     """SSE 流式生成小说（支持继续生成）"""
     if not req.seed_text.strip():
-        return {"error": "seed_text 不能为空"}
+        raise HTTPException(status_code=400, detail="seed_text 不能为空")
     if req.gender not in GENDERS:
-        return {"error": f"不支持的频道，可选：{', '.join(GENDERS)}"}
+        raise HTTPException(
+            status_code=400, detail=f"不支持的频道，可选：{', '.join(GENDERS)}"
+        )
     valid_categories = get_categories_by_gender(req.gender)
     if req.genre not in valid_categories:
-        return {"error": f"{req.gender}不支持该题材，可选：{', '.join(valid_categories)}"}
-    style_parts = req.style.split('+')
+        raise HTTPException(
+            status_code=400,
+            detail=f"{req.gender}不支持该题材，可选：{', '.join(valid_categories)}",
+        )
+    style_parts = req.style.split("+")
     invalid = [s for s in style_parts if s not in STYLES]
     if invalid:
-        return {"error": f"不支持的风格: {', '.join(invalid)}，可选：{', '.join(STYLES)}"}
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支持的风格: {', '.join(invalid)}，可选：{', '.join(STYLES)}",
+        )
     if req.word_count < 500:
         req.word_count = 500
     elif req.word_count > 500000:
@@ -242,19 +280,22 @@ async def generate_novel(req: GenerateRequest):
     if req.per_chapter_max > 20000:
         req.per_chapter_max = 20000
     if req.per_chapter_min > req.per_chapter_max:
-        req.per_chapter_min, req.per_chapter_max = req.per_chapter_max, req.per_chapter_min
+        req.per_chapter_min, req.per_chapter_max = (
+            req.per_chapter_max,
+            req.per_chapter_min,
+        )
 
     config_status = get_provider_config_status()
     if not config_status["configured"] and not req.llm_config:
-        async def error_stream():
-            yield f"event: error\ndata: {json.dumps({'message': config_status['error'], 'type': 'config'}, ensure_ascii=False)}\n\n"
-        return StreamingResponse(error_stream(), media_type="text/event-stream")
+        return _sse_error_stream(config_status["error"], "config")
 
     # 创建生成记录
     init_db = SessionLocal()
     try:
         record = GenerationRecord(
-            params=json.dumps(req.model_dump(exclude={"llm_config"}), ensure_ascii=False),
+            params=json.dumps(
+                req.model_dump(exclude={"llm_config"}), ensure_ascii=False
+            ),
             status="in_progress",
             seed_text=req.seed_text,
             created_at=datetime.now(),
@@ -274,61 +315,98 @@ async def generate_novel(req: GenerateRequest):
         thinking_logs = []
         try:
             async for event in service.generate(
-                seed_text=req.seed_text, gender=req.gender, genre=req.genre,
-                style=req.style, word_count=req.word_count,
+                seed_text=req.seed_text,
+                gender=req.gender,
+                genre=req.genre,
+                style=req.style,
+                word_count=req.word_count,
                 chapter_count=req.chapter_count,
-                per_chapter_min=req.per_chapter_min, per_chapter_max=req.per_chapter_max,
+                per_chapter_min=req.per_chapter_min,
+                per_chapter_max=req.per_chapter_max,
                 model_config=req.llm_config,
                 custom_prompts=req.custom_prompts,
                 record_id=record_id,
-                pov=req.pov, pacing=req.pacing,
+                pov=req.pov,
+                pacing=req.pacing,
                 style_intensity=req.style_intensity,
-                enable_suspense=req.enable_suspense, enable_twist=req.enable_twist,
+                enable_suspense=req.enable_suspense,
+                enable_twist=req.enable_twist,
                 theme=req.theme,
                 aesthetic_intensity=req.aesthetic_intensity,
                 opening_text=req.opening_text,
                 ending_type=req.ending_type,
             ):
-                if event['event'] == 'log':
-                    msg = event['data']
-                    if isinstance(msg, dict): msg = msg.get('text', '')
-                    thinking_logs.append({
-                        'time': datetime.now().strftime('%H:%M:%S'),
-                        'type': 'info' if not str(msg).startswith('❌') else 'error',
-                        'text': str(msg),
-                    })
+                if event["event"] == "log":
+                    msg = event["data"]
+                    if isinstance(msg, dict):
+                        msg = msg.get("text", "")
+                    thinking_logs.append(
+                        {
+                            "time": datetime.now().strftime("%H:%M:%S"),
+                            "type": "info"
+                            if not str(msg).startswith("❌")
+                            else "error",
+                            "text": str(msg),
+                        }
+                    )
                 # 保存完整大纲到生成记录
-                if event['event'] == 'outline_done':
-                    rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+                if event["event"] == "outline_done":
+                    rec = (
+                        db.query(GenerationRecord)
+                        .filter(GenerationRecord.id == record_id)
+                        .first()
+                    )
                     if rec:
-                        rec.outline_data = json.dumps(event['data'].get('outline', {}), ensure_ascii=False)
+                        rec.outline_data = json.dumps(
+                            event["data"].get("outline", {}), ensure_ascii=False
+                        )
                         db.commit()
                 # 保存情感曲线到生成记录
-                if event['event'] == 'emotion_curve' and isinstance(event['data'], list):
-                    rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+                if event["event"] == "emotion_curve" and isinstance(
+                    event["data"], list
+                ):
+                    rec = (
+                        db.query(GenerationRecord)
+                        .filter(GenerationRecord.id == record_id)
+                        .first()
+                    )
                     if rec:
                         od = json.loads(rec.outline_data) if rec.outline_data else {}
-                        od['emotion_curve'] = event['data']
+                        od["emotion_curve"] = event["data"]
                         rec.outline_data = json.dumps(od, ensure_ascii=False)
                         db.commit()
                 # 关键节点保存日志
-                if event['event'] in ('chapter_end', 'complete', 'error'):
-                    rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+                if event["event"] in ("chapter_end", "complete", "error"):
+                    rec = (
+                        db.query(GenerationRecord)
+                        .filter(GenerationRecord.id == record_id)
+                        .first()
+                    )
                     if rec:
-                        rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                        rec.thinking_logs = json.dumps(
+                            thinking_logs, ensure_ascii=False
+                        )
                         db.commit()
                 yield f"event: {event['event']}\ndata: {json.dumps(event['data'], ensure_ascii=False)}\n\n"
         except Exception as e:
             yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
             _log(f"event_stream 异常: {e}")
-            rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+            rec = (
+                db.query(GenerationRecord)
+                .filter(GenerationRecord.id == record_id)
+                .first()
+            )
             if rec and rec.status == "in_progress":
                 rec.status = "failed"
                 rec.error_message = f"连接中断: {e}"
                 rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
                 db.commit()
         finally:
-            rec = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+            rec = (
+                db.query(GenerationRecord)
+                .filter(GenerationRecord.id == record_id)
+                .first()
+            )
             if rec and rec.status == "in_progress":
                 rec.status = "failed"
                 rec.error_message = "生成中断（客户端断开）"
@@ -345,16 +423,22 @@ async def continue_generation(record_id: int = Query(...)):
     """根据生成记录继续生成"""
     db = SessionLocal()
     try:
-        record = db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+        record = (
+            db.query(GenerationRecord).filter(GenerationRecord.id == record_id).first()
+        )
         if not record:
             raise HTTPException(status_code=404, detail="记录不存在")
         if record.status not in ("failed", "cancelled"):
-            raise HTTPException(status_code=400, detail="只有失败或已取消的记录可以继续生成")
+            raise HTTPException(
+                status_code=400, detail="只有失败或已取消的记录可以继续生成"
+            )
 
         try:
             params = json.loads(record.params) if record.params else {}
         except (json.JSONDecodeError, TypeError):
-            raise HTTPException(status_code=400, detail="记录参数格式错误，无法继续生成")
+            raise HTTPException(
+                status_code=400, detail="记录参数格式错误，无法继续生成"
+            )
         req = GenerateRequest(**params)
 
         # 查找已有的 novel（如果有）
@@ -363,15 +447,22 @@ async def continue_generation(record_id: int = Query(...)):
         if record.novel_id:
             existing_novel = db.query(Novel).filter(Novel.id == record.novel_id).first()
 
-        if existing_novel and existing_novel.content and not existing_novel.content.startswith("[生成失败]"):
+        if (
+            existing_novel
+            and existing_novel.content
+            and not existing_novel.content.startswith("[生成失败]")
+        ):
             # 有部分内容，构造继续生成参数
             # 优先从 chapter_contents 表加载（精确按章节索引）
             existing_blocks = []
             db_chapters = None
             if existing_novel.id:
-                db_chapters = db.query(ChapterContent).filter(
-                    ChapterContent.novel_id == existing_novel.id
-                ).order_by(ChapterContent.chapter_index).all()
+                db_chapters = (
+                    db.query(ChapterContent)
+                    .filter(ChapterContent.novel_id == existing_novel.id)
+                    .order_by(ChapterContent.chapter_index)
+                    .all()
+                )
             if db_chapters:
                 existing_blocks = [
                     f"## {ch.title}\n\n{ch.content}" for ch in db_chapters
@@ -380,10 +471,16 @@ async def continue_generation(record_id: int = Query(...)):
             else:
                 # 回退到从 novel.content 字符串拆分
                 content = existing_novel.content
-                existing_blocks = [b for b in re.split(r"\n(?=## )", content) if b and b.strip()] if content else []
+                existing_blocks = (
+                    [b for b in re.split(r"\n(?=## )", content) if b and b.strip()]
+                    if content
+                    else []
+                )
             # 解析大纲
             try:
-                outline = json.loads(existing_novel.outline) if existing_novel.outline else {}
+                outline = (
+                    json.loads(existing_novel.outline) if existing_novel.outline else {}
+                )
             except (json.JSONDecodeError, TypeError):
                 outline = {}
             chapters = outline.get("chapters", [])
@@ -417,7 +514,9 @@ async def continue_generation(record_id: int = Query(...)):
                 "start_from": completed,
                 "emotion_curve": emotion_curve_from_db,
             }
-            _log(f"继续生成: novel_id={existing_novel.id}, 已有{completed}/{len(chapters)}章")
+            _log(
+                f"继续生成: novel_id={existing_novel.id}, 已有{completed}/{len(chapters)}章"
+            )
             _log(f"  已有内容前30字: {content[:30]}...")
 
             # 恢复 params 中的章节数
@@ -446,44 +545,69 @@ async def continue_generation(record_id: int = Query(...)):
         try:
             yield f"event: continue_from\ndata: {json.dumps({'original_record_id': record_id}, ensure_ascii=False)}\n\n"
             async for event in service.generate(
-                seed_text=req.seed_text, gender=req.gender, genre=req.genre,
-                style=req.style, word_count=req.word_count,
+                seed_text=req.seed_text,
+                gender=req.gender,
+                genre=req.genre,
+                style=req.style,
+                word_count=req.word_count,
                 chapter_count=req.chapter_count,
-                per_chapter_min=req.per_chapter_min, per_chapter_max=req.per_chapter_max,
+                per_chapter_min=req.per_chapter_min,
+                per_chapter_max=req.per_chapter_max,
                 model_config=req.llm_config,
                 custom_prompts=req.custom_prompts,
                 record_id=new_record_id,
                 continuation=continuation,
-                pov=req.pov, pacing=req.pacing,
+                pov=req.pov,
+                pacing=req.pacing,
                 style_intensity=req.style_intensity,
-                enable_suspense=req.enable_suspense, enable_twist=req.enable_twist,
+                enable_suspense=req.enable_suspense,
+                enable_twist=req.enable_twist,
                 theme=req.theme,
                 aesthetic_intensity=req.aesthetic_intensity,
             ):
-                if event['event'] == 'log':
-                    msg = event['data']
-                    if isinstance(msg, dict): msg = msg.get('text', '')
-                    thinking_logs.append({
-                        'time': datetime.now().strftime('%H:%M:%S'),
-                        'type': 'info' if not str(msg).startswith('❌') else 'error',
-                        'text': str(msg),
-                    })
-                if event['event'] in ('chapter_end', 'complete', 'error'):
-                    rec = db.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
+                if event["event"] == "log":
+                    msg = event["data"]
+                    if isinstance(msg, dict):
+                        msg = msg.get("text", "")
+                    thinking_logs.append(
+                        {
+                            "time": datetime.now().strftime("%H:%M:%S"),
+                            "type": "info"
+                            if not str(msg).startswith("❌")
+                            else "error",
+                            "text": str(msg),
+                        }
+                    )
+                if event["event"] in ("chapter_end", "complete", "error"):
+                    rec = (
+                        db.query(GenerationRecord)
+                        .filter(GenerationRecord.id == new_record_id)
+                        .first()
+                    )
                     if rec:
-                        rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
+                        rec.thinking_logs = json.dumps(
+                            thinking_logs, ensure_ascii=False
+                        )
                         db.commit()
                 yield f"event: {event['event']}\ndata: {json.dumps(event['data'], ensure_ascii=False)}\n\n"
         except Exception as e:
             yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
-            rec = db.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
+            rec = (
+                db.query(GenerationRecord)
+                .filter(GenerationRecord.id == new_record_id)
+                .first()
+            )
             if rec and rec.status == "in_progress":
                 rec.status = "failed"
                 rec.error_message = f"连接中断: {e}"
                 rec.thinking_logs = json.dumps(thinking_logs, ensure_ascii=False)
                 db.commit()
         finally:
-            rec = db.query(GenerationRecord).filter(GenerationRecord.id == new_record_id).first()
+            rec = (
+                db.query(GenerationRecord)
+                .filter(GenerationRecord.id == new_record_id)
+                .first()
+            )
             if rec and rec.status == "in_progress":
                 rec.status = "failed"
                 rec.error_message = "生成中断（客户端断开）"
@@ -502,10 +626,17 @@ async def continue_generation(record_id: int = Query(...)):
 async def list_records(page: int = 1, size: int = 20, db: Session = Depends(get_db)):
     """获取生成记录列表（含状态）"""
     total = db.query(GenerationRecord).count()
-    items = db.query(GenerationRecord).order_by(desc(GenerationRecord.created_at)).offset(
-        (page - 1) * size).limit(size).all()
+    items = (
+        db.query(GenerationRecord)
+        .order_by(desc(GenerationRecord.created_at))
+        .offset((page - 1) * size)
+        .limit(size)
+        .all()
+    )
     return {
-        "total": total, "page": page, "size": size,
+        "total": total,
+        "page": page,
+        "size": size,
         "items": [
             {
                 "id": r.id,
@@ -513,7 +644,9 @@ async def list_records(page: int = 1, size: int = 20, db: Session = Depends(get_
                 "status": r.status,
                 "completed_chapters": r.completed_chapters,
                 "total_chapters": r.total_chapters,
-                "seed_text": r.seed_text[:100] + "..." if len(r.seed_text) > 100 else r.seed_text,
+                "seed_text": r.seed_text[:100] + "..."
+                if len(r.seed_text) > 100
+                else r.seed_text,
                 "error_message": r.error_message,
                 "created_at": r.created_at.isoformat() if r.created_at else "",
                 "updated_at": r.updated_at.isoformat() if r.updated_at else "",
@@ -613,10 +746,15 @@ async def list_models():
 @router.get("/genres/list")
 async def list_genres(gender: str = "男频"):
     """获取指定频道的题材列表"""
-    return {"gender": gender, "genres": get_categories_by_gender(gender), "styles": STYLES}
+    return {
+        "gender": gender,
+        "genres": get_categories_by_gender(gender),
+        "styles": STYLES,
+    }
 
 
 # ── 数据清理 ──
+
 
 @router.post("/cleanup")
 async def cleanup_orphaned_data(db: Session = Depends(get_db)):
@@ -625,30 +763,43 @@ async def cleanup_orphaned_data(db: Session = Depends(get_db)):
 
     # 1. 清理无 novel_id 且状态为 in_progress 超过 30 分钟的记录
     from datetime import timedelta
+
     cutoff = datetime.now() - timedelta(minutes=30)
-    stale_records = db.query(GenerationRecord).filter(
-        GenerationRecord.novel_id.is_(None),
-        GenerationRecord.status == "in_progress",
-        GenerationRecord.updated_at < cutoff,
-    ).all()
+    stale_records = (
+        db.query(GenerationRecord)
+        .filter(
+            GenerationRecord.novel_id.is_(None),
+            GenerationRecord.status == "in_progress",
+            GenerationRecord.updated_at < cutoff,
+        )
+        .all()
+    )
     cleaned["orphaned_records"] = len(stale_records)
     for rec in stale_records:
         db.delete(rec)
 
     # 2. 清理 title 为 "生成中..." 或包含 "生成中断" 的小说
-    bad_novels = db.query(Novel).filter(
-        (Novel.title == "生成中...") | (Novel.title.like("%生成中断%"))
-    ).all()
+    bad_novels = (
+        db.query(Novel)
+        .filter((Novel.title == "生成中...") | (Novel.title.like("%生成中断%")))
+        .all()
+    )
     cleaned["orphaned_novels"] = len(bad_novels)
     for novel in bad_novels:
-        db.query(GenerationRecord).filter(GenerationRecord.novel_id == novel.id).delete()
+        db.query(GenerationRecord).filter(
+            GenerationRecord.novel_id == novel.id
+        ).delete()
         db.delete(novel)
 
     # 3. 清理没有 content 的已完成记录（无效记录）
-    empty_completed = db.query(GenerationRecord).filter(
-        GenerationRecord.status == "completed",
-        GenerationRecord.novel_id.is_(None),
-    ).all()
+    empty_completed = (
+        db.query(GenerationRecord)
+        .filter(
+            GenerationRecord.status == "completed",
+            GenerationRecord.novel_id.is_(None),
+        )
+        .all()
+    )
     cleaned["failed_novels"] += len(empty_completed)
     for rec in empty_completed:
         db.delete(rec)

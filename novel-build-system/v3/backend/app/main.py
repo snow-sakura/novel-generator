@@ -1,17 +1,36 @@
 """FastAPI 应用入口"""
+
 import json
 import os
+import traceback
 import uvicorn
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from app.database import Base, engine, migrate_database, SessionLocal
 from app.config import settings
-from app.routers import generate, novel, export, chat, prompts, model_config, refine, dialogue, assist, illustration, analysis, tts, quotes
+from app.routers import (
+    generate,
+    novel,
+    export,
+    chat,
+    prompts,
+    model_config,
+    refine,
+    dialogue,
+    assist,
+    illustration,
+    analysis,
+    tts,
+    quotes,
+)
 from app.routers import test as test_router
 from app.models import novel as _novel_model
 from app.models import generation_record as _gen_record_model
@@ -25,7 +44,9 @@ from app.services.prompts import (
     SYSTEM_PROMPT_TITLE_V1,
 )
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
 INDEX_PATH = os.path.join(PROJECT_ROOT, "novels_index.json")
 NOVEL_DIR = os.path.join(PROJECT_ROOT, "..", "docs", "novel")
 
@@ -43,7 +64,11 @@ def seed_prompt_templates():
         existing = {t.name for t in db.query(PromptTemplate).all()}
         for name, label, content in templates:
             if name not in existing:
-                db.add(PromptTemplate(name=name, label=label, content=content, version="v1"))
+                db.add(
+                    PromptTemplate(
+                        name=name, label=label, content=content, version="v1"
+                    )
+                )
         db.commit()
         print(f"[启动] Prompt 模板已备份 ({len(templates)} 个)", flush=True)
     finally:
@@ -68,7 +93,10 @@ def rebuild_db_if_empty():
         if not novels_data:
             return
 
-        print(f"[启动重建] DB 为空，从 novels_index.json 恢复 {len(novels_data)} 部小说...", flush=True)
+        print(
+            f"[启动重建] DB 为空，从 novels_index.json 恢复 {len(novels_data)} 部小说...",
+            flush=True,
+        )
 
         for n in novels_data:
             novel = _novel_model.Novel(
@@ -96,12 +124,18 @@ def rebuild_db_if_empty():
             record = _gen_record_model.GenerationRecord(
                 novel_id=novel.id,
                 params=json.dumps(gen.get("params", {}), ensure_ascii=False),
-                completed_chapters=gen.get("completed_chapters", len(n.get("chapters", []))),
+                completed_chapters=gen.get(
+                    "completed_chapters", len(n.get("chapters", []))
+                ),
                 total_chapters=gen.get("total_chapters", len(n.get("chapters", []))),
                 status=gen.get("status", "completed"),
                 content_sofar=(n.get("content", "") or "")[:50000],
-                chapter_states=json.dumps(gen.get("chapter_states", []), ensure_ascii=False),
-                thinking_logs=json.dumps(gen.get("thinking_logs", []), ensure_ascii=False),
+                chapter_states=json.dumps(
+                    gen.get("chapter_states", []), ensure_ascii=False
+                ),
+                thinking_logs=json.dumps(
+                    gen.get("thinking_logs", []), ensure_ascii=False
+                ),
                 seed_text=n.get("seed_text", ""),
                 created_at=datetime.now(),
                 updated_at=datetime.now(),
@@ -128,16 +162,51 @@ async def lifespan(application: FastAPI):
 
 app = FastAPI(title="番茄小说生成智能体 V3", version="v3.0.0", lifespan=lifespan)
 
-# CORS
+
+# ─── 请求体大小限制（10MB）───
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB
+
+    async def dispatch(self, request: Request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.MAX_BODY_SIZE:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "请求体过大，最大支持 10MB"},
+            )
+        return await call_next(request)
+
+
+app.add_middleware(RequestSizeLimitMiddleware)
+
+# ─── CORS — 限制为开发环境域名，生产环境请配置具体域名 ───
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
 )
 
-# 注册路由
+
+# ─── 全局异常处理 — 统一错误响应格式 ───
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    print(f"[ERROR] {request.method} {request.url.path}: {exc}", flush=True)
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "服务器内部错误", "error": str(exc)},
+    )
+
+
+# ─── 注册路由 ───
 app.include_router(generate.router)
 app.include_router(novel.router)
 app.include_router(export.router)
@@ -159,12 +228,98 @@ if os.environ.get("LLM_PROVIDER") == "mock":
 
 @app.get("/")
 async def root():
-    return {"message": "番茄小说生成智能体 V3 API", "version": "v3.0.0", "status": "running"}
+    return {
+        "message": "番茄小说生成智能体 V3 API",
+        "version": "v3.0.0",
+        "status": "running",
+    }
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    """增强健康检查：DB 连接 + 记录统计 + 磁盘空间"""
+    import shutil
+    from app.models.novel import Novel
+    from app.models.generation_record import GenerationRecord
+
+    db = SessionLocal()
+    try:
+        novel_count = db.query(Novel).count()
+        record_count = db.query(GenerationRecord).count()
+        in_progress = (
+            db.query(GenerationRecord)
+            .filter(GenerationRecord.status == "in_progress")
+            .count()
+        )
+
+        # 检查孤立的 in_progress 记录（超过 30 分钟）
+        stale_cutoff = datetime.now() - timedelta(minutes=30)
+        stale = (
+            db.query(GenerationRecord)
+            .filter(
+                GenerationRecord.status == "in_progress",
+                GenerationRecord.updated_at < stale_cutoff,
+            )
+            .count()
+        )
+
+        # 磁盘空间
+        novel_dir = os.path.join(PROJECT_ROOT, "..", "docs", "novel")
+        disk = shutil.disk_usage(
+            novel_dir if os.path.exists(novel_dir) else PROJECT_ROOT
+        )
+
+        return {
+            "status": "ok",
+            "version": "v3.0.0",
+            "database": {
+                "novels": novel_count,
+                "records": record_count,
+                "in_progress": in_progress,
+                "stale_records": stale,
+            },
+            "disk": {
+                "total_gb": round(disk.total / (1024**3), 1),
+                "used_gb": round(disk.used / (1024**3), 1),
+                "free_gb": round(disk.free / (1024**3), 1),
+            },
+        }
+    finally:
+        db.close()
+
+
+@app.post("/api/v3/backup")
+async def backup_database():
+    """备份数据库文件"""
+    import shutil
+
+    db_path = settings.database_url.replace("sqlite:///", "")
+    if not os.path.exists(db_path):
+        raise HTTPException(status_code=404, detail="数据库文件不存在")
+
+    backup_dir = os.path.join(PROJECT_ROOT, "backups")
+    os.makedirs(backup_dir, exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = os.path.join(backup_dir, f"novel_generator_v3_{ts}.db")
+    shutil.copy2(db_path, backup_path)
+
+    # 保留最近 10 个备份
+    backups = sorted(
+        [f for f in os.listdir(backup_dir) if f.endswith(".db")],
+        reverse=True,
+    )
+    for old in backups[10:]:
+        try:
+            os.remove(os.path.join(backup_dir, old))
+        except Exception:
+            pass
+
+    return {
+        "status": "ok",
+        "backup": backup_path,
+        "size_kb": round(os.path.getsize(backup_path) / 1024, 1),
+    }
 
 
 @app.get("/api/v3/health")
@@ -176,7 +331,11 @@ async def health_v3():
 @app.get("/api/v3/")
 async def root_v3():
     """v3 API 根路径"""
-    return {"message": "番茄小说生成智能体 V3 API", "version": "v3.0.0", "status": "running"}
+    return {
+        "message": "番茄小说生成智能体 V3 API",
+        "version": "v3.0.0",
+        "status": "running",
+    }
 
 
 if __name__ == "__main__":

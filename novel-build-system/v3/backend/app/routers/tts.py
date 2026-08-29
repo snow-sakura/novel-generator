@@ -1,4 +1,5 @@
 """TTS 语音合成 API (F12)"""
+
 import os
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
@@ -35,7 +36,7 @@ class TTSGenerateAllRequest(BaseModel):
     pitch: str = "+0Hz"
 
 
-def _get_novel_title(db: Session, novel_id: int) -> str:
+def _get_novel_title(db: Session, novel_id: int) -> tuple[str, str]:
     novel = db.query(Novel).filter(Novel.id == novel_id).first()
     if not novel:
         raise HTTPException(status_code=404, detail="小说不存在")
@@ -71,21 +72,29 @@ async def generate_tts(req: TTSGenerateRequest, db: Session = Depends(get_db)):
 @router.post("/tts/generate_all")
 async def generate_all_tts(req: TTSGenerateAllRequest, db: Session = Depends(get_db)):
     title, content = _get_novel_title(db, req.novel_id)
-    results = await generate_novel_tts(title, content, req.voice_id, req.rate, req.pitch)
+    results = await generate_novel_tts(
+        title, content, req.voice_id, req.rate, req.pitch
+    )
     return {
         "novel_id": req.novel_id,
         "generated": len(results),
-        "chapters": [{"chapter_index": k, "audio_path": v} for k, v in sorted(results.items())],
+        "chapters": [
+            {"chapter_index": k, "audio_path": v} for k, v in sorted(results.items())
+        ],
     }
 
 
 @router.get("/tts/audio/{novel_id}/{chapter_index}")
-async def stream_audio(novel_id: int, chapter_index: int, db: Session = Depends(get_db)):
+async def stream_audio(
+    novel_id: int, chapter_index: int, db: Session = Depends(get_db)
+):
     title, _ = _get_novel_title(db, novel_id)
     audio_path = get_audio_path(title, chapter_index)
     if not os.path.exists(audio_path):
         raise HTTPException(status_code=404, detail="音频文件未找到，请先生成 TTS")
-    return FileResponse(audio_path, media_type="audio/mpeg", filename=f"chapter_{chapter_index:03d}.mp3")
+    return FileResponse(
+        audio_path, media_type="audio/mpeg", filename=f"chapter_{chapter_index:03d}.mp3"
+    )
 
 
 @router.get("/tts/status/{novel_id}")
@@ -100,6 +109,3 @@ async def delete_tts(novel_id: int, chapter_index: int, db: Session = Depends(ge
     title, _ = _get_novel_title(db, novel_id)
     deleted = delete_chapter_audio(title, chapter_index)
     return {"ok": deleted}
-
-
-

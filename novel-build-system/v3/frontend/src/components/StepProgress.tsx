@@ -1,13 +1,6 @@
-import { useNovelStore, STEPS } from '../stores/novelStore'
+import { useNovelStore, STEPS, STEP_CONFIG } from '../stores/novelStore'
 import { cn } from '../lib/utils'
 import { CheckCircle2, Loader2 } from 'lucide-react'
-
-const STEP_CONFIG = [
-  { key: STEPS.PARSING, label: '要素解析', desc: '分析故事六要素' },
-  { key: STEPS.OUTLINING, label: '大纲规划', desc: '构建章节结构' },
-  { key: STEPS.WRITING, label: '逐章生成', desc: '创作小说正文' },
-  { key: STEPS.TITLING, label: '生成标题', desc: '拟定小说标题' },
-]
 
 export default function StepProgress() {
   const { currentStep, chapters } = useNovelStore()
