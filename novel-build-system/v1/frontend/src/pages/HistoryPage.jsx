@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Clock, BookOpen, Monitor, RefreshCw, CheckCircle, XCircle, Loader2, AlertTriangle, ExternalLink, Trash2, Download, StopCircle, Sparkles, Plus } from 'lucide-react'
-import { fetchCompletedNovels, fetchRecords, fetchRecordStatus, deleteRecord, cleanupData, isGitHubPages } from '../services/api'
+import { Clock, BookOpen, Monitor, RefreshCw, CheckCircle, XCircle, Loader2, AlertTriangle, ExternalLink, Trash2, Download, StopCircle, Sparkles, Plus, Square, CheckSquare } from 'lucide-react'
+import { fetchCompletedNovels, fetchRecords, fetchRecordStatus, deleteRecord, deleteNovel, cleanupData, isGitHubPages } from '../services/api'
 import NovelCard from '../components/NovelCard'
 import { cn, toast } from '../lib/utils'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -30,7 +30,12 @@ export default function HistoryPage() {
   // 对话框状态
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteType, setDeleteType] = useState('record') // 'record' or 'novel'
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
+
+  // 批量删除状态
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false)
 
   const syncUrl = useCallback((t, p) => {
     setSearchParams({ tab: t, page: String(p) }, { replace: true })
@@ -67,6 +72,7 @@ export default function HistoryPage() {
   const handleTabChange = (t) => {
     setTab(t)
     setPage(1)
+    setSelectedIds(new Set()) // 切换标签时清除选中
     syncUrl(t, 1)
   }
 
@@ -104,6 +110,13 @@ export default function HistoryPage() {
 
   function handleDeleteRecord(id) {
     setDeleteTarget(id)
+    setDeleteType('record')
+    setShowDeleteConfirm(true)
+  }
+
+  function handleDeleteNovel(id) {
+    setDeleteTarget(id)
+    setDeleteType('novel')
     setShowDeleteConfirm(true)
   }
 
@@ -111,13 +124,21 @@ export default function HistoryPage() {
     setShowDeleteConfirm(false)
     if (!deleteTarget) return
     try {
-      await deleteRecord(deleteTarget)
-      setRecords(prev => prev.filter(r => r.id !== deleteTarget))
-      setRecordTotal(prev => prev - 1)
+      if (deleteType === 'novel') {
+        await deleteNovel(deleteTarget)
+        setNovels(prev => prev.filter(n => n.id !== deleteTarget))
+        setNovelTotal(prev => prev - 1)
+      } else {
+        await deleteRecord(deleteTarget)
+        setRecords(prev => prev.filter(r => r.id !== deleteTarget))
+        setRecordTotal(prev => prev - 1)
+      }
+      toast.success('删除成功')
     } catch (err) {
       toast.error('删除失败: ' + err.message)
     }
     setDeleteTarget(null)
+    setDeleteType('record')
   }
 
   function handleCleanup() {
@@ -135,6 +156,82 @@ export default function HistoryPage() {
     } catch (err) {
       toast.error('清理失败: ' + err.message)
     }
+  }
+
+  // 批量选择函数
+  const currentItems = tab === 'novels' ? novels : records
+  const isAllSelected = currentItems.length > 0 && currentItems.every(item => selectedIds.has(item.id))
+  const selectedCount = [...selectedIds].filter(id => currentItems.some(item => item.id === id)).length
+
+  function toggleSelectAll() {
+    if (isAllSelected) {
+      // 取消当前页所有选中
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        currentItems.forEach(item => next.delete(item.id))
+        return next
+      })
+    } else {
+      // 选中当前页所有
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        currentItems.forEach(item => next.add(item.id))
+        return next
+      })
+    }
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  function handleBatchDelete() {
+    if (selectedIds.size === 0) return
+    setShowBatchDeleteConfirm(true)
+  }
+
+  async function confirmBatchDelete() {
+    setShowBatchDeleteConfirm(false)
+    const idsToDelete = [...selectedIds]
+    let successCount = 0
+    let failCount = 0
+
+    for (const id of idsToDelete) {
+      try {
+        if (tab === 'novels') {
+          await deleteNovel(id)
+        } else {
+          await deleteRecord(id)
+        }
+        successCount++
+      } catch (err) {
+        failCount++
+      }
+    }
+
+    // 清除选中状态
+    setSelectedIds(new Set())
+
+    // 刷新数据
+    loadData()
+
+    if (failCount === 0) {
+      toast.success(`成功删除 ${successCount} 项`)
+    } else {
+      toast.warning(`删除完成：${successCount} 项成功，${failCount} 项失败`)
+    }
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set())
   }
 
   const novelTotalPages = Math.ceil(novelTotal / pageSize)
@@ -220,6 +317,42 @@ export default function HistoryPage() {
         ))}
       </div>
 
+      {/* 批量操作栏 */}
+      {!demoMode && currentItems.length > 0 && (
+        <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button onClick={toggleSelectAll}
+              className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
+              {isAllSelected ? (
+                <CheckSquare className="w-5 h-5 text-orange-500" />
+              ) : (
+                <Square className="w-5 h-5 text-gray-400" />
+              )}
+              {isAllSelected ? '取消全选' : '全选'}
+            </button>
+            {selectedCount > 0 && (
+              <span className="text-sm text-gray-500">
+                已选 <span className="font-semibold text-orange-600">{selectedCount}</span> 项
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedCount > 0 && (
+              <button onClick={clearSelection}
+                className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+                取消选择
+              </button>
+            )}
+            <button onClick={handleBatchDelete}
+              disabled={selectedCount === 0}
+              className="px-4 py-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
+              <Trash2 className="w-4 h-4" />
+              批量删除 {selectedCount > 0 && `(${selectedCount})`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 内容区域 */}
       {loading ? (
         <div className="flex items-center justify-center h-48">
@@ -250,7 +383,15 @@ export default function HistoryPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {novels.map(n => <NovelCard key={n.id} novel={n} />)}
+              {novels.map(n => (
+                <NovelCard
+                  key={n.id}
+                  novel={n}
+                  onDelete={handleDeleteNovel}
+                  selected={selectedIds.has(n.id)}
+                  onToggle={toggleSelect}
+                />
+              ))}
             </div>
             {novelTotalPages > 1 && (
               <Pagination page={page} totalPages={novelTotalPages} onChange={handlePageChange} />
@@ -285,11 +426,19 @@ export default function HistoryPage() {
               const progressPct = merged.total_chapters > 0
                 ? Math.round((merged.completed_chapters / merged.total_chapters) * 100)
                 : 0
+              const isSelected = selectedIds.has(r.id)
 
               return (
-                <div key={r.id} className={cn('bg-white rounded-xl border p-5 transition-all hover:shadow-md', sc.border)}>
+                <div key={r.id} className={`bg-white rounded-xl border p-5 transition-all hover:shadow-md ${isSelected ? 'border-orange-400 ring-2 ring-orange-100' : sc.border}`}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(r.id)}
+                        className="w-4 h-4 mt-1 rounded border-gray-300 text-orange-500 focus:ring-orange-400 cursor-pointer flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
                       {/* 状态徽章 */}
                       <div className="flex items-center gap-2 mb-2">
                         <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold', sc.bg, sc.color)}>
@@ -323,6 +472,7 @@ export default function HistoryPage() {
                       {merged.error_message && (
                         <p className="text-xs text-red-500 mt-1.5 truncate">{merged.error_message.replace(/^\[\w+\]\s*/, '')}</p>
                       )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -363,10 +513,10 @@ export default function HistoryPage() {
       {/* 删除确认对话框 */}
       <ConfirmDialog
         open={showDeleteConfirm}
-        onClose={() => { setShowDeleteConfirm(false); setDeleteTarget(null) }}
+        onClose={() => { setShowDeleteConfirm(false); setDeleteTarget(null); setDeleteType('record') }}
         onConfirm={confirmDeleteRecord}
-        title="确定删除？"
-        message="删除后将无法恢复，是否继续？"
+        title={deleteType === 'novel' ? '确定删除这部小说？' : '确定删除这条记录？'}
+        message={deleteType === 'novel' ? '删除后将无法恢复小说及其所有内容，是否继续？' : '删除后将无法恢复，是否继续？'}
         type="danger"
         confirmText="删除"
         cancelText="取消"
@@ -384,6 +534,19 @@ export default function HistoryPage() {
         confirmText="确认清理"
         cancelText="取消"
         confirmColor="warning"
+      />
+
+      {/* 批量删除确认对话框 */}
+      <ConfirmDialog
+        open={showBatchDeleteConfirm}
+        onClose={() => setShowBatchDeleteConfirm(false)}
+        onConfirm={confirmBatchDelete}
+        title={`批量删除 ${selectedIds.size} 项`}
+        message={`确定删除选中的 ${selectedIds.size} 个${tab === 'novels' ? '小说' : '记录'}？删除后将无法恢复。`}
+        type="danger"
+        confirmText="确认删除"
+        cancelText="取消"
+        confirmColor="danger"
       />
     </div>
   )

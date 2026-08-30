@@ -1,7 +1,7 @@
 # AGENTS.md — 番茄小说生成智能体 V1
 
 > **版本标识**: V1 骨架版，API 前缀 `/api/v1`，数据库 `novel_generator_v1.db`
-> V1 在初始版本基础上新增：详情页大纲/章节弹窗、卡片式UI风格、全中文LABEL_MAP
+> V1 在初始版本基础上新增：详情页大纲/章节弹窗、卡片式UI风格、全中文LABEL_MAP、SSE流式优化、模型配置持久化
 
 ## 核心流程
 
@@ -85,6 +85,7 @@ LLM Provider 调用可能因 API 不可达而挂死。GeneratorService 有三层
 - **生成中可切历史 tab**: HistoryPage 每 3s 轮询 `GET /records/{id}/status`，`in_progress` 记录高亮 + 进度条，点击回到 CreatePage 恢复
 - **NovelForm**: 题材/风格面板互斥折叠；风格多选切换 + 芯片展示；字数配置：章节数→每章范围→自动计算目标字数
 - **高级设置**: 仅保留 ModelConfig + PromptDisplay
+- **ConfigStatus**: 页面加载时自动从数据库恢复已保存的模型配置，优先显示 customModel
 
 ## 后端关键约定
 
@@ -112,6 +113,47 @@ OPENCODE_MODEL=mimo-v2.5-free
 国产模型列表见 `backend/app/data.py` 的 `CHINESE_MODELS`，支持 DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零一万物 / 硅基流动。
 
 前端模型配置持久化到 `model_configs` 表，可通过设置页面切换。
+
+## SSE 流式优化
+
+**问题**: Vite proxy 缓冲 SSE 响应，导致前端无法实时接收事件
+
+**解决方案**:
+1. 后端 `StreamingResponse` 添加 `Cache-Control: no-cache` + `X-Accel-Buffering: no` 响应头
+2. Vite proxy 配置 `configure` 回调，禁用 SSE 响应缓冲
+3. 前端 `api.js` 修复 `currentEvent` 变量作用域 bug（跨 chunk 保留事件名）
+
+```python
+# backend/app/routers/generate.py
+return StreamingResponse(
+    event_stream(),
+    media_type="text/event-stream",
+    headers={
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    },
+)
+```
+
+```javascript
+// frontend/vite.config.js
+proxy: {
+  '/api': {
+    target: 'http://localhost:8000',
+    changeOrigin: true,
+    timeout: 0,
+    configure: (proxy) => {
+      proxy.on('proxyRes', (proxyRes, req, res) => {
+        if (proxyRes.headers['content-type']?.includes('text/event-stream')) {
+          res.setHeader('X-Accel-Buffering', 'no')
+          res.setHeader('Cache-Control', 'no-cache')
+        }
+      })
+    },
+  },
+},
+```
 
 ## 题材隔离防护
 

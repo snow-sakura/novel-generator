@@ -152,4 +152,12 @@ async def chat_generate(req: ChatGenerateRequest):
             _save_thinking_logs(record_id, thinking_logs)
             _ensure_record_terminal(record_id)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

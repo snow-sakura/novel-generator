@@ -1,18 +1,39 @@
 import { useState, useEffect } from 'react'
 import { AlertCircle, CheckCircle, Cpu, RefreshCw } from 'lucide-react'
-import { checkConfig } from '../services/api'
+import { checkConfig, fetchModelConfig, fetchModels } from '../services/api'
 import { useNovelStore } from '../stores/novelStore'
 import { cn } from '../lib/utils'
 
 export default function ConfigStatus() {
-  const { configChecked, configOk, configInfo, setConfigStatus, customModel, generating } = useNovelStore()
+  const { configChecked, configOk, configInfo, setConfigStatus, customModel, setCustomModel, generating } = useNovelStore()
   const [checking, setChecking] = useState(false)
 
   useEffect(() => {
+    // 恢复已保存的模型配置（页面刷新后 customModel 会丢失）
+    if (!customModel) {
+      restoreModelConfig()
+    }
     if (!configChecked) {
       doCheck()
     }
   }, [])
+
+  async function restoreModelConfig() {
+    try {
+      const [cfg, modelsData] = await Promise.all([fetchModelConfig(), fetchModels()])
+      if (cfg && cfg.provider && cfg.model_id) {
+        const models = modelsData?.models || []
+        const prov = models.find(m => m.provider === cfg.provider)
+        setCustomModel({
+          provider: cfg.provider,
+          label: cfg.label || prov?.label || cfg.provider,
+          base_url: cfg.base_url || prov?.base_url || '',
+          model: cfg.model_id,
+          api_key: cfg.api_key || '',
+        })
+      }
+    } catch { /* 静默失败 */ }
+  }
 
   async function doCheck() {
     setChecking(true)

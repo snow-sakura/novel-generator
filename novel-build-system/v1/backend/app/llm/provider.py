@@ -238,25 +238,36 @@ class CustomProvider(LLMProvider):
 
 
 def get_llm_provider(model_config: dict = None) -> LLMProvider:
-    """工厂方法，支持动态模型配置"""
+    """工厂方法，支持动态模型配置
+
+    优先级：
+    1. 前端传入 custom model_config（含 base_url/api_key/model）→ 使用 CustomProvider
+    2. 无 model_config 或无 provider → 使用 .env 中的 LLM_PROVIDER
+    """
     if model_config and model_config.get("provider"):
         provider_name = model_config["provider"]
-        if provider_name in ("openai", "anthropic", "ollama", "opencode"):
-            # 使用内置 Provider（忽略 custom 配置，opencode 从 .env 读取）
-            pass
-        elif provider_name == "opencode-mimo":
-            # MiMo 模型通过 OpenCode Zen 接口访问（base_url/model 从前端配置传入，无代码硬编码默认）
+        base_url = model_config.get("base_url", "")
+        api_key = model_config.get("api_key", "")
+        model = model_config.get("model", "")
+
+        # 如果前端传入了自定义 base_url（即用户在设置页面配置了具体模型），
+        # 一律使用 CustomProvider，确保自定义模型生效
+        if base_url:
             return CustomProvider(
-                base_url=model_config.get("base_url", ""),
-                model=model_config.get("model", ""),
-                api_key=model_config.get("api_key", ""),
+                base_url=base_url,
+                model=model,
+                api_key=api_key,
             )
+
+        # 无 base_url 时，按 provider 名选择内置 Provider（使用 .env 配置）
+        if provider_name in ("openai", "anthropic", "ollama", "opencode"):
+            pass  # 走下面的 provider_map 逻辑
         else:
-            # 自定义模型（国产模型）
+            # 未知 provider，尝试 CustomProvider
             return CustomProvider(
-                base_url=model_config.get("base_url", ""),
-                model=model_config.get("model", ""),
-                api_key=model_config.get("api_key", ""),
+                base_url=base_url,
+                model=model,
+                api_key=api_key,
             )
 
     provider_map = {

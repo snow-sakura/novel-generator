@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { X, BookOpen, Loader2, FileText, CheckCircle, Sparkles, StopCircle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, BookOpen, Loader2, FileText, CheckCircle, Sparkles, StopCircle, AlertTriangle } from 'lucide-react'
 import { useNovelStore, STEPS } from '../stores/novelStore'
 import { generateNovel, generateNovelDemo, fetchRecord, cancelRecord, fetchModelConfig } from '../services/api'
 import NovelForm from '../components/NovelForm'
@@ -97,7 +97,6 @@ export default function CreatePage() {
   const [completeData, setCompleteData] = useState(null)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showStopConfirm, setShowStopConfirm] = useState(false)
-  const [showForm, setShowForm] = useState(false)
   const timersRef = useRef([])
   const generatingRef = useRef(false)
 
@@ -335,39 +334,29 @@ export default function CreatePage() {
         <ConfigStatus />
       </div>
 
-      {/* 主内容区 - 上下布局 */}
-      <div className="space-y-4">
-        {/* 上方：创作参数表单 */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* 表单标题栏 - 可点击折叠/展开 */}
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
-              </div>
-              <span className="text-sm font-semibold text-gray-700">创作参数</span>
-            </div>
-            {showForm ? (
-              <ChevronUp className="w-4 h-4 text-gray-400" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            )}
-          </button>
-          {/* 表单内容 - 可折叠 */}
-          {showForm && (
-            <div className="p-4">
-              <NovelForm onGenerate={handleGenerate} />
-            </div>
-          )}
+      {/* 主内容区 - 左右布局，各自自适应高度 */}
+      <div className="flex gap-4 items-start">
+        {/* 左侧：创作参数表单 — 内容决定高度 */}
+        <div className="w-[380px] flex-shrink-0 bg-white rounded-xl border border-gray-200 p-4 self-stretch">
+          <NovelForm onGenerate={handleGenerate} />
         </div>
 
-        {/* 下方：状态/进度区域 */}
-        <div className="space-y-3">
-          {(generating || currentStep === 'error') && <StepProgress />}
+        {/* 右侧：状态/进度区域 — 撑满与左侧等高 */}
+        <div className="flex-1 min-w-0 bg-white rounded-xl border border-gray-200 p-5 self-stretch">
+          {/* 空状态占位 - 紧凑展示 */}
+          {!showToc && !showContentPlaceholder && (
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center mb-3 shadow-md">
+                <Sparkles className="w-7 h-7 text-white" />
+              </div>
+              <p className="text-gray-500 text-sm font-medium">在左侧填写创作参数，点击生成按钮开始创作</p>
+              <p className="text-xs text-gray-400 mt-1">AI 将为你创作一篇完整的小说</p>
+            </div>
+          )}
 
+          {/* 有内容时显示滚动区域 */}
+          {(showToc || showContentPlaceholder) && (
+            <div className="overflow-y-auto space-y-4">
           {/* 停止生成按钮 */}
           {generating && (
             <div className="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-xl p-3 flex items-center justify-between shadow-sm">
@@ -383,11 +372,13 @@ export default function CreatePage() {
             </div>
           )}
 
+          {(generating || currentStep === 'error') && <StepProgress />}
+
           {(generating || thinkingLogs.length > 0) && <MultiStepLog />}
 
           {/* 章节目录：仅在逐章生成阶段及之后显示 */}
           {showToc && chapters.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
@@ -445,16 +436,7 @@ export default function CreatePage() {
               </div>
             </div>
           )}
-
-          {/* 空状态占位 */}
-          {!showToc && !showContentPlaceholder && (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 min-h-[200px] flex flex-col items-center justify-center shadow-sm">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center mb-4 shadow-md">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <p className="text-gray-500 text-sm font-medium">点击上方「创作参数」展开表单，填写后点击生成</p>
-              <p className="text-xs text-gray-400 mt-1">AI 将为你创作一篇完整的小说</p>
-            </div>
+          </div>
           )}
         </div>
       </div>

@@ -64,16 +64,17 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-        while (true) {
+      let currentEvent = '' // 在 while 外部声明，跨 chunk 保留
+      while (true) {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
-        let currentEvent = ''
         for (const line of lines) {
-          if (line.startsWith('event: ')) currentEvent = line.slice(7).trim()
-          else if (line.startsWith('data: ')) {
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7).trim()
+          } else if (line.startsWith('data: ')) {
             const dataStr = line.slice(6).trim()
             try {
               const parsed = JSON.parse(dataStr)
@@ -81,6 +82,7 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
             } catch {
               onEvent(currentEvent, dataStr)
             }
+            currentEvent = '' // data 处理后重置
           }
         }
       }

@@ -113,7 +113,16 @@ def _create_stream_response(
             # 确保记录不会卡在 in_progress（但不覆盖 cancelled 状态）
             _ensure_record_terminal(record_id)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "Transfer-Encoding": "chunked",
+        },
+    )
 
 
 def _mark_record_failed(record_id: int, error_message: str):
@@ -187,7 +196,15 @@ async def generate_novel(req: GenerateRequest):
         async def error_stream():
             yield f"event: error\ndata: {json.dumps({'message': config_status['error'], 'type': 'config'}, ensure_ascii=False)}\n\n"
 
-        return StreamingResponse(error_stream(), media_type="text/event-stream")
+        return StreamingResponse(
+            error_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     # 创建生成记录
     db = SessionLocal()

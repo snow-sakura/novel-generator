@@ -45,8 +45,9 @@ npm run dev
 |------|------|
 | 前端 | Vite + React 18 + TailwindCSS 3 + Zustand + Lucide Icons |
 | 后端 | Python FastAPI + LangChain + CrewAI + SQLAlchemy 2.0 + SQLite |
-| 模型 | OpenCode Zen / DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax |
+| 模型 | OpenCode Zen / DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / AMD Radeon |
 | 构建 | Vite (前端) + Uvicorn (后端) |
+| 流式传输 | SSE (Server-Sent Events) + Vite Proxy 透传 |
 
 ## 项目结构
 
@@ -209,8 +210,22 @@ DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零
 - **请求体限制**：最大 10MB
 - **数据库索引**：优化查询性能
 - **自动备份**：最多保留 10 个备份
+- **SSE 安全**：禁用响应缓冲，防止中间人攻击
 
 ## 版本历史
+
+### v1.5.1 (2026-08-30)
+
+**Bug 修复:**
+- 修复 SSE 流式事件无法通过 Vite proxy 传输的问题
+- 后端 StreamingResponse 添加 `Cache-Control: no-cache` + `X-Accel-Buffering: no` 响应头
+- Vite proxy 配置 SSE 透传，禁用响应缓冲
+- 前端 `api.js` 修复 `currentEvent` 变量作用域 bug（跨 chunk 保留事件名）
+- 修复 ConfigStatus 页面刷新后丢失已保存模型配置的问题
+
+**新增功能:**
+- ConfigStatus 组件自动从数据库恢复已保存的模型配置
+- 支持 AMD Radeon 等自定义模型配置持久化
 
 ### v1.5.0 (2026-08-28)
 
