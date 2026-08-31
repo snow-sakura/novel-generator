@@ -20,8 +20,10 @@ export default function NovelStatusPanel({ novelData }) {
     )
   }
 
-  const { step, chapters, chapterTexts, outline, totalWords, seedText, gender, genre, style, lastLog } = novelData
-  const stepIdx = STEP_CONFIG.findIndex(s => s.key === step)
+  const { step, chapters, chapterTexts, outline, totalWords, seedText, gender, genre, style, lastLog, failedStep } = novelData
+  const isError = step === 'error'
+  const failedStepIdx = isError && failedStep ? STEP_CONFIG.findIndex(s => s.key === failedStep) : -1
+  const stepIdx = isError ? -1 : STEP_CONFIG.findIndex(s => s.key === step)
   const completedChapters = (chapterTexts || []).filter(t => t && t.trim().length > 50).length
   const totalChapters = (chapters || []).length
   const writing = step === 'writing'
@@ -46,29 +48,39 @@ export default function NovelStatusPanel({ novelData }) {
       {/* 当前步骤 */}
       <div>
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">生成步骤</h3>
+        {isError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl mb-3">
+            <p className="text-xs text-red-600 font-medium">⚠️ 生成已中断</p>
+            <p className="text-xs text-red-500 mt-1 break-words">{novelData.errorMessage || '请检查错误信息后重试'}</p>
+          </div>
+        )}
         <div className="space-y-1.5">
           {STEP_CONFIG.map((s, i) => {
-            const isActive = i === stepIdx
+            const isActive = !isError && i === stepIdx
+            const isFailed = isError && i === failedStepIdx
             const isPast = i < stepIdx
             return (
               <div key={s.key} className={cn(
                 'flex items-center gap-3 p-2 rounded-lg transition-colors',
                 isActive && 'bg-orange-50',
+                isFailed && 'bg-red-50',
                 isPast && 'bg-green-50/50'
               )}>
                 <span className={cn(
                   'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0',
                   isPast && 'bg-green-500 text-white',
                   isActive && 'bg-orange-500 text-white',
-                  !isPast && !isActive && 'bg-gray-200 text-gray-400',
+                  isFailed && 'bg-red-500 text-white',
+                  !isPast && !isActive && !isFailed && 'bg-gray-200 text-gray-400',
                 )}>
-                  {isPast ? '✓' : i + 1}
+                  {isPast ? '✓' : isFailed ? '✕' : i + 1}
                 </span>
                 <span className={cn(
                   'text-xs flex-1',
                   isActive && 'text-orange-700 font-semibold',
+                  isFailed && 'text-red-700 font-semibold',
                   isPast && 'text-green-700',
-                  !isPast && !isActive && 'text-gray-400',
+                  !isPast && !isActive && !isFailed && 'text-gray-400',
                 )}>
                   {s.label}
                 </span>
@@ -93,7 +105,7 @@ export default function NovelStatusPanel({ novelData }) {
           <div className="flex flex-wrap gap-1.5">
             {chapters.map((ch, i) => {
               const done = (chapterTexts[i] || '').trim().length > 50
-              const isActive = writing && i === completedChapters
+              const isActive = !isError && writing && i === completedChapters
               return (
                 <span key={i} className={cn(
                   'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold',

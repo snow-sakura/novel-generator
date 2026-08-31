@@ -59,6 +59,7 @@ export const useNovelStore = create((set) => ({
   thinkingLogs: [],
   outlineThinking: [],
   errorMessage: '',
+  failedStep: null,
 
   configChecked: false,
   configOk: false,
@@ -136,7 +137,12 @@ export const useNovelStore = create((set) => ({
   setGenerationNovelId: (id) => set({ generationNovelId: id }),
 
   setError: (msg) =>
-    set({ generating: false, currentStep: STEPS.ERROR, errorMessage: msg }),
+    set((state) => ({
+      generating: false,
+      currentStep: STEPS.ERROR,
+      errorMessage: msg,
+      failedStep: state.currentStep,
+    })),
 
   finishGeneration: () => set({ generating: false, currentStep: STEPS.DONE }),
 
@@ -145,7 +151,8 @@ export const useNovelStore = create((set) => ({
       generating: false, currentStep: STEPS.IDLE, currentContent: '',
       currentTitle: '', chapters: [], chapterTexts: [],
       eventLog: [], thinkingLogs: [], outlineThinking: [],
-      errorMessage: '', currentRecordId: null, continueRecordId: null,
+      errorMessage: '', failedStep: null,
+      currentRecordId: null, continueRecordId: null,
       generationNovelId: null, abortController: null,
     }),
 }))

@@ -334,18 +334,18 @@ export default function CreatePage() {
         <ConfigStatus />
       </div>
 
-      {/* 主内容区 - 左右布局，各自自适应高度 */}
-      <div className="flex gap-4 items-start">
+      {/* 主内容区 - 左右布局，高度由内容决定 */}
+      <div className="flex gap-4">
         {/* 左侧：创作参数表单 — 内容决定高度 */}
-        <div className="w-[380px] flex-shrink-0 bg-white rounded-xl border border-gray-200 p-4 self-stretch">
+        <div className="w-[380px] flex-shrink-0 bg-white rounded-xl border border-gray-200 p-4">
           <NovelForm onGenerate={handleGenerate} />
         </div>
 
-        {/* 右侧：状态/进度区域 — 撑满与左侧等高 */}
-        <div className="flex-1 min-w-0 bg-white rounded-xl border border-gray-200 p-5 self-stretch">
+        {/* 右侧：状态/进度区域 — 与左侧等高 */}
+        <div className="flex-1 min-w-0 bg-white rounded-xl border border-gray-200 p-5">
           {/* 空状态占位 - 紧凑展示 */}
           {!showToc && !showContentPlaceholder && (
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
+            <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center mb-3 shadow-md">
                 <Sparkles className="w-7 h-7 text-white" />
               </div>

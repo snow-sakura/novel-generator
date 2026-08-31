@@ -71,16 +71,16 @@ async def _timeout_iterate(
             break
         except Exception as e:
             error_str = str(e)
-            # 检测速率限制错误（429）
+            _log(f"❌ 流式迭代异常: {e}")
+            # 所有异常都应终止流水线，避免继续执行后续步骤
             if (
                 "429" in error_str
                 or "rate limit" in error_str.lower()
                 or "FreeUsageLimitError" in error_str
             ):
-                _log(f"❌ 速率限制错误: {e}")
                 raise RuntimeError(f"API速率限制，请稍后再试: {e}")
-            _log(f"⚠️ 流式迭代异常: {e}")
-            break
+            # 其他错误（如 provider 错误、超时等）也应停止生成
+            raise RuntimeError(f"生成失败: {e}")
 
 
 def _ensure_novel_folder(title: str) -> str:
@@ -531,6 +531,7 @@ class GeneratorService:
     async def _call_with_retry(self, prompt: str, label: str, retries: int = 2) -> str:
         """带重试的流式调用，返回完整文本"""
         text = ""
+        last_error = None
         for attempt in range(retries):
             text = ""
             try:
@@ -543,15 +544,24 @@ class GeneratorService:
                 if text.strip():
                     return text
             except RuntimeError as e:
-                if any(kw in str(e) for kw in ("速率限制", "429", "rate limit")):
+                last_error = e
+                _log(f"⚠️ {label}异常: {e}（第{attempt + 1}次）")
+                # 重试一次后仍失败则直接抛出
+                if attempt == retries - 1:
                     raise
-                _log(f"⚠️ {label}异常: {e}（第{attempt + 1}次）")
             except Exception as e:
+                last_error = e
                 _log(f"⚠️ {label}异常: {e}（第{attempt + 1}次）")
+                # 重试一次后仍失败则直接抛出
+                if attempt == retries - 1:
+                    raise RuntimeError(f"生成失败: {e}")
             if attempt == 0:
                 _log(f"🔄 {label}重试...")
                 await asyncio.sleep(1)
-        return text
+        # 如果所有重试都失败且没有异常被抛出，返回文本或抛出错误
+        if text.strip():
+            return text
+        raise last_error or RuntimeError(f"{label}生成失败")
 
     async def _step_finalize(self, ctx: dict) -> AsyncGenerator[dict, None]:
         """Step 4: 标题生成 + 持久化 + 完成"""

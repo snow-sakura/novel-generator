@@ -12,7 +12,7 @@ export default function ChatPage() {
   const navigate = useNavigate()
   const {
     messages, generating, novelData,
-    addMessage, updateLastMessage, setGenerating,
+    addMessage, updateLastMessage, updateLastMessageFull, setGenerating,
     setCurrentStep, setNovelData, updateNovelData,
     setCurrentRecordId, setAbortController, reset,
   } = useChatStore()
@@ -134,9 +134,11 @@ export default function ChatPage() {
           const title = data?.title || '未命名小说'
           const totalWords = data?.total_words || 0
           setCurrentStep('done')
-          updateLastMessage(
-            `🎉 **《${title}》生成完成！**\n\n总字数：${totalWords.toLocaleString()}字\n点击下方按钮查看详情。`
-          )
+          // 关键：将最后一条消息的 streaming 设为 false，停止 "正在生成..." 指示器
+          updateLastMessageFull({
+            streaming: false,
+            content: `🎉 **《${title}》生成完成！**\n\n总字数：${totalWords.toLocaleString()}字\n点击下方按钮查看详情。`,
+          })
           updateNovelData({ step: 'done', totalWords, novelId })
           setGenerating(false)
           break
@@ -152,10 +154,23 @@ export default function ChatPage() {
           }
           break
         }
-        case 'error':
-          updateLastMessage('❌ **生成出错**：' + (data?.message || '未知错误'))
+        case 'error': {
+          const currentState = useChatStore.getState()
+          const errorMsg = data?.message || '未知错误'
+          // 关键：将最后一条消息的 streaming 设为 false，停止 "正在生成..." 指示器
+          updateLastMessageFull({
+            streaming: false,
+            content: '❌ **生成出错**：' + errorMsg,
+          })
+          setCurrentStep('error')
+          updateNovelData({
+            step: 'error',
+            failedStep: currentState.currentStep || null,
+            errorMessage: errorMsg,
+          })
           setGenerating(false)
           break
+        }
       }
     }
 
@@ -164,7 +179,18 @@ export default function ChatPage() {
     }
 
     const onError = (msg) => {
-      updateLastMessage('❌ **错误**：' + msg)
+      const currentState = useChatStore.getState()
+      // 关键：将最后一条消息的 streaming 设为 false，停止 "正在生成..." 指示器
+      updateLastMessageFull({
+        streaming: false,
+        content: '❌ **错误**：' + msg,
+      })
+      setCurrentStep('error')
+      updateNovelData({
+        step: 'error',
+        failedStep: currentState.currentStep || null,
+        errorMessage: msg,
+      })
       setGenerating(false)
     }
 
@@ -189,7 +215,11 @@ export default function ChatPage() {
       ctrl.abort()
       setAbortController(null)
     }
-    updateLastMessage('⏹️ **生成已停止**（已生成内容已保存）')
+    // 关键：将最后一条消息的 streaming 设为 false，停止 "正在生成..." 指示器
+    updateLastMessageFull({
+      streaming: false,
+      content: '⏹️ **生成已停止**（已生成内容已保存）',
+    })
     setGenerating(false)
     setShowStopConfirm(false)
   }

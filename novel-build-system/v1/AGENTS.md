@@ -66,6 +66,15 @@ LLM Provider 调用可能因 API 不可达而挂死。GeneratorService 有三层
 2. **`_call_llm(timeout=120)`** — 收集式调用（parse/outline/title）设 120s 总超时，超时返回空字符串（走 fallback）
 3. **`_timeout_iterate(agen, timeout=120)`** — 流式逐章写作时每块间 120s 超时，防止卡在单次 chunk
 
+## 错误处理流程
+
+当 LLM 返回错误（如 429 速率限制、provider 错误）时，流水线立即停止：
+
+1. **`_timeout_iterate`** — 捕获所有异常，抛出 `RuntimeError` 终止流水线
+2. **`_call_with_retry`** — 重试一次后仍失败则直接抛出异常
+3. **`generate()` 主流程** — 捕获异常，yield `error` 事件
+4. **前端处理** — `updateLastMessageFull({ streaming: false })` 停止 "正在生成..." 指示器，显示错误状态
+
 ## SSE 事件流
 
 `event: xxx\ndata: {...}\n\n` 格式。

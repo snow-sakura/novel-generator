@@ -23,6 +23,14 @@ export const useChatStore = create((set) => ({
       }
       return { messages: msgs }
     }),
+  updateLastMessageFull: (updates) =>
+    set((state) => {
+      const msgs = [...state.messages]
+      if (msgs.length > 0) {
+        msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], ...updates }
+      }
+      return { messages: msgs }
+    }),
   setGenerating: (val) => set({ generating: val }),
   setCurrentStep: (step) => set({ currentStep: step }),
   setNovelData: (data) => set({ novelData: data }),
