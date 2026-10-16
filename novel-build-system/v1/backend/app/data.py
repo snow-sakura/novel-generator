@@ -278,6 +278,28 @@ def _build_env_providers() -> list:
             }
         )
 
+    known_providers = {"openai", "anthropic", "ollama", "opencode"}
+    if current_provider not in known_providers and (
+        settings.llm_api_key or settings.llm_base_url or settings.llm_model
+    ):
+        providers.append(
+            {
+                "provider": current_provider,
+                "label": settings.llm_provider_label or current_provider,
+                "base_url": settings.llm_base_url,
+                "models": (
+                    [{"id": settings.llm_model, "label": settings.llm_model}]
+                    if settings.llm_model
+                    else []
+                ),
+                "need_key": not bool(settings.llm_api_key),
+                # 允许前端对该 provider 自定义：可编辑 API 地址、补充模型名，
+                # 密钥由 .env 提供（need_key=False），用户无需重填
+                "custom": True,
+                "editable_base_url": True,
+            }
+        )
+
     return providers
 
 
@@ -394,7 +416,20 @@ _CHINESE_MODELS_RAW = [
 
 
 # 合并：.env 配置的 provider + 国产模型列表
-CHINESE_MODELS = _build_env_providers() + _CHINESE_MODELS_RAW
+CHINESE_MODELS = (
+    _build_env_providers()
+    + _CHINESE_MODELS_RAW
+    + [
+        {
+            "provider": "custom",
+            "label": "自定义 OpenAI 兼容模型",
+            "base_url": "",
+            "models": [],
+            "need_key": True,
+            "custom": True,
+        }
+    ]
+)
 
 # ========== 默认提示词模板 ==========
 DEFAULT_PROMPTS = {

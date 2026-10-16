@@ -40,7 +40,36 @@ class Settings:
 
     # Server
     host: str = os.getenv("HOST", "0.0.0.0")
-    port: int = int(os.getenv("PORT", "8000"))
+    port: int = int(os.getenv("PORT", "8001"))
+
+    def __init__(self):
+        self.llm_provider = self.llm_provider.strip().lower()
+        provider_prefix = self.llm_provider.upper()
+        self.llm_api_key = os.getenv(f"{provider_prefix}_API_KEY", "")
+        self.llm_base_url = os.getenv(f"{provider_prefix}_BASE_URL", "")
+        self.llm_model = os.getenv(f"{provider_prefix}_MODEL", "")
+
+        if not self.llm_model:
+            self.llm_model = {
+                "openai": self.openai_model,
+                "anthropic": self.anthropic_model,
+                "ollama": self.ollama_model,
+                "opencode": self.opencode_model,
+            }.get(self.llm_provider, self.custom_model_name)
+
+        if not self.llm_api_key:
+            self.llm_api_key = {
+                "openai": self.openai_api_key,
+                "anthropic": self.anthropic_api_key,
+                "opencode": self.opencode_api_key,
+            }.get(self.llm_provider, self.custom_model_api_key)
+
+        if not self.llm_base_url:
+            self.llm_base_url = {
+                "openai": self.openai_base_url,
+                "ollama": self.ollama_base_url,
+                "opencode": self.opencode_base_url,
+            }.get(self.llm_provider, self.custom_model_base_url)
 
 
 settings = Settings()
@@ -56,41 +85,11 @@ def get_model_config_from_req(model_config: dict = None) -> dict:
             "api_key": model_config.get("api_key", ""),
         }
 
-    # 回退到环境变量
+    # 回退到当前 provider 对应的环境变量
     provider = settings.llm_provider
-    if provider == "openai":
-        return {
-            "provider": "openai",
-            "base_url": settings.openai_base_url,
-            "model": settings.openai_model,
-            "api_key": settings.openai_api_key,
-        }
-    elif provider == "anthropic":
-        return {
-            "provider": "anthropic",
-            "base_url": "",
-            "model": settings.anthropic_model,
-            "api_key": settings.anthropic_api_key,
-        }
-    elif provider == "ollama":
-        return {
-            "provider": "ollama",
-            "base_url": settings.ollama_base_url,
-            "model": settings.ollama_model,
-            "api_key": "",
-        }
-    elif provider == "opencode":
-        return {
-            "provider": "opencode",
-            "base_url": settings.opencode_base_url,
-            "model": settings.opencode_model,
-            "api_key": settings.opencode_api_key,
-        }
-    elif settings.custom_model_provider:
-        return {
-            "provider": settings.custom_model_provider,
-            "base_url": settings.custom_model_base_url,
-            "model": settings.custom_model_name,
-            "api_key": settings.custom_model_api_key,
-        }
-    return {"provider": "openai", "base_url": "", "model": "", "api_key": ""}
+    return {
+        "provider": provider,
+        "base_url": settings.llm_base_url,
+        "model": settings.llm_model,
+        "api_key": settings.llm_api_key,
+    }

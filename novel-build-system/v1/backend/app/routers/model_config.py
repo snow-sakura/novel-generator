@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.model_config import ModelConfig
+from app.config import settings
 
 router = APIRouter(prefix="/api/v1/model-config", tags=["model-config"])
 
@@ -28,22 +29,49 @@ class ModelConfigSchema(BaseModel):
 
 @router.get("")
 async def get_model_config(db: Session = Depends(get_db)):
-    """获取持久化的模型配置（API Key 已脱敏）"""
+    """获取生效中的模型配置（API Key 已脱敏）
+
+    优先级：
+    1. 数据库中存在用户保存的配置 → 返回数据库配置
+    2. 否则返回 .env 默认配置（from_env=true）
+    """
     config = db.query(ModelConfig).filter(ModelConfig.is_default == True).first()
-    if config:
+
+    def _serialize(c):
         return {
-            "provider": config.provider,
-            "label": config.label,
-            "base_url": config.base_url,
-            "model_id": config.model_id,
-            "api_key": _mask_key(config.api_key or ""),
+            "provider": c.provider,
+            "label": c.label,
+            "base_url": c.base_url,
+            "model_id": c.model_id,
+            "api_key": _mask_key(c.api_key or ""),
+            "api_key_configured": bool(c.api_key),
+            "from_env": False,
         }
+
+    # 用户显式保存的配置优先于 .env，否则切换到其他 provider 后刷新会丢失选择
+    if config:
+        return _serialize(config)
+
+    # .env 有默认配置 → 返回 .env 配置（默认使用，前端可自定义覆盖）
+    if settings.llm_model or settings.llm_base_url:
+        return {
+            "provider": settings.llm_provider,
+            "label": settings.llm_provider_label or settings.llm_provider,
+            "base_url": settings.llm_base_url,
+            "model_id": settings.llm_model,
+            "api_key": _mask_key(settings.llm_api_key or ""),
+            "api_key_configured": bool(settings.llm_api_key),
+            "from_env": True,
+        }
+
     return {
         "provider": "",
         "label": "",
         "base_url": "",
         "model_id": "",
         "api_key": "",
+        "api_key_configured": False,
+        "from_env": False,
     }
 
 

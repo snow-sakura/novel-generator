@@ -3,12 +3,14 @@ import { Cpu, Key, Globe, CheckCircle, Eye, EyeOff, ChevronDown, Info } from 'lu
 import { useNovelStore } from '../stores/novelStore'
 import { cn } from '../lib/utils'
 
-export default function ModelConfig({ models }) {
+export default function ModelConfig({ models, defaultModel }) {
   const { customModel, setCustomModel, generating } = useNovelStore()
 
   const [selectedProvider, setSelectedProvider] = useState('')
   const [selectedModel, setSelectedModel] = useState('')
   const [apiKey, setApiKey] = useState('')
+  const [customLabel, setCustomLabel] = useState('')
+  const [customBaseUrl, setCustomBaseUrl] = useState('')
   const [showKey, setShowKey] = useState(false)
 
   useEffect(() => {
@@ -16,11 +18,15 @@ export default function ModelConfig({ models }) {
     if (customModel) {
       setSelectedProvider(customModel.provider || '')
       setSelectedModel(customModel.model || '')
-      setApiKey(customModel.api_key || '')
+      setApiKey(customModel.api_key?.startsWith('***') ? '' : customModel.api_key || '')
+      setCustomLabel(customModel.label || '')
+      setCustomBaseUrl(customModel.base_url || '')
     } else {
       setSelectedProvider('')
       setSelectedModel('')
       setApiKey('')
+      setCustomLabel('')
+      setCustomBaseUrl('')
     }
   }, [models, customModel])
 
@@ -28,6 +34,35 @@ export default function ModelConfig({ models }) {
     setSelectedProvider(provider)
     setApiKey('')
     const prov = models.find(m => m.provider === provider)
+    if (prov?.custom) {
+      // .env 中已配置的 provider（如 agnes）：预填 base_url / label / 模型，用户可继续补充修改
+      if (prov.base_url && prov.models?.length > 0) {
+        const m = prov.models[0].id
+        setSelectedModel(m)
+        setCustomLabel(prov.label || '')
+        setCustomBaseUrl(prov.base_url)
+        setCustomModel({
+          provider,
+          label: prov.label || '',
+          base_url: prov.base_url,
+          model: m,
+          api_key: '',
+        })
+        return
+      }
+      // 纯自定义 provider：清空让用户填写
+      setSelectedModel('')
+      setCustomLabel('')
+      setCustomBaseUrl('')
+      setCustomModel({
+        provider,
+        label: '',
+        base_url: '',
+        model: '',
+        api_key: '',
+      })
+      return
+    }
     if (prov && prov.models.length > 0) {
       const m = prov.models[0].id
       setSelectedModel(m)
@@ -41,6 +76,22 @@ export default function ModelConfig({ models }) {
     }
   }
 
+  function updateCustomModel(changes) {
+    const savedApiKey = customModel?.provider === selectedProvider
+      && customModel.api_key?.startsWith('***')
+      ? customModel.api_key
+      : ''
+    const updated = {
+      provider: selectedProvider || 'custom',
+      label: customLabel,
+      base_url: customBaseUrl,
+      model: selectedModel,
+      api_key: apiKey || savedApiKey,
+      ...changes,
+    }
+    setCustomModel(updated)
+  }
+
   function handleModelChange(model) {
     setSelectedModel(model)
     const prov = models.find(m => m.provider === selectedProvider)
@@ -50,7 +101,12 @@ export default function ModelConfig({ models }) {
         label: prov.label,
         base_url: prov.base_url,
         model,
-        api_key: apiKey,
+        api_key: apiKey || (
+          customModel?.provider === selectedProvider
+          && customModel.api_key?.startsWith('***')
+            ? customModel.api_key
+            : ''
+        ),
       })
     }
   }
@@ -58,7 +114,9 @@ export default function ModelConfig({ models }) {
   function handleApiKeyChange(key) {
     setApiKey(key)
     const prov = models.find(m => m.provider === selectedProvider)
-    if (prov && selectedModel) {
+    if (prov?.custom) {
+      updateCustomModel({ api_key: key })
+    } else if (prov && selectedModel) {
       setCustomModel({
         provider: selectedProvider,
         label: prov.label,
@@ -101,7 +159,12 @@ export default function ModelConfig({ models }) {
             </div>
             <div>
               <p className="text-sm font-medium text-amber-800">当前使用默认配置</p>
-              <p className="text-xs text-amber-600 mt-1">模型信息来自后端 .env 文件，如需自定义请从下方选择厂商。</p>
+              <p className="text-xs text-amber-600 mt-1">
+                {defaultModel?.configured
+                  ? `当前：${defaultModel.label} · ${defaultModel.model}${defaultModel.base_url ? ` · ${defaultModel.base_url}` : ''}`
+                  : '模型信息来自后端 .env 文件'}
+                ，如需自定义请从下方选择厂商。
+              </p>
             </div>
           </div>
         </div>
@@ -142,11 +205,35 @@ export default function ModelConfig({ models }) {
         </div>
       </div>
 
+      {/* 自定义模型名称 */}
+      {currentProvider?.custom && (
+        <div>
+          <label className="text-sm font-medium text-gray-700 mb-2 block">配置名称</label>
+          <input value={customLabel}
+            onChange={e => {
+              setCustomLabel(e.target.value)
+              updateCustomModel({ label: e.target.value })
+            }}
+            disabled={generating}
+            placeholder="例如：我的兼容模型"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-sm" />
+        </div>
+      )}
+
       {/* 模型选择 */}
       {currentProvider && (
         <div>
           <label className="text-sm font-medium text-gray-700 mb-2 block">模型</label>
-          <div className="relative">
+          {currentProvider.custom ? (
+            <input value={selectedModel}
+              onChange={e => {
+                setSelectedModel(e.target.value)
+                updateCustomModel({ model: e.target.value })
+              }}
+              disabled={generating}
+              placeholder="输入模型 ID，例如：gpt-4o-mini"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-sm" />
+          ) : <div className="relative">
             <select value={selectedModel} onChange={e => handleModelChange(e.target.value)}
               disabled={generating}
               className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none bg-white text-sm appearance-none cursor-pointer hover:border-gray-300 transition-colors">
@@ -155,12 +242,12 @@ export default function ModelConfig({ models }) {
               ))}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+          </div>}
         </div>
       )}
 
       {/* API Key */}
-      {currentProvider?.need_key && (
+      {(currentProvider?.need_key || currentProvider?.custom) && (
         <div>
           <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
             <Key className="w-4 h-4 text-gray-500" />
@@ -186,11 +273,28 @@ export default function ModelConfig({ models }) {
       {/* API 地址 */}
       {currentProvider && (
         <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Globe className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="font-medium">API 地址：</span>
-            <span className="text-gray-600 truncate">{currentProvider.base_url}</span>
-          </div>
+          {currentProvider.custom ? (
+            <>
+              <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
+                <Globe className="w-3.5 h-3.5" />
+                API 地址
+              </label>
+              <input type="url" value={customBaseUrl}
+                onChange={e => {
+                  setCustomBaseUrl(e.target.value)
+                  updateCustomModel({ base_url: e.target.value })
+                }}
+                disabled={generating}
+                placeholder="https://api.example.com/v1"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none bg-white text-sm" />
+            </>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="font-medium">API 地址：</span>
+              <span className="text-gray-600 truncate">{currentProvider.base_url}</span>
+            </div>
+          )}
         </div>
       )}
 

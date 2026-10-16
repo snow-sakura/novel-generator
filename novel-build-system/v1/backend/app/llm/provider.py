@@ -6,6 +6,27 @@ from typing import AsyncGenerator, Optional
 from app.config import settings
 
 
+def _get_saved_api_key(provider: str, base_url: str, model: str) -> str:
+    from app.database import SessionLocal
+    from app.models.model_config import ModelConfig
+
+    db = SessionLocal()
+    try:
+        config = (
+            db.query(ModelConfig)
+            .filter(
+                ModelConfig.is_default.is_(True),
+                ModelConfig.provider == provider,
+                ModelConfig.base_url == base_url,
+                ModelConfig.model_id == model,
+            )
+            .first()
+        )
+        return config.api_key or "" if config else ""
+    finally:
+        db.close()
+
+
 class LLMProvider(ABC):
     """LLM 统一抽象接口"""
 
@@ -84,21 +105,23 @@ class OpenAIProvider(LLMProvider):
 
 
 class AnthropicProvider(LLMProvider):
-    def __init__(self):
+    def __init__(self, api_key: str = None, model: str = None):
         from langchain_anthropic import ChatAnthropic
 
-        self.model_name = settings.anthropic_model
+        self.api_key = api_key or settings.anthropic_api_key
+        self.model_name = model or settings.anthropic_model
         self._llm = _LazyLLM(
             lambda: ChatAnthropic(
-                api_key=settings.anthropic_api_key,
+                api_key=self.api_key,
                 model=self.model_name,
                 streaming=True,
                 temperature=0.8,
             ),
-            validate_before="anthropic_api_key",
         )
 
     def validate(self) -> Optional[str]:
+        if not self.api_key:
+            return "环境变量未配置: ANTHROPIC_API_KEY"
         try:
             self._llm()
             return None
@@ -119,8 +142,9 @@ class AnthropicProvider(LLMProvider):
 
 
 class OllamaProvider(LLMProvider):
-    def __init__(self):
-        self.model_name = settings.ollama_model
+    def __init__(self, base_url: str = None, model: str = None):
+        self.base_url = base_url or settings.ollama_base_url
+        self.model_name = model or settings.ollama_model
         self._llm = _LazyLLM(
             lambda: self._create_ollama(),
         )
@@ -131,7 +155,7 @@ class OllamaProvider(LLMProvider):
         except ImportError:
             raise RuntimeError("langchain-ollama 未安装，无法使用 Ollama Provider")
         return ChatOllama(
-            base_url=settings.ollama_base_url, model=self.model_name, temperature=0.8
+            base_url=self.base_url, model=self.model_name, temperature=0.8
         )
 
     def validate(self) -> Optional[str]:
@@ -234,7 +258,7 @@ class CustomProvider(LLMProvider):
                 else:
                     yield ""  # 心跳，防止流式超时
         except Exception as e:
-            yield f"\n\n[生成错误: {e}]"
+            raise RuntimeError(f"模型流式请求失败: {e}") from e
 
 
 def get_llm_provider(model_config: dict = None) -> LLMProvider:
@@ -246,9 +270,31 @@ def get_llm_provider(model_config: dict = None) -> LLMProvider:
     """
     if model_config and model_config.get("provider"):
         provider_name = model_config["provider"]
-        base_url = model_config.get("base_url", "")
+        is_active_provider = provider_name == settings.llm_provider
+        base_url = model_config.get("base_url") or (
+            settings.llm_base_url if is_active_provider else ""
+        )
         api_key = model_config.get("api_key", "")
-        model = model_config.get("model", "")
+        if not api_key and is_active_provider:
+            api_key = settings.llm_api_key
+        model = model_config.get("model") or (
+            settings.llm_model if is_active_provider else ""
+        )
+        if not api_key or api_key.startswith("***"):
+            api_key = _get_saved_api_key(provider_name, base_url, model) or api_key
+        if api_key.startswith("***"):
+            api_key = ""
+
+        if provider_name == "anthropic" and not base_url:
+            return AnthropicProvider(
+                api_key=api_key or settings.anthropic_api_key,
+                model=model or settings.anthropic_model,
+            )
+        if provider_name == "ollama":
+            return OllamaProvider(
+                base_url=base_url or settings.ollama_base_url,
+                model=model or settings.ollama_model,
+            )
 
         # 如果前端传入了自定义 base_url（即用户在设置页面配置了具体模型），
         # 一律使用 CustomProvider，确保自定义模型生效
@@ -261,7 +307,12 @@ def get_llm_provider(model_config: dict = None) -> LLMProvider:
 
         # 无 base_url 时，按 provider 名选择内置 Provider（使用 .env 配置）
         if provider_name in ("openai", "anthropic", "ollama", "opencode"):
-            pass  # 走下面的 provider_map 逻辑
+            if provider_name == "openai":
+                return CustomProvider(
+                    base_url="https://api.openai.com/v1",
+                    model=model or settings.openai_model,
+                    api_key=api_key or settings.openai_api_key,
+                )
         else:
             # 未知 provider，尝试 CustomProvider
             return CustomProvider(
@@ -269,6 +320,13 @@ def get_llm_provider(model_config: dict = None) -> LLMProvider:
                 model=model,
                 api_key=api_key,
             )
+
+    if settings.llm_provider not in ("openai", "anthropic", "ollama", "opencode"):
+        return CustomProvider(
+            base_url=settings.llm_base_url,
+            model=settings.llm_model,
+            api_key=settings.llm_api_key,
+        )
 
     provider_map = {
         "openai": OpenAIProvider,

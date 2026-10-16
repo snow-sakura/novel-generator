@@ -68,7 +68,7 @@ async def _timeout_iterate(
         except asyncio.TimeoutError:
             stage = "首块" if is_first else "后续"
             _log(f"⚠️ 流式迭代超时（{stage} {t}s）")
-            break
+            raise RuntimeError(f"流式迭代超时（{stage} {t}s）")
         except Exception as e:
             error_str = str(e)
             _log(f"❌ 流式迭代异常: {e}")
@@ -104,10 +104,16 @@ class GeneratorService:
         self._current_step = "parsing"
 
     def _make_log(self, text: str, type: str = "info"):
+        _log(f"[{self._current_step}] {text}")
         return {
             "event": "log",
             "data": {"step": self._current_step, "type": type, "text": text},
         }
+
+    @staticmethod
+    def _log_stream_chunk(step: str, label: str, chunk: str):
+        ts = datetime.now().strftime("%H:%M:%S.%f")[:12]
+        print(f"  [{ts}] [模型流式][{step}][{label}] {chunk}", flush=True)
 
     # ── 主入口：拆分为子方法 ──
 
@@ -431,9 +437,13 @@ class GeneratorService:
                 "data": {"title": title, "index": i, "start_time": now_ts},
             }
 
-            chapter_content = await self._generate_single_chapter(
+            chapter_content_parts = []
+            async for chunk in self._generate_single_chapter(
                 ctx, i, title, summary, previous_summary, per_chapter_target
-            )
+            ):
+                chapter_content_parts.append(chunk)
+                yield {"event": "content", "data": chunk}
+            chapter_content = "".join(chapter_content_parts)
 
             full_content_parts.append(f"## {title}\n\n{chapter_content.strip()}")
             previous_summary = f"上一章《{title}》概要：{chapter_content[:200]}..."
@@ -473,8 +483,8 @@ class GeneratorService:
 
     async def _generate_single_chapter(
         self, ctx, index, title, summary, previous_summary, target_words
-    ) -> str:
-        """生成单章内容（支持分段 + 重试）"""
+    ) -> AsyncGenerator[str, None]:
+        """生成单章内容并逐块输出（支持分段 + 重试）"""
         chapters = ctx["chapters"]
         chapter = chapters[index]
         outline_data = ctx.get("outline_data") or {}
@@ -506,7 +516,6 @@ class GeneratorService:
                 ["开篇", "发展", "高潮/转折", "收尾"] if target_words >= 1000 else []
             )
 
-        chapter_content = ""
         if scenes:
             segment_target = max(300, target_words // len(scenes))
             for si, scene_desc in enumerate(scenes):
@@ -514,22 +523,22 @@ class GeneratorService:
                     chapter_prompt
                     + f"\n\n【当前场景 {si + 1}/{len(scenes)}】{scene_desc}\n本节目标约 {segment_target} 字。"
                 )
-                seg_text = await self._call_with_retry(
+                async for chunk in self._call_with_retry(
                     seg_prompt, f"第{index + 1}章·场景{si + 1}"
-                )
-                chapter_content += seg_text
-                if si < len(scenes) - 1 and not chapter_content.endswith("\n\n***\n\n"):
-                    chapter_content += "\n\n***\n\n"
-                    yield_content = "\n\n***\n\n"
+                ):
+                    yield chunk
+                if si < len(scenes) - 1:
+                    yield "\n\n***\n\n"
         else:
-            chapter_content = await self._call_with_retry(
+            async for chunk in self._call_with_retry(
                 chapter_prompt, f"第{index + 1}章"
-            )
+            ):
+                yield chunk
 
-        return chapter_content
-
-    async def _call_with_retry(self, prompt: str, label: str, retries: int = 2) -> str:
-        """带重试的流式调用，返回完整文本"""
+    async def _call_with_retry(
+        self, prompt: str, label: str, retries: int = 2
+    ) -> AsyncGenerator[str, None]:
+        """带重试的流式调用，逐块输出正文"""
         text = ""
         last_error = None
         for attempt in range(retries):
@@ -540,16 +549,25 @@ class GeneratorService:
                     timeout=120,
                     first_chunk_timeout=90,
                 ):
+                    if not chunk:
+                        continue
                     text += chunk
+                    self._log_stream_chunk(self._current_step, label, chunk)
+                    yield chunk
                 if text.strip():
-                    return text
+                    return
+                last_error = RuntimeError(f"{label}未返回有效内容")
             except RuntimeError as e:
+                if text:
+                    raise RuntimeError(f"{label}输出中断: {e}") from e
                 last_error = e
                 _log(f"⚠️ {label}异常: {e}（第{attempt + 1}次）")
                 # 重试一次后仍失败则直接抛出
                 if attempt == retries - 1:
                     raise
             except Exception as e:
+                if text:
+                    raise RuntimeError(f"{label}输出中断: {e}") from e
                 last_error = e
                 _log(f"⚠️ {label}异常: {e}（第{attempt + 1}次）")
                 # 重试一次后仍失败则直接抛出
@@ -558,9 +576,6 @@ class GeneratorService:
             if attempt == 0:
                 _log(f"🔄 {label}重试...")
                 await asyncio.sleep(1)
-        # 如果所有重试都失败且没有异常被抛出，返回文本或抛出错误
-        if text.strip():
-            return text
         raise last_error or RuntimeError(f"{label}生成失败")
 
     async def _step_finalize(self, ctx: dict) -> AsyncGenerator[dict, None]:
@@ -1091,6 +1106,7 @@ class GeneratorService:
     ) -> str:
         """流式调用 LLM 并收集完整结果，超时/失败后自动重试一次"""
         result = ""
+        last_error = None
         for attempt in range(2):
             result = ""
 
@@ -1101,14 +1117,19 @@ class GeneratorService:
                     timeout=timeout,
                     first_chunk_timeout=90,
                 ):
+                    if not chunk:
+                        continue
                     result += chunk
+                    self._log_stream_chunk(self._current_step, self._current_step, chunk)
 
             try:
                 await asyncio.wait_for(_collect(), timeout=timeout + 5)
-                if result:
+                if result.strip():
                     return result
+                last_error = RuntimeError("LLM未返回有效内容")
                 _log(f"⚠️ LLM 返回空结果（第{attempt + 1}次）")
             except asyncio.TimeoutError:
+                last_error = RuntimeError(f"LLM 调用超时（{timeout}s）")
                 _log(f"⚠️ LLM 调用超时（{timeout}s，第{attempt + 1}次）")
             except RuntimeError as e:
                 # 速率限制等致命错误，直接向上抛出，不重试
@@ -1118,13 +1139,15 @@ class GeneratorService:
                     or "rate limit" in str(e).lower()
                 ):
                     raise
+                last_error = e
                 _log(f"⚠️ LLM 调用异常: {e}（第{attempt + 1}次）")
             except Exception as e:
+                last_error = RuntimeError(f"LLM 调用失败: {e}")
                 _log(f"⚠️ LLM 调用异常: {e}（第{attempt + 1}次）")
             if attempt == 0:
                 _log("🔄 重试一次...")
                 await asyncio.sleep(1)
-        return result
+        raise last_error or RuntimeError("LLM调用失败")
 
     async def _parse_elements(
         self, seed_text: str, prompt_tpl: str = SYSTEM_PROMPT_PARSE
@@ -1245,8 +1268,7 @@ class GeneratorService:
             raw = await self._call_llm(prompt, timeout=120)
             parsed = self._extract_json(raw)
             if not parsed:
-                _log(f"⚠️ {label}层为空，跳过")
-                yield self._make_log(f"  ⚠️ {label}生成失败，跳过", type="warning")
+                raise RuntimeError(f"{label}生成失败：模型未返回有效 JSON")
             else:
                 preview = json.dumps(parsed, ensure_ascii=False, indent=2)[:800]
                 _log(f"  ✅ {label}: {preview}")

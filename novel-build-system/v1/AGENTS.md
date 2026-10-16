@@ -39,7 +39,7 @@
 cd backend && bash run.sh
 
 # 前端
-cd frontend && npm run dev     # http://localhost:5173, /api → proxy localhost:8000
+cd frontend && npm run dev     # http://localhost:5173, /api → proxy localhost:8001
 
 # 构建
 cd frontend && npm run build
@@ -149,7 +149,7 @@ return StreamingResponse(
 // frontend/vite.config.js
 proxy: {
   '/api': {
-    target: 'http://localhost:8000',
+    target: 'http://localhost:8001',
     changeOrigin: true,
     timeout: 0,
     configure: (proxy) => {

@@ -14,20 +14,25 @@ export async function checkConfig() {
   }
   try {
     const res = await fetch(`${API_BASE}/config/check`)
-    if (!res.ok) return { provider: '', configured: false, error: '无法连接后端', model: '' }
+    if (!res.ok) {
+      return {
+        provider: '',
+        configured: false,
+        error: `后端接口异常 (HTTP ${res.status})`,
+        model: '',
+      }
+    }
     return res.json()
   } catch {
-    return { provider: '', configured: false, error: '后端未启动', model: '' }
+    return { provider: '', configured: false, error: '无法连接后端，请确认后端已启动', model: '' }
   }
 }
 
 export async function fetchModels() {
   if (isGitHubPages()) return { models: [] }
-  try {
-    const res = await fetch(`${API_BASE}/models/list`)
-    if (!res.ok) return { models: [] }
-    return res.json()
-  } catch { return { models: [] } }
+  const res = await fetch(`${API_BASE}/models/list`)
+  if (!res.ok) throw new Error(`获取模型列表失败 (HTTP ${res.status})`)
+  return res.json()
 }
 
 export async function fetchGenres(gender = '男频') {
@@ -59,7 +64,11 @@ export function generateNovel(params, onEvent, onComplete, onError, continueReco
       clearTimeout(timeoutId)
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        throw new Error(err.error || `请求失败 (${response.status})`)
+        throw new Error(err.detail || err.error || `请求失败 (${response.status})`)
+      }
+      if (!response.headers.get('content-type')?.includes('text/event-stream')) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.detail || err.error || '后端未返回 SSE 流，生成未启动')
       }
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -235,14 +244,13 @@ export async function fetchModelConfig() {
 
 export async function saveModelConfig(config) {
   if (isGitHubPages()) return
-  try {
-    await fetch(`${API_BASE}/model-config`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
-    })
-  } catch (error) {
-    console.error('保存模型配置失败:', error)
+  const res = await fetch(`${API_BASE}/model-config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  })
+  if (!res.ok) {
+    throw new Error(`保存模型配置失败 (HTTP ${res.status})`)
   }
 }
 

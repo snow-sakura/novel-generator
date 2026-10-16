@@ -22,5 +22,6 @@ if [ ! -f ".env" ]; then
     cp .env.example .env 2>/dev/null || true
 fi
 
-echo "🚀 启动后端服务: http://localhost:${PORT:-8000}"
+BACKEND_PORT="$(python -c 'from app.config import settings; print(settings.port)')"
+echo "🚀 启动后端服务: http://localhost:${BACKEND_PORT}"
 python -m app.main

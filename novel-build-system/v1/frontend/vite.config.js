@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const backendTarget = process.env.VITE_API_PROXY_TARGET || 'http://localhost:8001'
+
 export default defineConfig({
   plugins: [react()],
   base: process.env.GH_PAGES ? '/novel-generator/' : '/',
@@ -8,7 +10,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: backendTarget,
         changeOrigin: true,
         timeout: 0,
         // SSE 透传：http-proxy 对 event-stream 禁止缓冲

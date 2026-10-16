@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.database import get_db, SessionLocal
+from app.config import settings
 from app.models.novel import Novel
 from app.models.generation_record import GenerationRecord
 from app.llm.provider import get_llm_provider, get_provider_config_status
@@ -162,20 +163,29 @@ def _ensure_record_terminal(record_id: int):
 async def generate_novel(req: GenerateRequest):
     """SSE 流式生成小说"""
     if not req.seed_text.strip():
-        return {"error": "seed_text 不能为空"}
+        raise HTTPException(status_code=400, detail="seed_text 不能为空")
     if req.gender not in GENDERS:
-        return {"error": f"不支持的频道，可选：{', '.join(GENDERS)}"}
+        raise HTTPException(
+            status_code=400, detail=f"不支持的频道，可选：{', '.join(GENDERS)}"
+        )
     valid_categories = get_categories_by_gender(req.gender)
-    if req.genre not in valid_categories:
-        return {
-            "error": f"{req.gender}不支持该题材，可选：{', '.join(valid_categories)}"
-        }
+    genre_parts = [part.strip() for part in req.genre.split("+")]
+    invalid_genres = [genre for genre in genre_parts if genre not in valid_categories]
+    if invalid_genres:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{req.gender}不支持题材：{', '.join(invalid_genres)}，"
+                f"可选：{', '.join(valid_categories)}"
+            ),
+        )
     style_parts = req.style.split("+")
     invalid = [s for s in style_parts if s not in STYLES]
     if invalid:
-        return {
-            "error": f"不支持的风格: {', '.join(invalid)}，可选：{', '.join(STYLES)}"
-        }
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支持的风格: {', '.join(invalid)}，可选：{', '.join(STYLES)}",
+        )
     if req.word_count < 500:
         req.word_count = 500
     elif req.word_count > 500000:
@@ -416,7 +426,23 @@ async def get_record_status(record_id: int, db: Session = Depends(get_db)):
 @router.get("/models/list")
 async def list_models():
     """返回所有国产模型配置列表"""
-    return {"models": CHINESE_MODELS}
+    return {
+        "models": CHINESE_MODELS,
+        "default": {
+            "provider": settings.llm_provider,
+            "label": settings.llm_provider_label or settings.llm_provider,
+            "base_url": settings.llm_base_url,
+            "model": settings.llm_model,
+            "configured": bool(
+                settings.llm_model
+                and (
+                    settings.llm_base_url
+                    or settings.llm_api_key
+                    or settings.llm_provider == "ollama"
+                )
+            ),
+        },
+    }
 
 
 @router.get("/genres/list")

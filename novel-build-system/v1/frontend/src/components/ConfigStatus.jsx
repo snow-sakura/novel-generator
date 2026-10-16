@@ -21,7 +21,8 @@ export default function ConfigStatus() {
   async function restoreModelConfig() {
     try {
       const [cfg, modelsData] = await Promise.all([fetchModelConfig(), fetchModels()])
-      if (cfg && cfg.provider && cfg.model_id) {
+      // 仅恢复「用户自定义」的配置（from_env 表示 .env 默认配置，不应作为自定义覆盖）
+      if (cfg && !cfg.from_env && cfg.provider && cfg.model_id) {
         const models = modelsData?.models || []
         const prov = models.find(m => m.provider === cfg.provider)
         setCustomModel({

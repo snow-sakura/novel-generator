@@ -31,8 +31,8 @@ export function calcWordCount({ chapter_count, per_chapter_min, per_chapter_max 
 const DEFAULT_PARAMS = {
   seed_text: '',
   gender: '男频',
-  genre: '都市脑洞',
-  selectedGenres: ['都市脑洞'],
+  genre: '都市生活',
+  selectedGenres: ['都市生活'],
   style: '轻松搞笑',
   selectedStyles: ['轻松搞笑'],
   styles: '轻松搞笑',
