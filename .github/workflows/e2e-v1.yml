@@ -34,7 +34,7 @@ jobs:
           npm run build
           node ../../../scripts/ci/bundle-budget.mjs dist 145
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
