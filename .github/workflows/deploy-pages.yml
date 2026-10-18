@@ -31,7 +31,7 @@ jobs:
         run: cp demo/index.html demo/404.html
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload demo artifact
         uses: actions/upload-pages-artifact@v3
