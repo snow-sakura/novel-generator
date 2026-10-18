@@ -14,7 +14,7 @@ jobs:
     name: 全量历史密钥扫描
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -30,7 +30,7 @@ jobs:
     name: 工作区快速检查（.env/*.db/硬编码 Key）
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Forbidden files & patterns
         run: |
           set -e
@@ -46,7 +46,7 @@ jobs:
     name: 依赖漏洞扫描（pip-audit + npm audit）
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:

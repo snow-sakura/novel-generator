@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-24.04
     defaults: { run: { working-directory: novel-build-system } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker compose config -q
 
   build:
@@ -38,5 +38,5 @@ jobs:
           - { name: v1-backend,  ctx: novel-build-system/v1/backend }
           - { name: v1-frontend, ctx: novel-build-system/v1/frontend }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker build -t tomato/${{ matrix.name }}:ci ${{ matrix.ctx }}
