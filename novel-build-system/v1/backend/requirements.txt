@@ -4,7 +4,7 @@ uvicorn[standard]                # ASGI 服务器（含 uvloop/httptools/websock
 starlette                        # FastAPI 底层 ASGI 框架（main.py 直接使用中间件/请求/响应）
 
 # ── 数据库 ──────────────────────────────
-sqlalchemy>=2.0.35               # ORM（SQLite 等）
+sqlalchemy>=2.1.4               # ORM（SQLite 等）
 pydantic>=2.9.0                  # 数据模型校验（FastAPI 依赖 + 路由 BaseModel）
 
 # ── 配置 ──────────────────────────────
