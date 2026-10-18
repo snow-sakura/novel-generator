@@ -12,6 +12,8 @@
 [![Demo](https://img.shields.io/badge/🚀_在线_Demo-GitHub_Pages-brightgreen)](https://snow-sakura.github.io/novel-generator/)
 [![Deployed with GitHub Pages](https://github.com/snow-sakura/novel-generator/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/deploy-pages.yml)
 [![Security Scan](https://github.com/snow-sakura/novel-generator/actions/workflows/security-scan.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/security-scan.yml)
+[![E2E V3](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e.yml)
+[![E2E V1](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e-v1.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e-v1.yml)
 
 ---
 

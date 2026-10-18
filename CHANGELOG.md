@@ -6,8 +6,10 @@
 ## [Unreleased]
 
 ### Added
-- v3 前端 E2E 离线化：`tests/mock-server.mjs`（静态 dist + `/api/v3` fixture），92 用例无需后端全绿；9 个过时用例对齐 v3.1 UI
+- v3 前端 E2E 离线化：`tests/mock-server.mjs`（静态 dist + `/api/v3` fixture），92 用例无需后端全绿；9 个过时用例对齐 v3.1 UI；新增 CI 工作流 `e2e.yml`
+- **v1 冒烟离线 CI 化**：`v1/tests/mock-server.mjs` + `e2e-v1.yml`，pytest-playwright **11 passed / 1 skipped**（零后端/零密钥）；5 个过时用例对齐 v1.6 四区块展开式表单
 - GitHub Issue / PR 模板（Bug / 功能 / Demo 快捷入口 / 自检清单）
+- CHANGELOG.md（本文件）与 README.en.md 英文版
 
 ## [release-2026.10.18] - 2026-10-18
 

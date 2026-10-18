@@ -8,6 +8,8 @@
 [![Demo](https://img.shields.io/badge/🚀_Live_Demo-GitHub_Pages-brightgreen)](https://snow-sakura.github.io/novel-generator/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Security Scan](https://github.com/snow-sakura/novel-generator/actions/workflows/security-scan.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/security-scan.yml)
+[![E2E V3](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e.yml)
+[![E2E V1](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e-v1.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e-v1.yml)
 
 ---
 

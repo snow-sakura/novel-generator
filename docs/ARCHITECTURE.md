@@ -115,6 +115,7 @@ LLM_PROVIDER=openai|opencode|agnes|...
 | Workflow | 内容 |
 |----------|------|
 | `e2e.yml` | **V3 前端 Playwright E2E 92 用例离线运行**：`tests/mock-server.mjs` 托管 dist + `/api/v3` fixture（空/有数据经 `page.route` 精准控制），无需后端与密钥；失败上传 playwright 报告制品 |
+| `e2e-v1.yml` | **V1 冒烟（pytest-playwright 12 用例）离线运行**：`v1/tests/mock-server.mjs` 托管 frontend/dist + `/api/v1` fixture，build 后直接跑 |
 | `security-scan.yml` | gitleaks 全历史 + 工作区禁入文件/硬编码 Key 门禁 |
 | `docker.yml` | compose 配置校验 + v1/v3 前后端 4 镜像构建 |
 | `deploy-pages.yml` | Demo 发布 GitHub Pages |

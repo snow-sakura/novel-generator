@@ -45,6 +45,17 @@ npm run dev
 
 访问 http://localhost:5173
 
+## 测试（离线冒烟）
+
+```bash
+# Playwright 冒烟 12 用例（pytest-playwright）：tests/mock-server.mjs 托管 frontend/dist + /api/v1 fixture
+# 无需后端与模型密钥；CI 自动执行 .github/workflows/e2e-v1.yml
+cd frontend && npm run build && cd ..
+node tests/mock-server.mjs &
+pip install pytest playwright pytest-playwright && playwright install chromium
+python -m pytest tests/test_e2e.py -q   # ➔ 11 passed, 1 skipped
+```
+
 ## 技术栈
 
 | 层级 | 技术 |

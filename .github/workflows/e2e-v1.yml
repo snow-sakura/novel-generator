@@ -1,0 +1,50 @@
+name: E2E (V1 Smoke)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'novel-build-system/v1/**'
+      - '.github/workflows/e2e-v1.yml'
+  pull_request:
+    paths:
+      - 'novel-build-system/v1/**'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: pytest-playwright 冒烟（离线 Mock）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: novel-build-system/v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: novel-build-system/v1/frontend/package-lock.json
+
+      - name: Build frontend (dist for mock server)
+        working-directory: novel-build-system/v1/frontend
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install pytest playwright pytest-playwright
+
+      - run: playwright install --with-deps chromium
+
+      - name: Serve dist + /api/v1 fixtures
+        run: |
+          node tests/mock-server.mjs &
+          for i in $(seq 1 20); do curl -sf http://localhost:5173/ >/dev/null && break; sleep 0.5; done
+
+      - name: Run smoke tests offline
+        run: python -m pytest tests/test_e2e.py -q
