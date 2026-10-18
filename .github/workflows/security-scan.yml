@@ -1,0 +1,43 @@
+name: Security Scan (gitleaks)
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 1'   # 每周一复查全量历史
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks-history:
+    name: 全量历史密钥扫描
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz
+          sudo install gitleaks /usr/local/bin/
+
+      - name: Run gitleaks
+        run: gitleaks detect --source . --config .gitleaks.toml --redact --exit-code 1
+
+  working-tree-check:
+    name: 工作区快速检查（.env/*.db/硬编码 Key）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbidden files & patterns
+        run: |
+          set -e
+          if git ls-files | grep -E '(^|/)\.env$|\.env\.(local|prod|dev)$|\.db$|(^|/)backups/'; then
+            echo "::error::发现禁止入库的敏感文件（.env / *.db / backups/）"; exit 1
+          fi
+          if git grep -I -nE "sk-[A-Za-z0-9]{24,}" -- . | grep -vE "sk-(xxx|xxx…|\*+|•+)" ; then
+            echo "::error::发现疑似真实 API Key"; exit 1
+          fi
+          echo "✅ 工作区检查通过"

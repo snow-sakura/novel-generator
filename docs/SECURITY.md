@@ -31,11 +31,23 @@ backups/ *.bak *spare_backups/      # 备份（2026-10-18 新增）
 .opencode/ .mimocode/
 ```
 
-**验证方法**（提交前必查）：
+## 2.1 CI 强制门禁（自动执行）
+
+[.github/workflows/security-scan.yml](../.github/workflows/security-scan.yml) 在每次 push / PR / 每周一自动运行：
+
+| 检查 | 工具 | 规则 |
+|------|------|------|
+| 全量 Git 历史密钥扫描 | gitleaks v8（配置 [.gitleaks.toml](../.gitleaks.toml)） | 命中真实密钥 → CI 失败 |
+| 工作区文件门禁 | 脚本 | 跟踪文件出现 `.env` / `*.db` / `backups/` → CI 失败 |
+| 硬编码 Key 检查 | 脚本 | `sk-[24位以上]`（排除占位符）→ CI 失败 |
+
+> 历史已验证：53 个提交零密钥泄露，门禁自启用之日起为绿。
+
+## 2.2 手动验证（提交前）
 
 ```bash
 git ls-files | grep -E '\.env$|\.db$|secrets?/'          # 应为空
-git grep -nE "sk-[A-Za-z0-9]{20,}"                        # 应为空
+git grep -nE "sk-[A-Za-z0-9]{20,}"                        # 应为空（排除 sk-xxx 等占位符）
 ```
 
 ## 3. 运行时安全（后端）

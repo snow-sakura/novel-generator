@@ -1,0 +1,42 @@
+name: Docker Build Validation
+
+on:
+  push:
+    paths:
+      - 'novel-build-system/v*/backend/**'
+      - 'novel-build-system/v*/frontend/**'
+      - 'novel-build-system/docker-compose.yml'
+      - '.github/workflows/docker.yml'
+    branches: [main]
+  pull_request:
+    paths:
+      - 'novel-build-system/**/Dockerfile'
+      - 'novel-build-system/**/.dockerignore'
+      - 'novel-build-system/**/nginx.conf'
+      - 'novel-build-system/docker-compose.yml'
+  workflow_dispatch:
+
+jobs:
+  compose-config:
+    name: compose 配置校验
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: novel-build-system } }
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config -q
+
+  build:
+    name: 构建 ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: compose-config
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: v3-backend,  ctx: novel-build-system/v3/backend }
+          - { name: v3-frontend, ctx: novel-build-system/v3/frontend }
+          - { name: v1-backend,  ctx: novel-build-system/v1/backend }
+          - { name: v1-frontend, ctx: novel-build-system/v1/frontend }
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t tomato/${{ matrix.name }}:ci ${{ matrix.ctx }}

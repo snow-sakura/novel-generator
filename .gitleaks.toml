@@ -1,0 +1,21 @@
+# gitleaks 配置 — novel-generator
+title = "novel-generator gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "占位符与文档示例豁免"
+regexes = '''
+sk-xxx
+sk-•+
+sk-\*+
+example[_-]?key
+your[-_]api[-_]key
+'''
+paths = '''
+(.*?)\.example$
+docs/SECURITY\.md
+docs/USER-GUIDE\.md
+README\.md
+'''

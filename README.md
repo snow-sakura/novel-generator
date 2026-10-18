@@ -9,6 +9,7 @@
 [![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org/)
 [![Demo](https://img.shields.io/badge/🚀_在线_Demo-GitHub_Pages-brightgreen)](https://snow-sakura.github.io/novel-generator/)
 [![Deployed with GitHub Pages](https://github.com/snow-sakura/novel-generator/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/deploy-pages.yml)
+[![Security Scan](https://github.com/snow-sakura/novel-generator/actions/workflows/security-scan.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/security-scan.yml)
 
 ---
 
@@ -161,11 +162,16 @@
 
 ### 环境要求
 
-Python 3.10+ ｜ Node.js 18+ ｜ 一个 LLM API Key（OpenCode Zen 提供免费模型）
+Python ≥ 3.10、Node ≥ 18、一个 LLM API Key（推荐 OpenCode Zen 免费模型）。
 
 ### V3 灵魂版（推荐）
 
 ```bash
+# 方式 A：Docker 一键（V1+V3 全栈，无需本机装 Python/Node）
+cd novel-build-system && docker compose up -d --build
+# V3 → http://localhost:3003 ｜ V1 → http://localhost:3001
+
+# 方式 B：手动
 # 1. 后端（自动创建 venv + 安装依赖 + 复制 .env）
 cd novel-build-system/v3/backend
 bash run.sh                          # http://localhost:8000

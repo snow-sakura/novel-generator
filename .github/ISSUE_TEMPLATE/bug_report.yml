@@ -1,0 +1,37 @@
+name: 🐞 Bug 反馈
+description: 报告生成、界面或 Demo 的问题
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请先确认 [在线 Demo](https://snow-sakura.github.io/novel-generator/) 是否同样存在该问题。
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options: [V3 灵魂版, V1 骨架版, 在线 Demo, 文档, 其他]
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开 …
+        2. 输入 …（任意描述即可）
+        3. 看到 …
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / 截图
+      description: 后端报错、浏览器 Console 输出等（⚠️ 请先删除日志中的 API Key）
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      placeholder: macOS / Chrome 140 / V3 backend 8000

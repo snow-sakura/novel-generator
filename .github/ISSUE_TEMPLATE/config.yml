@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🎮 在线 Demo
+    url: https://snow-sakura.github.io/novel-generator/
+    about: 免安装体验完整创作流程（数据仅存浏览器本地）
+  - name: 📚 文档索引
+    url: https://github.com/snow-sakura/novel-generator/tree/main/docs
+    about: 需求 / 架构 / 操作说明 / 部署 / 安全

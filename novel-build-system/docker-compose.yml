@@ -1,0 +1,68 @@
+# 番茄小说生成器 — 一键部署 V1 + V3
+# 用法：
+#   cp v3/backend/.env.example v3/backend/.env   # 填入 LLM 密钥（可选）
+#   cp v1/backend/.env.example v1/backend/.env   # 同上（可选）
+#   docker compose up -d --build
+#   V3: http://localhost:3003   V1: http://localhost:3001
+name: tomato-novel-generator
+
+services:
+  v3-backend:
+    build: ./v3/backend
+    networks:
+      v3-net:
+        aliases: [backend]        # nginx 反代固定主机名
+    environment:
+      DATABASE_URL: sqlite:////data/novel_generator_v3.db
+      HOST: 0.0.0.0
+      PORT: "8000"
+    env_file:
+      - path: ./v3/backend/.env   # 密钥文件（已 gitignore），不存在时自动跳过
+        required: false
+    volumes:
+      - v3-data:/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  v3-frontend:
+    build: ./v3/frontend
+    depends_on: [v3-backend]
+    networks: [v3-net]
+    ports:
+      - "3003:80"
+    restart: unless-stopped
+
+  v1-backend:
+    build: ./v1/backend
+    networks:
+      v1-net:
+        aliases: [backend]
+    environment:
+      DATABASE_URL: sqlite:////data/novel_generator_v1.db
+      HOST: 0.0.0.0
+      PORT: "8001"
+    env_file:
+      - path: ./v1/backend/.env
+        required: false
+    volumes:
+      - v1-data:/data
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+  v1-frontend:
+    build: ./v1/frontend
+    depends_on: [v1-backend]
+    networks: [v1-net]
+    ports:
+      - "3001:80"
+    restart: unless-stopped
+
+networks:
+  v1-net:
+  v3-net:
+
+volumes:
+  v1-data:
+  v3-data:

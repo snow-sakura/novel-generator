@@ -32,6 +32,23 @@ push main (改动 demo/**)
 
 ## 2. 本地全栈（V1/V3）
 
+### 2.0 Docker 一键（推荐）
+
+```bash
+cd novel-build-system
+# 密钥可选（不配也能起服务，生成时再配）：
+#   cp v3/backend/.env.example v3/backend/.env
+#   cp v1/backend/.env.example v1/backend/.env
+docker compose up -d --build
+
+# V3 灵魂版  → http://localhost:3003   （API: :8000）
+# V1 骨架版  → http://localhost:3001   （API: :8001）
+```
+
+实现要点：`v*/backend/Dockerfile`（python:3.12-slim、非 root、SQLite 落 named volume `/data`）；`v*/frontend/Dockerfile`（node:20 构建 → nginx 托管并反代 `/api`，SSE 关闭 `proxy_buffering`）；compose 用网络别名 `backend` 对齐 nginx 反代；`.env` 经 `env_file.required:false` 可选注入（密钥仍不进 Git）。
+
+### 2.1 手动方式
+
 ```bash
 # V3（推荐）
 cd novel-build-system/v3/backend  && bash run.sh          # :8000 autobio: .env 缺失自动生成
