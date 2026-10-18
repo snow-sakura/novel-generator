@@ -19,7 +19,7 @@ on:
 jobs:
   compose-config:
     name: compose 配置校验
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults: { run: { working-directory: novel-build-system } }
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
 
   build:
     name: 构建 ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: compose-config
     strategy:
       fail-fast: false

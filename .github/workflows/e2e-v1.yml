@@ -14,7 +14,7 @@ on:
 jobs:
   smoke:
     name: pytest-playwright 冒烟（离线 Mock）
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: novel-build-system/v1
@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: novel-build-system/v1/frontend/package-lock.json
 
@@ -32,6 +32,7 @@ jobs:
         run: |
           npm ci
           npm run build
+          node ../../../scripts/ci/bundle-budget.mjs dist 145
 
       - uses: actions/setup-python@v5
         with:

@@ -114,8 +114,8 @@ LLM_PROVIDER=openai|opencode|agnes|...
 
 | Workflow | 内容 |
 |----------|------|
-| `e2e.yml` | **V3 前端 Playwright E2E 92 用例离线运行**：`tests/mock-server.mjs` 托管 dist + `/api/v3` fixture（空/有数据经 `page.route` 精准控制），无需后端与密钥；失败上传 playwright 报告制品 |
-| `e2e-v1.yml` | **V1 冒烟（pytest-playwright 12 用例）离线运行**：`v1/tests/mock-server.mjs` 托管 frontend/dist + `/api/v1` fixture，build 后直接跑 |
+| `e2e.yml` | **V3 前端 Playwright E2E 92 用例离线运行 + Bundle 体积预算（gzip ≤190KB，基线 151KB）**：`tests/mock-server.mjs` 托管 dist + `/api/v3` fixture（空/有数据经 `page.route` 精准控制），无需后端与密钥；失败上传 playwright 报告制品 |
+| `e2e-v1.yml` | **V1 冒烟（pytest-playwright 12 用例）离线运行 + 体积预算（gzip ≤145KB，基线 118KB）**：`v1/tests/mock-server.mjs` 托管 frontend/dist + `/api/v1` fixture，build 后直接跑 |
 | `api-tests.yml` | V3 后端 pytest TestClient 冒烟（9 用例）：conftest 注入临时 SQLite 并清空密钥 env，离线无网络调用 |
 | `api-tests-v1.yml` | V1 后端同款冒烟（7 用例）；列表断言只锁结构（启动会从 docs/novel 文件恢复，机器间数据量不同） |
 | `security-scan.yml` | gitleaks 全历史 + 工作区禁入文件/硬编码 Key 门禁 + pip-audit/npm audit 依赖漏洞扫描（V1 已知 5 项显式豁免，见 SECURITY.md） |

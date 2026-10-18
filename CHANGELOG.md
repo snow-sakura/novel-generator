@@ -13,6 +13,8 @@
 - **依赖漏洞扫描 CI**：security-scan 新增 pip-audit（V3 阻断 / V1 已知 5 项显式豁免并登记于 SECURITY.md，crewai 硬 pin 所迫）+ npm audit 观察期告警
 - **Link Check CI**：`scripts/ci/check_links.py`（零依赖）扫描全部 Markdown 相对链接/图片，当前 131 链接 0 失效
 - Pages 部署附带 SPA 404 兜底页（demo/404.html）
+- **Bundle 体积预算门禁**：`scripts/ci/bundle-budget.mjs`（gzip 基线 V3=151KB→预算190KB / V1=118KB→预算145KB），挂入两条 E2E 流水线 build 后
+- **npm audit 转阻断**（首轮观察期官方源无 high 级漏洞）；全部 workflow pin `ubuntu-24.04` + Node 22（规避 10-19 Ubuntu 26 迁移与 Node 20 弃用）
 - CHANGELOG.md（本文件）与 README.en.md 英文版
 
 ## [release-2026.10.18] - 2026-10-18

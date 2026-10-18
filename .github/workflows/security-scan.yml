@@ -12,7 +12,7 @@ permissions:
 jobs:
   gitleaks-history:
     name: 全量历史密钥扫描
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,7 +28,7 @@ jobs:
 
   working-tree-check:
     name: 工作区快速检查（.env/*.db/硬编码 Key）
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Forbidden files & patterns
@@ -44,7 +44,7 @@ jobs:
 
   dependency-audit:
     name: 依赖漏洞扫描（pip-audit + npm audit）
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -55,14 +55,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - name: Audit frontends
+      - name: Audit frontends（阻断：首轮观察期官方源无 high 级漏洞，2026-10-18 收紧）
         run: |
           for fe in novel-build-system/v3/frontend novel-build-system/v1/frontend; do
             echo "::group::$fe"
-            (cd "$fe" && npm audit --omit=dev --audit-level=high) \
-              || echo "::warning title=npm audit($fe)::存在 high 级别漏洞，请查看上方详情"
+            (cd "$fe" && npm audit --omit=dev --audit-level=high)
             echo "::endgroup::"
           done
 

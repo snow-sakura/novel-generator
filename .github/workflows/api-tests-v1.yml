@@ -14,7 +14,7 @@ on:
 jobs:
   smoke:
     name: pytest TestClient 冒烟（离线）
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: novel-build-system/v1/backend
