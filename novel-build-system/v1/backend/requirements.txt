@@ -12,7 +12,7 @@ python-dotenv>=1.0.1             # 读取 .env 环境变量
 
 # ── LLM 集成 ──────────────────────────────
 langchain-core>=1.0.0            # LangChain 核心抽象（消息 / 流式接口）
-langchain-openai>=0.2.0          # OpenAI 兼容接口 Provider（含 AMD Radeon / 自定义国产模型）
+langchain-openai>=1.7.2          # OpenAI 兼容接口 Provider（含 AMD Radeon / 自定义国产模型）
 langchain-anthropic>=0.3.0       # Anthropic (Claude) Provider
 langchain-ollama>=0.2.0          # Ollama 本地模型 Provider
 langchain>=1.0.0                 # LangChain 顶层（crewai 等依赖的运行时保障）
