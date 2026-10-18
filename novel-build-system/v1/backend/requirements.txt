@@ -5,7 +5,7 @@ starlette                        # FastAPI 底层 ASGI 框架（main.py 直接�
 
 # ── 数据库 ──────────────────────────────
 sqlalchemy>=2.0.35               # ORM（SQLite 等）
-pydantic>=2.9.0                  # 数据模型校验（FastAPI 依赖 + 路由 BaseModel）
+pydantic>=2.14.1                  # 数据模型校验（FastAPI 依赖 + 路由 BaseModel）
 
 # ── 配置 ──────────────────────────────
 python-dotenv>=1.0.1             # 读取 .env 环境变量
