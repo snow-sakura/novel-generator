@@ -25,7 +25,7 @@
 - **生成管线**: `app/services/generator.py` CrewAI 集成 + 流式逐章生成
 - **LLM 超时三层**: `_call_llm(timeout=120)` + `_timeout_iterate(agen, timeout=120)` + 启动 `validate()`
 - **题材隔离**: prompts.py 含类型隔离规则，generator.py 每章注入题材约束
-- **文件存储**: `docs/novel/{title}/` — 逐章 TXT + 大纲 Markdown + 大纲 XMind + 全文 TXT
+- **文件存储**: `docs/novel/{title}/` — 逐章 TXT + 大纲 Markdown + 大纲 XMind + 全文 TXT（运行时产物目录，已被根 .gitignore 排除，生成内容不入 Git）
 - **对话生成**: `app/services/chat_service.py` — 对话式生成包装器（包装 generator.py）
 - **大纲六层**: `prompts.py` JSON schema: strategy/characters/world/plot_structure/rhythm/style_tone
 - **XMind 多级树**: `xmind.py` 递归 `_value_to_topics()` + FIELD_LABELS 中文映射

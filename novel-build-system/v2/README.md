@@ -14,12 +14,10 @@
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env .env.local  # 编辑 API Key
-python -m app.main
+bash run.sh            # 自动创建 .venv + 安装依赖 + 复制 .env（与 v1/v3 一致）
 ```
+
+> 手动方式：`python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && cp .env.example .env`（填入 API Key）后 `bash run.sh`。
 
 ### 前端
 

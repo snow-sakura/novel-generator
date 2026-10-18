@@ -95,7 +95,7 @@ LLM Provider 调用可能因 API 不可达而挂死。GeneratorService 有三层
 
 - `migrate_database()` 在启动时自动检测并 ALTER TABLE 新增列
 - 文件导出统一 `filename*=UTF-8''` 支持中文文件名
-- 小说文件存储: `docs/novel/{title}/`（逐章 TXT + 全文 TXT + 大纲 Markdown + 大纲 XMind）
+- 小说文件存储: `docs/novel/{title}/`（逐章 TXT + 全文 TXT + 大纲 Markdown + 大纲 XMind；运行时产物，已 .gitignore 不入库）
 - `.env` 从 `.env.example` 复制（`run.sh` 自动处理）
 - CrewAI Agent 不含 `llm` 参数（避免 Pydantic 验证错误），仅用作角色/目标/背景的结构化容器；实际 LLM 调用走项目自身 `LLMProvider`
 - CrewAI Agent 初始化需要 `OPENAI_API_KEY` 环境变量（即使不使用 OpenAI），`main.py` 启动时设置占位值 `sk-crewai-placeholder`
