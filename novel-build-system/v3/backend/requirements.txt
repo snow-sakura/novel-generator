@@ -10,7 +10,7 @@ langchain-community
 langchain-ollama
 reportlab>=4.0
 markdown>=3.5
-aiofiles>=23.0
+aiofiles>=25.1.0
 pydantic>=2.9.0
 edge-tts>=6.1.0
 jieba>=0.42
