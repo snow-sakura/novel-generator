@@ -24,13 +24,9 @@ test.describe('响应式设计', () => {
       await page.goto('/')
       await page.waitForLoadState('networkidle')
 
-      // 在移动端，导航文字被 hidden sm:inline 隐藏
-      // 只显示图标，不显示文字标签
-      const createLink = page.getByRole('link', { name: '创作' })
-      await expect(createLink).toBeVisible()
-
-      // 链接文字标签应该不可见（sm:inline 在 375px 下不生效）
-      // 但链接本身仍可点击导航
+      // 375px 下标签被 hidden sm:inline 隐藏；链接（a[href]）仍然存在且可导航
+      await expect(page.locator('a[href="/chat"]')).toHaveCount(1)
+      await expect(page.getByText('对话', { exact: true })).not.toBeVisible()
     })
 
     test('创作页面表单在移动端可滚动查看', async ({ page }) => {
@@ -50,8 +46,8 @@ test.describe('响应式设计', () => {
       await page.goto('/')
       await page.waitForLoadState('networkidle')
 
-      // 点击对话导航
-      await page.getByRole('link', { name: '对话' }).click()
+      // 移动端图标链接（不依赖隐藏的文字标签）
+      await page.locator('a[href="/chat"]').click()
       await page.waitForLoadState('networkidle')
       await expect(page).toHaveURL(/\/chat/)
     })
@@ -186,15 +182,15 @@ test.describe('响应式设计', () => {
         await page.goto('/')
         await page.waitForLoadState('networkidle')
 
-        // 点击对话导航
-        await page.getByRole('link', { name: '对话' }).click()
+        // 通过 href 点击（各视口下均可靠）
+        await page.locator('a[href="/chat"]').click()
         await page.waitForLoadState('networkidle')
         await expect(page).toHaveURL(/\/chat/)
 
         // 返回首页
-        await page.getByRole('link', { name: '创作' }).click()
+        await page.locator('a[href="/"]').first().click()
         await page.waitForLoadState('networkidle')
-        await expect(page).toHaveURL('http://localhost:5173/')
+        await expect(page).toHaveURL(/\/$/)
       }
     })
   })

@@ -1,5 +1,7 @@
 # 🍅 番茄小说生成器 — AI 驱动的智能小说创作系统
 
+**中文** | [English](README.en.md)
+
 > **一句话输入，AI 自动生成完整小说** —— 全流程开箱即用，在线 Demo 免安装直接体验
 >
 > 更新日期：2026-10-18 ｜ 最新版本：v3.1.1（灵魂版）
@@ -237,6 +239,8 @@ cd novel-build-test/backend && pytest
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署与运维（本地 / Docker / GitHub Pages） |
 | [docs/SECURITY.md](docs/SECURITY.md) | 数据安全与隐私配置 |
 | [docs/DEMO.md](docs/DEMO.md) | 在线 Demo 说明（实现原理 / 数据记录机制） |
+| [CHANGELOG.md](CHANGELOG.md) | 更新日志（v1.0.0 → 2026.10.18 全量里程碑） |
+| [README.en.md](README.en.md) | English version |
 | [novel-build-system/docs/prd/](novel-build-system/docs/prd/) | 各版本 PRD 与 API 规格（v1/v2/v3细分文档在 docs/spec/） |
 | [novel-build-test/docs/](novel-build-test/docs/) | AISQA 项目文档 |
 

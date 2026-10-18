@@ -71,3 +71,6 @@ data/*.db
 # 截图输出（README 截图统一存放于 docs/images，临时截图不入库）
 **/screenshots_tmp/
 demo-screens/
+
+# Playwright 报告
+playwright-report/

@@ -186,15 +186,16 @@ test.describe('创作页面', () => {
     test('目标字数随章节数变化', async ({ page }) => {
       const slider = page.locator('input[type="range"]')
 
-      // 获取初始目标字数
-      const initialWordCount = await page.locator('.gradient-text').textContent()
+      // 目标字数显示：NovelForm 的 text-sm gradient-text（唯一，排除 Logo 的 text-base 版本）
+      const wordCount = page.locator('span.text-sm.font-bold.gradient-text')
+
+      const initialWordCount = (await wordCount.textContent())!.trim()
 
       // 修改章节数
       await slider.fill('20')
 
       // 目标字数应该更新（不等于初始值）
-      const newWordCount = await page.locator('.gradient-text').textContent()
-      expect(newWordCount).not.toBe(initialWordCount)
+      await expect(wordCount).not.toHaveText(initialWordCount, { timeout: 3000 })
     })
   })
 

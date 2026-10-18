@@ -80,11 +80,11 @@ test.describe('页面导航', () => {
       await expect(page.getByRole('heading', { name: '原始 Prompt 模板参考' })).toBeVisible()
     })
 
-    test('历史页面显示「生成历史」标题', async ({ page }) => {
+    test('历史页面显示「创作历史」标题', async ({ page }) => {
       await page.goto('/history')
       await page.waitForLoadState('networkidle')
 
-      await expect(page.getByRole('heading', { name: '生成历史' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: '创作历史' })).toBeVisible()
     })
   })
 

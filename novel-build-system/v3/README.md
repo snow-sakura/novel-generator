@@ -91,8 +91,9 @@ OPENCODE_MODEL=deepseek-v4-flash-free
 ## 测试与文档导航
 
 ```bash
-# E2E（Playwright，位于 frontend/tests/，共 6 个 spec）
-cd frontend && npx playwright test
+# E2E 92 用例（Playwright）——离线运行：tests/mock-server.mjs 托管 dist + /api/v3 mock，无需后端/密钥
+cd frontend && npm run build && npx playwright test
+# CI 自动执行：.github/workflows/e2e.yml（push/PR 触发，失败上传 report 制品）
 ```
 
 | 文档 | 说明 |

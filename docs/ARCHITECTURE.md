@@ -110,9 +110,14 @@ LLM_PROVIDER=openai|opencode|agnes|...
 4. **Demo 不用构建工具**：Pages 直接发源码目录，杜绝 lockfile/CI 依赖，永久可用；
 5. **Demo 数据 localStorage**：满足「数据记录也全部用 GitHub 生态实现」——数据属于访问者本地，平台侧零存储。
 
-## 8. 质量保障
+## 8. 质量保障（CI 矩阵）
 
-- `novel-build-system/v1/tests/test_e2e.py`：V1 冒烟（创作/历史/阅读/对话/设置）
-- `novel-build-system/v3/frontend/tests/*.spec.ts`：V3 Playwright E2E 6 套
-- `novel-build-test/`：独立 AISQA 平台的 CI（`.github/workflows/ci.yml`）
-- 本仓库截图即由 Playwright 自动执行产出（可复现方法见 [DEPLOYMENT.md §5](DEPLOYMENT.md#5-截图流水线可选)）
+| Workflow | 内容 |
+|----------|------|
+| `e2e.yml` | **V3 前端 Playwright E2E 92 用例离线运行**：`tests/mock-server.mjs` 托管 dist + `/api/v3` fixture（空/有数据经 `page.route` 精准控制），无需后端与密钥；失败上传 playwright 报告制品 |
+| `security-scan.yml` | gitleaks 全历史 + 工作区禁入文件/硬编码 Key 门禁 |
+| `docker.yml` | compose 配置校验 + v1/v3 前后端 4 镜像构建 |
+| `deploy-pages.yml` | Demo 发布 GitHub Pages |
+| `novel-build-test/.github/workflows/ci.yml` | AISQA：ruff + pytest + 前端 lint/build |
+
+其余：`novel-build-system/v1/tests/test_e2e.py`（V1 冒烟）、`novel-build-test/frontend/e2e/*.spec.ts`。仓库 README 截图同样由 Playwright 自动产出（复现方法见 [DEPLOYMENT.md §5](DEPLOYMENT.md#5-截图流水线可选)）。

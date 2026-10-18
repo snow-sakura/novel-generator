@@ -16,7 +16,8 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npx vite --port 5173',
+    // 离线 E2E：静态 dist + /api/v3 mock（先 `npm run build`；无需真实后端/LLM 密钥）
+    command: 'node tests/mock-server.mjs',
     port: 5173,
     reuseExistingServer: true,
     timeout: 15_000,
