@@ -57,3 +57,17 @@ vector_db/
 # Tools
 .opencode/
 .mimocode/
+
+# 数据库备份与本地备份
+*spare_backups/
+backups/
+*.bak
+
+# 本地数据库与运行时产物
+*.sqlite3
+instance/
+data/*.db
+
+# 截图输出（README 截图统一存放于 docs/images，临时截图不入库）
+**/screenshots_tmp/
+demo-screens/

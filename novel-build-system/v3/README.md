@@ -8,21 +8,23 @@
 
 ## 界面预览
 
+> 以下截图由 Playwright 自动截取 **[在线 Demo](https://snow-sakura.github.io/novel-generator/)**（V3 交互流程 1:1 复刻）。
+
 ### 创作页面
 
-![创作页面](../screenshots/v3-create.png)
+![创作页面](../../docs/images/demo-02-config.png)
 
 ### 对话式创作
 
-![对话式创作](../screenshots/v3-chat.png)
+![对话式创作](../../docs/images/demo-07-chat.png)
 
 ### 历史记录
 
-![历史记录](../screenshots/v3-history.png)
+![历史记录](../../docs/images/demo-06-history.png)
 
 ### 模板库
 
-![模板库](../screenshots/v3-prompts.png)
+![模板库](../../docs/images/demo-08-prompts.png)
 
 ## 快速启动
 
@@ -86,7 +88,28 @@ OPENCODE_MODEL=deepseek-v4-flash-free
 
 国产模型（需 API Key）：DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零一万物 / 硅基流动
 
+## 测试与文档导航
+
+```bash
+# E2E（Playwright，位于 frontend/tests/，共 6 个 spec）
+cd frontend && npx playwright test
+```
+
+| 文档 | 说明 |
+|------|------|
+| [../../README.md](../../README.md) | 大项目总览 + 9 步全流程图文指南 |
+| [../../docs/USER-GUIDE.md](../../docs/USER-GUIDE.md) | 端到端操作说明 |
+| [../../docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) | 架构 / API / 数据模型 |
+| [../../docs/SECURITY.md](../../docs/SECURITY.md) | 密钥与隐私配置 |
+| [../docs/prd/PRD-v3.md](../docs/prd/PRD-v3.md) · [API-v3](../docs/spec/API-v3.md) · [DB-v3](../docs/spec/DB-v3.md) · [DESIGN-v3](../docs/spec/DESIGN-v3.md) | V3 细分规格 |
+
 ## 版本历史
+
+### v3.1.2-docs (2026-10-18)
+
+- 在线 Demo 上线（GitHub Pages，本版本交互 1:1 复刻），README 截图全部替换为自动化实拍
+- 顶层文档体系落地：需求 / 架构 / 操作说明 / 部署 / 安全 / Demo
+- 仓库清理：AI 生成内容（docs/novel）、旧截图、临时报告移出版本库并加固 .gitignore
 
 ### v3.1.1 (2026-08-29)
 

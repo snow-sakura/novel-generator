@@ -1,70 +1,119 @@
 # 🍅 番茄小说生成器 — AI 驱动的智能小说创作系统
 
-> **一句话输入，AI 自动生成完整小说**
+> **一句话输入，AI 自动生成完整小说** —— 全流程开箱即用，在线 Demo 免安装直接体验
 >
-> 更新日期：2026-08-29 ｜ 版本：v3.1.1
+> 更新日期：2026-10-18 ｜ 最新版本：v3.1.1（灵魂版）
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org/)
+[![Demo](https://img.shields.io/badge/🚀_在线_Demo-GitHub_Pages-brightgreen)](https://snow-sakura.github.io/novel-generator/)
+[![Deployed with GitHub Pages](https://github.com/snow-sakura/novel-generator/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/deploy-pages.yml)
 
 ---
 
-## 📖 项目简介
+## 🚀 在线 Demo — 免安装，点链接直接用
 
-**番茄小说生成器** 是一个 AI 驱动的智能小说创作系统，用户只需输入一句话（种子句），系统即可自动生成完整的网络小说。项目包含 **V1（骨架版）** 和 **V3（灵魂版）** 两个主要版本，采用前后端分离架构，支持多模型切换、实时流式生成、对话式创作等高级功能。
+> **👉 [https://snow-sakura.github.io/novel-generator/](https://snow-sakura.github.io/novel-generator/)**
 
-### ✨ 核心亮点
+本 Demo 是**完全基于 GitHub 实现的在线示例**，零后端、零部署成本：
 
-- 🤖 **四智能体协作** — 要素解析 → 大纲规划 → 逐章生成 → 标题生成，全自动流水线
-- 🎯 **15+ 创作辅助功能** — 金句管理、美学风格、设定档案、TTS 语音、AI 配图、统计分析
-- 💬 **对话式创作** — 像聊天一样引导 AI 创作，实时调整方向
-- 🔄 **断点续写** — 生成中断可从断点继续，不丢失任何进度
-- 🌐 **多模型支持** — OpenAI / DeepSeek / Qwen / MiMo V2.5 等国产模型一键切换
+| 能力 | 实现方式 |
+|------|----------|
+| 站点托管 | GitHub Pages（`snow-sakura.github.io` 域名） |
+| 自动部署 | GitHub Actions（[`deploy-pages.yml`](.github/workflows/deploy-pages.yml)，push `demo/**` 自动发布） |
+| Demo 源码 | 本仓库 [`demo/`](demo/) 目录（纯 HTML/CSS/JS，无构建） |
+| 数据记录 | 浏览器 **localStorage**（生成记录、模型配置全部本地保存，刷新不丢失，绝不上传） |
+| 生成引擎 | 前端模拟 V3 四智能体流水线（ParserAgent → OutlinerAgent → WriterAgent → TitlerAgent 流式输出） |
 
----
-
-## 🖼️ 界面预览
-
-### 创作页面 — 一句话开启创作之旅
-
-![创作页面](novel-build-system/docs/screenshots/v3-create.png)
-
-> V3 创作页面：左侧表单配置频道/题材/风格，右侧实时显示生成进度
-
-### 对话式创作 — 像聊天一样写小说
-
-![对话式创作](novel-build-system/docs/screenshots/v3-chat.png)
-
-> 对话页面：输入种子句后，AI 通过对话引导你完成创作参数配置
-
-### 历史记录 — 管理你的所有作品
-
-![历史记录](novel-build-system/docs/screenshots/v3-history.png)
-
-> 历史页面：查看所有生成记录，支持继续生成、导出、删除等操作
-
-### 模板库 — 预设提示词参考
-
-![模板库](novel-build-system/docs/screenshots/v3-prompts.png)
-
-> 模板页面：浏览和参考各类创作提示词模板
-
-### V1 创作页面 — 经典骨架版
-
-![V1 创作页面](novel-build-system/docs/screenshots/v1-create.png)
-
-> V1 创作页面：简洁的表单布局，专注核心生成功能
-
-### V1 历史记录
-
-![V1 历史记录](novel-build-system/docs/screenshots/v1-history.png)
-
-> V1 历史页面：卡片式展示已生成的小说
+> ⚠️ Demo 为**模拟生成**（本地文本引擎），用于完整演示产品交互全流程；真实生成请使用下方本地部署方式接入 LLM。
 
 ---
 
-## 🏗️ 系统架构
+## 📖 全流程指南（每步含界面截图）
+
+以下截图均由自动化工具（Playwright）打开 Demo 自动截取。
+
+### 第 1 步 · 进入创作工坊
+**主标题：打开即用，无需注册** — 副标题：侧边栏五大功能一屏直达
+
+打开 Demo 链接即进入「创作工坊」。左侧配置创作参数，右侧实时显示生成进度；侧边栏提供 **创作工坊 / 对话创作 / 我的作品 / 提示词模板 / 模型配置** 五个入口，左下角实时显示本地存储的记录数与字数。
+
+![创作工坊初始界面](docs/images/demo-01-create.png)
+
+### 第 2 步 · 输入种子句，配置创作参数
+**主标题：一句话就是全部输入** — 副标题：频道 / 题材 / 风格 / 章节数 / 叙事开关
+
+在「种子句」输入框写下一句话故事起点（可点击示例种子快速填入），随后选择：
+
+- **频道**：男频 / 女频
+- **题材**（多选）：玄幻、都市、科幻、悬疑、历史、武侠、仙侠、系统、穿越、无限流
+- **风格**：热血燃系 / 轻松搞笑 / 冷硬暗黑 / 细腻治愈 / 爽文快节奏 / 文青慢热
+- **章节数**：3 / 5 / 8 章；**美学风格**：关闭 / 轻度 / 中度 / 重度
+- **叙事开关**：悬念设置、情节反转、多版本结局
+
+![配置创作参数](docs/images/demo-02-config.png)
+
+### 第 3 步 · 四智能体流式生成
+**主标题：像看流水线一样看 AI 写书** — 副标题：要素解析 → 大纲规划 → 逐章生成 → 标题生成
+
+点击「🚀 开始生成」后，右侧面板实时展示四智能体接力：
+
+1. **ParserAgent（故事要素分析师）**：从种子句提取 人物/时间/地点/起因/发展/结局 六维要素；
+2. **OutlinerAgent（大纲架构师）**：构建战略/人物/设定/结构/节奏/风格 六层大纲并排出章节表；
+3. **WriterAgent（章节作家）**：逐章流式生成正文，token 级滚动输出 + 进度条；
+4. **TitlerAgent（标题专家）**：基于全文生成候选书名并定稿。
+
+![四智能体流式生成中](docs/images/demo-03-generating.png)
+
+### 第 4 步 · 生成完成，自动落库
+**主标题：生成即存档** — 副标题：记录自动写入 localStorage，弹出完成卡片
+
+生成结束后系统弹出完成卡片（书名 / 章节数 / 字数），并把**整条生成记录**（种子句、参数、逐章全文、字数、时间戳）写入浏览器 localStorage——这就是 Demo 的数据存储层，对应真实项目里的 SQLite `generation_records / novels / chapter_contents` 三张表。
+
+![生成完成](docs/images/demo-04-done.png)
+
+### 第 5 步 · 对话式创作
+**主标题：像聊天一样引导 AI** — 副标题：左侧对话流 + 右侧创作状态看板
+
+不想填表单？进入「对话创作」，用自然语言告诉助手想法（例如"主角是外卖员，赛博朋克风格"），助手逐轮拆解要素、排布大纲，右侧**状态看板**实时同步配置结果，确认后一键跳转创作工坊开始生成。
+
+![对话式创作](docs/images/demo-07-chat.png)
+
+### 第 6 步 · 我的作品：数据记录一目了然
+**主标题：所有作品都在本地** — 副标题：localStorage 数据记录，支持导出与清空
+
+「我的作品」页展示全部生成记录卡片（书名、种子句、题材标签、章节数、字数、时间），支持**阅读 / 导出 / 删除**，顶部工具栏可**一键导出全部记录为 JSON**（完整数据记录快照）或清空记录。
+
+![我的作品（数据记录）](docs/images/demo-06-history.png)
+
+### 第 7 步 · 阅读与多格式导出
+**主标题：写完就能读、能带走** — 副标题：TXT / Markdown / 复制全文
+
+作品详情页按章节排版全文，提供 **导出 TXT、导出 Markdown、复制全文** 三种取回方式；真实项目还支持 PDF / EPUB / 逐章 ZIP / 大纲（Markdown / XMind）导出。
+
+![作品详情与多格式导出](docs/images/demo-05-detail.png)
+
+### 第 8 步 · 提示词模板库
+**主标题：不知道写什么？先抄作业** — 副标题：分类种子句模板一键填入
+
+「提示词模板」页收录各频道各题材的精选种子句（都市×系统、玄幻×废柴流、科幻×无限流……），点击「使用此模板」自动回填到创作工坊。
+
+![提示词模板](docs/images/demo-08-prompts.png)
+
+### 第 9 步 · 模型配置（含数据安全说明）
+**主标题：密钥永远不出本机** — 副标题：Demo 仅存 localStorage，真实版只放后端 .env
+
+「模型配置」页演示 OpenCode Zen / OpenAI 兼容 / DeepSeek / 通义千问 / AGNES 等提供商的配置方式：
+
+- **Demo**：纯静态站点，不发送任何网络请求，API Key 只写入浏览器 localStorage 且展示即脱敏（`sk-••••末3位`）；
+- **真实项目**：密钥仅存放在后端 `backend/.env`（已被 `.gitignore` 排除，**永远不会提交到 GitHub**），`.env.example` 只提供占位符模板。
+
+![模型配置](docs/images/demo-09-settings.png)
+
+---
+
+## 🏗️ 系统架构（真实全栈版）
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -80,425 +129,136 @@
 │  GeneratorService  │  ChatService  │  ExportService         │
 │  四智能体管线       │  对话式生成    │  多格式导出            │
 ├─────────────────────────────────────────────────────────────┤
-│  LLM Provider Factory (OpenAI / DeepSeek / Qwen / MiMo)    │
+│  LLM Provider Factory (OpenAI / DeepSeek / Qwen / MiMo /    │
+│                        AGNES / OpenCode Zen)                 │
 └───────────────────────┬─────────────────────────────────────┘
                         │
 ┌───────────────────────┴─────────────────────────────────────┐
 │                    数据层 (SQLite + 文件系统)                  │
 ├─────────────────────────────────────────────────────────────┤
 │  generation_records  │  novels  │  chapter_contents          │
-│  paragraph_versions  │  model_configs  │  docs/novel/        │
+│  paragraph_versions  │  model_configs                        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 四智能体协作流程
-
-```
-种子句输入
-    │
-    ▼
-┌─────────────────┐
-│  ParserAgent    │  故事要素分析师
-│  要素解析       │  提取六维要素：人物/时间/地点/起因/发展/结局
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  OutlinerAgent  │  小说大纲架构师
-│  大纲规划       │  构建六层大纲：战略/人物/设定/结构/节奏/风格
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  WriterAgent    │  小说章节作家
-│  逐章生成       │  流式生成每章正文（token 级流式输出）
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  TitlerAgent    │  小说标题专家
-│  标题生成       │  根据全文生成吸引人的标题
-└────────┬────────┘
-         │
-         ▼
-    完整小说输出
-```
+在线 Demo 用「前端模拟引擎 + localStorage」等效替代了上图的后端与数据层，交互流程完全一致。
 
 ---
 
-## 🚀 快速开始
+## 🗂️ 项目矩阵
+
+| 项目 | 定位 | 技术栈 | 状态 |
+|------|------|--------|------|
+| [`novel-build-system/v1`](novel-build-system/v1) | **骨架版**（最精简的 AI 内容生成实现） | FastAPI + LangChain/CrewAI + React(JS) | ✅ 维护中（v1.6.0，含 AGNES 模型） |
+| [`novel-build-system/v2`](novel-build-system/v2) | 血肉版（润色/段落版本） | 同 v1 | 🧊 冻结（能力并入 v3） |
+| [`novel-build-system/v3`](novel-build-system/v3) | **灵魂版（推荐）**，F1-F13 全功能 | FastAPI + React(TS) + Zustand | ✅ 主力版本（v3.1.1） |
+| [`demo/`](demo/) | **GitHub Pages 在线 Demo** | 纯静态 HTML/CSS/JS | 🚀 已上线 |
+| [`novel-build-test`](novel-build-test) | AISQA — AI 驱动智能测试平台（独立项目） | FastAPI + MySQL/Redis/Qdrant + React 19 | 🚧 v1.3.0 开发中 |
+
+---
+
+## ⚡ 本地运行（真实全栈版）
 
 ### 环境要求
 
-- Python 3.10+
-- Node.js 18+
-- npm 或 yarn
+Python 3.10+ ｜ Node.js 18+ ｜ 一个 LLM API Key（OpenCode Zen 提供免费模型）
 
-### 1. 克隆项目
+### V3 灵魂版（推荐）
 
 ```bash
-git clone git@github.com:snow-sakura/novel-generator.git
-cd novel-generator
-```
-
-### 2. 启动 V3 后端
-
-```bash
+# 1. 后端（自动创建 venv + 安装依赖 + 复制 .env）
 cd novel-build-system/v3/backend
-bash run.sh                        # 自动创建 .venv + 安装依赖 + 复制 .env
+bash run.sh                          # http://localhost:8000
+
+# 2. 前端
+cd novel-build-system/v3/frontend
+npm install && npm run dev           # http://localhost:5173
+
+# 3. 配置密钥：编辑 backend/.env（该文件已被 .gitignore 排除，不会上传）
 ```
 
-### 3. 启动 V3 前端
+### V1 骨架版（最小实现）
 
 ```bash
-cd novel-build-system/v3/frontend
-npm install
-npm run dev                        # http://localhost:5173
+cd novel-build-system/v1/backend  && bash run.sh   # 默认代理到 :8001
+cd novel-build-system/v1/frontend && npm install && npm run dev
 ```
 
-### 4. 配置模型
+### 测试
 
-编辑 `backend/.env` 文件：
-
-```env
-# 使用 OpenCode Zen（免费模型）
-LLM_PROVIDER=opencode
-OPENCODE_API_KEY=sk-xxx
-OPENCODE_BASE_URL=https://opencode.ai/zen/v1
-OPENCODE_MODEL=mimo-v2.5-free
-
-# 或使用 DeepSeek
-# LLM_PROVIDER=openai
-# OPENAI_API_KEY=sk-xxx
-# OPENAI_BASE_URL=https://api.deepseek.com/v1
-# OPENAI_MODEL=deepseek-chat
-```
-
-### 5. 开始创作
-
-打开 http://localhost:5173，输入一句话即可开始！
-
----
-
-## 📁 项目结构
-
-```
-novel-generator/
-├── novel-build-system/              # 番茄小说生成器
-│   ├── v1/                          # V1 骨架版
-│   │   ├── backend/                 # FastAPI 后端
-│   │   │   ├── app/
-│   │   │   │   ├── main.py          # 应用入口
-│   │   │   │   ├── routers/         # API 路由
-│   │   │   │   ├── services/        # 业务逻辑
-│   │   │   │   ├── models/          # 数据模型
-│   │   │   │   └── llm/             # LLM Provider
-│   │   │   └── run.sh               # 启动脚本
-│   │   └── frontend/                # React 前端
-│   │       ├── src/
-│   │       │   ├── pages/           # 页面组件
-│   │       │   ├── components/      # 通用组件
-│   │       │   ├── stores/          # Zustand 状态管理
-│   │       │   └── services/        # API 服务
-│   │       └── package.json
-│   │
-│   ├── v3/                          # V3 灵魂版（推荐）
-│   │   ├── backend/                 # FastAPI 后端
-│   │   │   ├── app/
-│   │   │   │   ├── main.py          # 应用入口 + 中间件
-│   │   │   │   ├── routers/         # API 路由（15+ 模块）
-│   │   │   │   ├── services/        # 业务逻辑
-│   │   │   │   ├── models/          # 数据模型
-│   │   │   │   └── llm/             # LLM Provider
-│   │   │   └── requirements.txt     # Python 依赖
-│   │   └── frontend/                # React + TypeScript 前端
-│   │       ├── src/
-│   │       │   ├── pages/           # 页面组件
-│   │       │   ├── components/      # 通用组件（20+）
-│   │       │   ├── stores/          # Zustand 状态管理
-│   │       │   ├── services/        # API 服务
-│   │       │   └── lib/             # 共享常量和工具
-│   │       └── package.json
-│   │
-│   └── docs/                        # 文档和生成产物
-│       ├── screenshots/             # 界面截图
-│       ├── prd/                     # 产品需求文档
-│       └── novel/                   # 生成的小说存储
-│
-├── novel-build-test/                # AISQA 智能测试平台
-│   ├── backend/                     # FastAPI 后端
-│   ├── frontend/                    # React 前端
-│   └── docs/                        # 项目文档
-│
-└── README.md                        # 本文件
+```bash
+# V3 前端 E2E（Playwright）
+cd novel-build-system/v3/frontend && npx playwright test
+# V1 E2E 冒烟
+cd novel-build-system/v1 && python -m pytest tests/ -v
+# AISQA 单元测试
+cd novel-build-test/backend && pytest
 ```
 
 ---
 
 ## 🛠️ 技术栈
 
-### 前端
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| React | 18.x | UI 框架 |
-| TypeScript | 5.x | 类型安全 |
-| Vite | 6.x | 构建工具 |
-| TailwindCSS | 3.x | 样式框架 |
-| Zustand | 4.x | 状态管理 |
-| React Router | 6.x | 路由管理 |
-| Lucide React | - | 图标库 |
-
-### 后端
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| Python | 3.10+ | 运行时 |
-| FastAPI | 0.115+ | Web 框架 |
-| LangChain | 0.3+ | LLM 编排 |
-| CrewAI | - | 多智能体协作 |
-| SQLAlchemy | 2.0+ | ORM |
-| SQLite | - | 数据库 |
-| Pydantic | 2.x | 数据验证 |
-
-### 支持的 LLM 模型
-
-| 提供商 | 模型 | 免费 |
-|--------|------|------|
-| OpenCode Zen | MiMo V2.5 | ✅ |
-| OpenCode Zen | DeepSeek V4 Flash | ✅ |
-| OpenCode Zen | 混元 3 | ✅ |
-| OpenCode Zen | Nemotron 3 Ultra | ✅ |
-| DeepSeek | DeepSeek Chat | ❌ |
-| 通义千问 | Qwen Plus | ❌ |
-| 智谱 AI | GLM-4 | ❌ |
-| 月之暗面 | Kimi | ❌ |
+| 层 | 技术 |
+|----|------|
+| 前端 | React 18 · TypeScript 5 · Vite 6 · TailwindCSS · Zustand · React Router · Lucide |
+| 后端 | Python 3.10+ · FastAPI · LangChain · CrewAI · SQLAlchemy 2.0 · Pydantic 2 |
+| 数据 | SQLite（真实版） / localStorage（Demo） |
+| LLM | OpenCode Zen（MiMo V2.5 / DeepSeek V4 Flash / 混元 3 / Nemotron 3，免费） · DeepSeek · 通义千问 · OpenAI 兼容 · AGNES |
+| 工程 | GitHub Actions（Pages 部署 / CI） · Playwright E2E · pytest |
 
 ---
 
-## 📚 功能详解
+## 🔐 数据安全与隐私
 
-### V3 灵魂版功能（F1-F13）
+- **密钥零入库**：`backend/.env`、`*.db`、备份目录均被 [.gitignore](.gitignore) 排除；仓库仅保留 `.env.example` 占位模板；
+- **响应脱敏**：后端 API 返回模型配置时 Key 自动打码；CORS 限制 localhost；请求体限制 10MB；
+- **Demo 零上传**：在线 Demo 无任何网络请求，作品与配置只存在访问者浏览器 localStorage；
+- **生成内容不入库**：AI 生成的小说正文（txt/xmind/大纲）已从仓库清理并加入忽略规则，避免误传创作数据。
 
-| 编号 | 功能 | 说明 |
-|------|------|------|
-| F1 | 频道/题材/风格多选 | 男频 19 类 + 女频 18 类 + 15 种风格 |
-| F2 | 叙事技巧 | 视角控制、节奏调节、悬念/反转开关 |
-| F3 | 金句管理 | 自动提取、收藏、复制 |
-| F4 | 美学风格 | 关闭/轻度/中度/重度 |
-| F5 | 文末解读 | 意义提炼与主题升华 |
-| F6 | 设定档案 | 跨章节人物/地点一致性 |
-| F7 | 多版本开头 | 好结局/坏结局/开放式 + 多版本对比 |
-| F8 | 对话插入确认 | 角色对话生成与段落插入 |
-| F9 | AI 推荐主题 | 智能推荐核心主题 |
-| F10 | 生成记录管理 | 分页/轮询/继续/取消 |
-| F11 | AI 配图 | 生成/展示/删除封面配图 |
-| F12 | TTS 语音合成 | edge-tts 多声优 |
-| F13 | 统计分析 | 词频/角色出现/情感曲线 SVG |
-
-### 核心功能
-
-#### 1. 智能生成管线
-
-- **要素解析**：从种子句提取六维故事要素（人物、时间、地点、起因、发展、结局）
-- **大纲规划**：构建六层完整大纲（战略层、人物层、设定层、结构层、节奏层、风格层）
-- **逐章生成**：流式生成每章正文，支持 token 级流式输出
-- **标题生成**：根据全文自动生成吸引人的标题
-
-#### 2. 对话式创作
-
-- 左侧对话流 + 右侧状态看板布局
-- 实时显示生成进度、章节列表、字数统计
-- 支持中断后继续生成
-
-#### 3. 多格式导出
-
-- Markdown / TXT / PDF / EPUB
-- 逐章 ZIP 打包
-- 大纲导出（Markdown / XMind）
-
-#### 4. 断点续写
-
-- 生成中断自动保存进度
-- 支持从失败/取消点继续生成
-- 精确定位断点章节
+详见 [docs/SECURITY.md](docs/SECURITY.md)。
 
 ---
 
-## 🔧 开发命令
+## 📚 文档导航
 
-```bash
-# V3 后端
-cd novel-build-system/v3/backend
-bash run.sh                        # 自动创建 .venv + 安装依赖 + 复制 .env
+| 文档 | 内容 |
+|------|------|
+| [docs/README.md](docs/README.md) | 文档总索引 |
+| [docs/PRD.md](docs/PRD.md) | 需求文档（产品定位 / 用户故事 / 功能需求 F1-F13） |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 技术架构文档（四智能体管线 / API / 数据模型） |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | 操作说明（端到端使用手册） |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署与运维（本地 / Docker / GitHub Pages） |
+| [docs/SECURITY.md](docs/SECURITY.md) | 数据安全与隐私配置 |
+| [docs/DEMO.md](docs/DEMO.md) | 在线 Demo 说明（实现原理 / 数据记录机制） |
+| [novel-build-system/docs/prd/](novel-build-system/docs/prd/) | 各版本 PRD 与 API 规格（v1/v2/v3细分文档在 docs/spec/） |
+| [novel-build-test/docs/](novel-build-test/docs/) | AISQA 项目文档 |
 
-# V3 前端
-cd novel-build-system/v3/frontend
-npm install
-npm run dev                        # http://localhost:5173
-
-# 构建前端
-cd novel-build-system/v3/frontend
-npm run build
-
-# 运行测试
-cd novel-build-system/v3/backend
-.venv/bin/pytest tests/ -v
-```
+各项目内还有 `README.md`（项目级）、`AGENT.md / AGENTS.md / CLAUDE.md`（AI 协作上下文）、`TODO.md`（路线图）。
 
 ---
 
-## 📊 API 路由
+## 📝 版本历史（节选）
 
-### 生成相关
-
-| 端点 | 方法 | 说明 |
+| 版本 | 日期 | 要点 |
 |------|------|------|
-| `/api/v3/generate` | POST | SSE 流式生成小说 |
-| `/api/v3/generate/continue` | POST | 从失败/取消点继续 |
-| `/api/v3/generate/openings` | POST | 多版本开头对比 |
-| `/api/v3/chat/generate` | POST | AI 对话式生成 |
-
-### 记录管理
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/v3/records` | GET | 生成记录列表 |
-| `/api/v3/records/{id}` | GET | 记录详情 |
-| `/api/v3/records/{id}/status` | GET | 轻量状态轮询 |
-| `/api/v3/records/{id}/cancel` | POST | 取消生成 |
-| `/api/v3/records/{id}/reset` | POST | 重置为失败 |
-| `/api/v3/records/{id}` | DELETE | 删除记录 |
-
-### 小说管理
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/v3/novels` | GET | 小说列表 |
-| `/api/v3/novels/{id}` | GET | 小说详情 |
-| `/api/v3/novels/{id}` | DELETE | 删除小说 |
-| `/api/v3/novels/{id}/bible` | PATCH | 更新设定档案 |
-| `/api/v3/novels/{id}/emotion-curve` | PATCH | 更新情感曲线 |
-
-### 导出功能
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/v3/novels/{id}/export` | GET | 全文导出 |
-| `/api/v3/novels/{id}/export/chapters` | GET | 逐章 ZIP |
-| `/api/v3/novels/{id}/export/outline` | GET | 大纲导出 |
-
-### 辅助功能
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/v3/dialogue/generate` | POST | 角色对话生成 |
-| `/api/v3/assist/continue` | POST | AI 续写 |
-| `/api/v3/assist/rewrite` | POST | AI 改写 |
-| `/api/v3/theme/suggest` | POST | AI 推荐主题 |
-| `/api/v3/illustrations/generate` | POST | AI 配图 |
-| `/api/v3/tts/generate` | POST | TTS 语音合成 |
-| `/api/v3/analysis/{id}` | POST | 统计分析 |
-| `/api/v3/quotes/{id}` | GET | 金句提取 |
-| `/api/v3/refine` | POST | 段落润色 |
-
----
-
-## 📝 版本历史
-
-### v3.1.1 (2026-08-29)
-
-**代码质量优化:**
-- 前端代码去重 — LABEL_MAP/flattenDict/addItemRows 提取到共享模块
-- STEP_CONFIG 提取到 zustand store（StepProgress 与 store 共享）
-- DEMO_GENRES/DEMO_STYLES 提取到共享常量
-- 后端 extract_chapters 去重（消除精确重复）
-- 后端死代码清理 — 移除未使用的模型、常量、函数
-- generate.py 验证错误改用 HTTPException
-- 清理调试 console.log 语句
-
-**安全/性能增强:**
-- CORS 限制为 localhost（移除通配符）
-- API Key 在 GET 响应中脱敏显示
-- 请求体大小限制 10MB
-- DB 性能索引（4 个关键查询路径）
-- 全局异常处理器（统一 JSON 错误格式）
-- chat.py 独立 SessionLocal 防止 SSE 请求中 session 关闭
-
-**Bug 修复:**
-- LENGTH_RANGES 中 medium 和 long 范围相同
-- .env.example 引用 v2 数据库名
-- tts.py 返回类型标注错误
-- index.html 引用 main.jsx
-- package.json 版本号无效
-- novel.py 删除小说时缺少级联删除
-- novel.py 长篇小说搜索 N+1 查询优化
-- chat.py session 在 SSE generator 中失效
-
-### v3.1.0 (2026-07-15)
-
-**新增功能:**
-- TTS 语音合成集成 — 支持 edge-tts 多声优
-- AI 配图功能 — 生成/展示/删除封面配图
-- 统计分析 — 词频/角色出现/情感曲线 SVG
-- 段落润色 — 重写/扩写/精简功能
-- 段落版本历史 — 获取段落修改历史
-
-**优化改进:**
-- 生成记录管理增强 — 支持分页/轮询/继续/取消
-- 前端 UI 优化 — 多版本开头对比、对话插入确认
-- 后端性能优化 — SSE 事件流优化、超时保护增强
-
-### v3.0.0 (2026-07-08)
-
-**核心功能:**
-- 频道/题材/风格多选配置 — 男频 19 类 + 女频 18 类 + 15 种风格
-- 叙事技巧 — 视角控制、节奏调节、悬念/反转开关
-- 金句管理 — 自动提取、收藏、复制
-- 美学风格 — 关闭/轻度/中度/重度
-- 文末解读 — 意义提炼与主题升华
-- 设定档案 — 跨章节人物/地点一致性
-- 多版本开头 — 好结局/坏结局/开放式 + 多版本对比
-
-### v1.5.0 (2026-07-27)
-
-**全面优化:**
-- 前端 UI/UX — 懒加载、动画过渡、响应式设计
-- 后端安全/性能 — CORS 限制、API Key 脱敏、DB 索引
-- 代码质量 — 重构生成器、提取辅助函数
-- Bug 修复 — React key 重复、路由守卫
-
-### v1.0.0 (2026-07-08)
-
-**初始版本:**
-- 基础生成功能 — 种子句 → 完整小说
-- 四智能体管线 — Parser/Outliner/Writer/Titler
-- SSE 流式输出 — 实时显示生成进度
-- 多格式导出 — Markdown/TXT/PDF
+| **Demo v1.0** | 2026-10-18 | GitHub Pages 在线 Demo 上线；数据记录迁至 localStorage；文档全量更新；清理仓库生成内容 |
+| v1.6.0 | 2026-10-16 | V1 新增 AGNES 模型 Provider、模型配置持久化、错误处理优化 |
+| v3.1.1 | 2026-08-29 | 代码去重、CORS/Key 脱敏、N+1 修复、8 项 Bug 修复 |
+| v3.1.0 | 2026-07-15 | TTS 语音、AI 配图、统计分析、段落润色 |
+| v3.0.0 | 2026-07-08 | 灵魂版：F1-F9 创作增强全量落地 |
+| v1.0.0 | 2026-07-08 | 初始版本：四智能体管线 + SSE 流式生成 |
 
 ---
 
 ## 🤝 贡献指南
 
-1. Fork 项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
+1. Fork 本仓库并创建特性分支（`git checkout -b feature/AmazingFeature`）
+2. 提交符合 Conventional Commits 规范的变更
+3. 本地跑通对应测试（pytest / playwright）后发起 Pull Request
 
----
+## 📄 许可证 & 联系
 
-## 📄 许可证
+MIT License ｜ GitHub: [@snow-sakura](https://github.com/snow-sakura) ｜ Issues: [github.com/snow-sakura/novel-generator/issues](https://github.com/snow-sakura/novel-generator/issues)
 
-本项目采用 MIT 许可证 — 详见 [LICENSE](LICENSE) 文件
-
----
-
-## 📞 联系方式
-
-- GitHub: [@snow-sakura](https://github.com/snow-sakura)
-- Issues: [GitHub Issues](https://github.com/snow-sakura/novel-generator/issues)
-
----
-
-<p align="center">Made with ❤️ by AI + Human</p>
+<p align="center">Made with ❤️ by AI + Human · Demo powered by GitHub Pages</p>

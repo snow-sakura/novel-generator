@@ -8,13 +8,19 @@
 
 ## 界面预览
 
-### 创作页面
+> 以下截图由 Playwright 自动截取 **[在线 Demo](https://snow-sakura.github.io/novel-generator/)**（与本版本交互流程一致）。
 
-![创作页面](../screenshots/v1-create.png)
+### 在线 Demo · 创作页面（对应本版本创作页）
 
-### 历史记录
+![创作页面](../../docs/images/demo-02-config.png)
 
-![历史记录](../screenshots/v1-history.png)
+### 在线 Demo · 生成过程（四智能体流式输出）
+
+![生成中](../../docs/images/demo-03-generating.png)
+
+### 在线 Demo · 历史记录
+
+![历史记录](../../docs/images/demo-06-history.png)
 
 ## 快速启动
 
@@ -45,7 +51,7 @@ npm run dev
 |------|------|
 | 前端 | Vite + React 18 + TailwindCSS 3 + Zustand + Lucide Icons |
 | 后端 | Python FastAPI + LangChain + CrewAI + SQLAlchemy 2.0 + SQLite |
-| 模型 | OpenCode Zen / DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / AMD Radeon |
+| 模型 | OpenCode Zen / DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / AMD Radeon / **AGNES** |
 | 构建 | Vite (前端) + Uvicorn (后端) |
 | 流式传输 | SSE (Server-Sent Events) + Vite Proxy 透传 |
 
@@ -109,7 +115,7 @@ novel-generator/
 → 后端 CrewAI 四智能体管线
    (要素解析 → 大纲规划 → 逐章生成 → 标题生成)
 → SSE 流式推送前端
-→ 自动存储到 docs/novel/{title}/ + DB
+→ 自动存储到 docs/novel/{title}/ + DB（该目录已 .gitignore，生成内容不入 Git 仓库）
 ```
 
 ## 多智能体架构
@@ -143,9 +149,20 @@ OPENCODE_MODEL=mimo-v2.5-free
 
 ### 国产模型（需 API Key）
 
-DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零一万物 / 硅基流动
+DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零一万物 / 硅基流动 / **AGNES**（`AGNES_API_KEY / AGNES_BASE_URL / AGNES_MODEL` 三元组配置，v1.6.1 起支持）
 
 前端可通过设置页面切换模型，配置持久化到数据库。
+
+## 文档导航
+
+| 文档 | 说明 |
+|------|------|
+| [../../README.md](../../README.md) | 大项目总览 + 全流程图文指南 |
+| [../../docs/USER-GUIDE.md](../../docs/USER-GUIDE.md) | 端到端操作说明 |
+| [../../docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) | 技术架构 |
+| [../../docs/SECURITY.md](../../docs/SECURITY.md) | 密钥与隐私：`.env` 不入库、Key 脱敏 |
+| [../../docs/DEMO.md](../../docs/DEMO.md) | GitHub Pages 在线 Demo |
+| [../docs/prd/PRD-v1.md](../docs/prd/PRD-v1.md) · [../docs/spec/API-v1.md](../docs/spec/API-v1.md) · [DB-v1](../docs/spec/DB-v1.md) · [DESIGN-v1](../docs/spec/DESIGN-v1.md) | V1 细分规格 |
 
 ## API 端点
 
@@ -213,6 +230,17 @@ DeepSeek / Qwen / GLM / Kimi / 豆包 / 文心 / MiniMax / 百川 / 混元 / 零
 - **SSE 安全**：禁用响应缓冲，防止中间人攻击
 
 ## 版本历史
+
+### v1.6.1 (2026-10-18)
+
+**新增功能:**
+- AGNES 模型 Provider（`AGNES_API_KEY / AGNES_BASE_URL / AGNES_MODEL`）
+- 模型配置 UI 与 `config.py` 配置管理增强（2026-10-16 提交）
+
+**文档与仓库:**
+- 界面截图切换到 GitHub Pages 在线 Demo 实拍（docs/images/）
+- 生成内容（docs/novel/）与备份目录（backups/）移出仓库并加入 .gitignore
+- 新增顶层全套文档：需求 / 架构 / 操作说明 / 部署 / 安全 / Demo
 
 ### v1.6.0 (2026-08-31)
 

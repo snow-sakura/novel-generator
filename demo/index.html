@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍅 番茄小说生成器 · 在线 Demo</title>
+<meta name="description" content="番茄小说生成器官方在线 Demo：一句话输入，模拟 AI 四智能体流水线生成完整小说。纯 GitHub Pages 静态实现，数据记录保存在浏览器 localStorage。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍅</text></svg>">
+<link rel="stylesheet" href="assets/style.css?v=1">
+</head>
+<body>
+<div class="app">
+  <!-- 侧边栏 -->
+  <aside class="sidebar">
+    <div class="logo"><span class="logo-icon">🍅</span><span class="logo-text">番茄小说生成器</span></div>
+    <div class="demo-badge">DEMO · 模拟生成模式</div>
+    <nav id="nav">
+      <button class="nav-item active" data-page="create"><span class="nav-ico">✍️</span>创作工坊</button>
+      <button class="nav-item" data-page="chat"><span class="nav-ico">💬</span>对话创作</button>
+      <button class="nav-item" data-page="history"><span class="nav-ico">📚</span>我的作品<span class="nav-count" id="navCount" hidden>0</span></button>
+      <button class="nav-item" data-page="prompts"><span class="nav-ico">🗂️</span>提示词模板</button>
+      <button class="nav-item" data-page="settings"><span class="nav-ico">⚙️</span>模型配置</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="storage-info" id="storageInfo">本地存储：0 条记录</div>
+      <div class="gh-link"><a href="https://github.com/snow-sakura/novel-generator" target="_blank" rel="noopener">GitHub 仓库 →</a></div>
+    </div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <main class="main">
+    <!-- ============ 创作工坊 ============ -->
+    <section class="page active" id="page-create">
+      <header class="page-head">
+        <h1>创作工坊</h1>
+        <p class="sub">输入一句种子句，AI 四智能体流水线为你生成完整小说</p>
+      </header>
+      <div class="two-col">
+        <div class="card form-card">
+          <label class="fld"><span class="fld-t">💡 种子句 <em>（一句话故事起点）</em></span>
+            <textarea id="seed" rows="3" placeholder="例如：一个程序员加班猝死，醒来发现自己成了修仙宗门的杂役弟子"></textarea>
+          </label>
+          <div class="seed-chips" id="seedChips"></div>
+
+          <label class="fld"><span class="fld-t">📺 频道</span>
+            <div class="chips" id="channelChips"></div>
+          </label>
+          <label class="fld"><span class="fld-t">🎭 题材（多选）</span>
+            <div class="chips" id="genreChips"></div>
+          </label>
+          <label class="fld"><span class="fld-t">🖌️ 风格</span>
+            <div class="chips" id="styleChips"></div>
+          </label>
+          <div class="row2">
+            <label class="fld"><span class="fld-t">📖 章节数</span>
+              <select id="chapterCount"><option value="3">3 章 · 短篇</option><option value="5" selected>5 章 · 标准</option><option value="8">8 章 · 长篇</option></select>
+            </label>
+            <label class="fld"><span class="fld-t">🎨 美学风格</span>
+              <select id="aesthetic"><option>关闭</option><option selected>轻度</option><option>中度</option><option>重度</option></select>
+            </label>
+          </div>
+          <div class="switch-row">
+            <label class="sw"><input type="checkbox" id="optSuspense" checked>悬念设置</label>
+            <label class="sw"><input type="checkbox" id="optTwist" checked>情节反转</label>
+            <label class="sw"><input type="checkbox" id="optEnding" checked>多版本结局</label>
+          </div>
+          <button class="btn-primary" id="btnGenerate">🚀 开始生成</button>
+        </div>
+
+        <div class="card gen-card">
+          <div class="gen-head">
+            <h3>生成进度</h3>
+            <span class="status-pill" id="genStatus">等待开始</span>
+          </div>
+          <div class="pipeline" id="pipeline"></div>
+          <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+          <div class="gen-log" id="genLog"><div class="log-hint">配置左侧参数并点击「开始生成」，这里将实时显示四智能体的流式输出。</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 对话创作 ============ -->
+    <section class="page" id="page-chat">
+      <header class="page-head">
+        <h1>对话创作</h1>
+        <p class="sub">像聊天一样引导 AI 完成创作配置（Demo 模拟对话流程）</p>
+      </header>
+      <div class="two-col">
+        <div class="card chat-card">
+          <div class="chat-box" id="chatBox"></div>
+          <div class="chat-input">
+            <input id="chatText" placeholder="输入你的想法，例如：我想要一个赛博朋克风格的故事">
+            <button class="btn-primary sm" id="chatSend">发送</button>
+          </div>
+        </div>
+        <div class="card board-card">
+          <h3>创作状态看板</h3>
+          <div id="chatBoard" class="board"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 我的作品 ============ -->
+    <section class="page" id="page-history">
+      <header class="page-head">
+        <h1>我的作品</h1>
+        <p class="sub">所有生成记录自动保存在浏览器 localStorage（刷新 / 关闭页面不丢失）</p>
+      </header>
+      <div class="hist-toolbar">
+        <span id="histSummary" class="muted"></span>
+        <div>
+          <button class="btn-ghost sm" id="btnExportAll">📦 导出全部记录 JSON</button>
+          <button class="btn-ghost sm danger" id="btnClearAll">🗑 清空记录</button>
+        </div>
+      </div>
+      <div id="histList" class="hist-grid"></div>
+      <div id="histEmpty" class="empty">还没有作品，去「创作工坊」生成第一部小说吧 ✍️</div>
+    </section>
+
+    <!-- ============ 作品详情 ============ -->
+    <section class="page" id="page-detail">
+      <header class="page-head">
+        <button class="btn-ghost sm" id="btnBackHistory">← 返回作品列表</button>
+        <h1 id="detailTitle"></h1>
+        <p class="sub" id="detailMeta"></p>
+      </header>
+      <div class="detail-actions">
+        <button class="btn-primary sm" id="btnExportTxt">⬇ 导出 TXT</button>
+        <button class="btn-ghost sm" id="btnExportMd">⬇ 导出 Markdown</button>
+        <button class="btn-ghost sm" id="btnCopyAll">📋 复制全文</button>
+      </div>
+      <div id="detailBody" class="novel-body"></div>
+    </section>
+
+    <!-- ============ 提示词模板 ============ -->
+    <section class="page" id="page-prompts">
+      <header class="page-head">
+        <h1>提示词模板</h1>
+        <p class="sub">精选创作种子句模板，点击「使用」一键填入创作工坊</p>
+      </header>
+      <div id="promptGrid" class="prompt-grid"></div>
+    </section>
+
+    <!-- ============ 模型配置 ============ -->
+    <section class="page" id="page-settings">
+      <header class="page-head">
+        <h1>模型配置</h1>
+        <p class="sub">Demo 为模拟模式，展示真实项目的配置界面（密钥仅存本机，绝不上送）</p>
+      </header>
+      <div class="card settings-card">
+        <label class="fld"><span class="fld-t">LLM 提供商</span>
+          <select id="cfgProvider"><option>OpenCode Zen（免费）</option><option>OpenAI 兼容接口</option><option>DeepSeek</option><option>通义千问</option><option>AGNES</option></select>
+        </label>
+        <label class="fld"><span class="fld-t">API Key</span>
+          <input type="password" id="cfgKey" placeholder="sk-••••••••••••（仅保存在浏览器本地）">
+        </label>
+        <label class="fld"><span class="fld-t">Base URL</span>
+          <input id="cfgUrl" placeholder="https://…">
+        </label>
+        <label class="fld"><span class="fld-t">模型名称</span>
+          <input id="cfgModel" placeholder="mimo-v2.5-free">
+        </label>
+        <button class="btn-primary" id="btnSaveCfg">💾 保存配置（localStorage）</button>
+        <div class="notice">🔒 数据安全说明：本 Demo 为纯静态站点，不发送任何网络请求；API Key 等敏感信息仅写入浏览器 localStorage，真实部署时密钥统一放在后端 <code>.env</code>（已被 .gitignore 排除，不会提交到 GitHub）。</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 完成弹窗 -->
+<div class="modal-mask" id="doneModal" hidden>
+  <div class="modal">
+    <div class="modal-emoji">🎉</div>
+    <h3 id="doneTitle">生成完成</h3>
+    <p id="doneSummary" class="muted"></p>
+    <div class="modal-btns">
+      <button class="btn-ghost" id="btnDoneHistory">查看作品库</button>
+      <button class="btn-primary" id="btnDoneRead">立即阅读</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+<script src="assets/app.js?v=1"></script>
+</body>
+</html>
