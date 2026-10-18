@@ -1,4 +1,4 @@
-name: Security Scan (gitleaks)
+name: Security Scan (gitleaks + deps)
 
 on:
   push:
@@ -41,3 +41,44 @@ jobs:
             echo "::error::发现疑似真实 API Key"; exit 1
           fi
           echo "✅ 工作区检查通过"
+
+  dependency-audit:
+    name: 依赖漏洞扫描（pip-audit + npm audit）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Audit frontends
+        run: |
+          for fe in novel-build-system/v3/frontend novel-build-system/v1/frontend; do
+            echo "::group::$fe"
+            (cd "$fe" && npm audit --omit=dev --audit-level=high) \
+              || echo "::warning title=npm audit($fe)::存在 high 级别漏洞，请查看上方详情"
+            echo "::endgroup::"
+          done
+
+      - name: pip-audit V3 backend（阻断）
+        run: |
+          pip install -q pip-audit
+          pip-audit -r novel-build-system/v3/backend/requirements.txt --skip-editable
+
+      - name: pip-audit V1 backend（阻断；已知项显式豁免留痕，见 docs/SECURITY.md）
+        run: |
+          pip install -q pip-audit
+          # crewai 1.15.x 硬 pin chromadb~=1.5.9 / mcp~=1.28.1，升级需等 crewai 新版，风险可接受（本地单机工具）
+          pip-audit -r novel-build-system/v1/backend/requirements.txt --skip-editable \
+            --ignore-vuln PYSEC-2026-311 \
+            --ignore-vuln PYSEC-2026-3813 \
+            --ignore-vuln PYSEC-2026-3814 \
+            --ignore-vuln PYSEC-2026-3815 \
+            --ignore-vuln CVE-2026-59951
+

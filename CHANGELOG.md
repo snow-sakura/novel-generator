@@ -9,7 +9,10 @@
 - v3 前端 E2E 离线化：`tests/mock-server.mjs`（静态 dist + `/api/v3` fixture），92 用例无需后端全绿；9 个过时用例对齐 v3.1 UI；新增 CI 工作流 `e2e.yml`
 - **v1 冒烟离线 CI 化**：`v1/tests/mock-server.mjs` + `e2e-v1.yml`，pytest-playwright **11 passed / 1 skipped**（零后端/零密钥）；5 个过时用例对齐 v1.6 四区块展开式表单
 - **后端 API 离线冒烟接入 CI**：v1/v3 `tests/test_api_smoke.py`（TestClient + 临时 SQLite + 显式清空密钥 env；v1 7 用例 / v3 9 用例全绿）+ `api-tests.yml` / `api-tests-v1.yml`。注：后端启动会从 docs/novel 文件备份恢复数据，断言只锁定结构与状态码不锁数量
-- **Dependabot**：actions / npm×2 / pip×2 周更，minor+patch 归组
+- **Dependabot**：actions / npm×2 / pip×2 周更，minor+patch 归组；react/react-dom/typescript major 已 ignore（E2E 验证会破坏）
+- **依赖漏洞扫描 CI**：security-scan 新增 pip-audit（V3 阻断 / V1 已知 5 项显式豁免并登记于 SECURITY.md，crewai 硬 pin 所迫）+ npm audit 观察期告警
+- **Link Check CI**：`scripts/ci/check_links.py`（零依赖）扫描全部 Markdown 相对链接/图片，当前 131 链接 0 失效
+- Pages 部署附带 SPA 404 兜底页（demo/404.html）
 - CHANGELOG.md（本文件）与 README.en.md 英文版
 
 ## [release-2026.10.18] - 2026-10-18

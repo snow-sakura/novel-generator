@@ -118,7 +118,8 @@ LLM_PROVIDER=openai|opencode|agnes|...
 | `e2e-v1.yml` | **V1 冒烟（pytest-playwright 12 用例）离线运行**：`v1/tests/mock-server.mjs` 托管 frontend/dist + `/api/v1` fixture，build 后直接跑 |
 | `api-tests.yml` | V3 后端 pytest TestClient 冒烟（9 用例）：conftest 注入临时 SQLite 并清空密钥 env，离线无网络调用 |
 | `api-tests-v1.yml` | V1 后端同款冒烟（7 用例）；列表断言只锁结构（启动会从 docs/novel 文件恢复，机器间数据量不同） |
-| `security-scan.yml` | gitleaks 全历史 + 工作区禁入文件/硬编码 Key 门禁 |
+| `security-scan.yml` | gitleaks 全历史 + 工作区禁入文件/硬编码 Key 门禁 + pip-audit/npm audit 依赖漏洞扫描（V1 已知 5 项显式豁免，见 SECURITY.md） |
+| `link-check.yml` | 全部 Markdown 中的 相对链接/图片存在性（scripts/ci/check_links.py，零依赖） |
 | `docker.yml` | compose 配置校验 + v1/v3 前后端 4 镜像构建 |
 | `deploy-pages.yml` | Demo 发布 GitHub Pages |
 | `novel-build-test/.github/workflows/ci.yml` | AISQA：ruff + pytest + 前端 lint/build |

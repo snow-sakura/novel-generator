@@ -1,0 +1,24 @@
+name: Link Check
+
+on:
+  push:
+    paths:
+      - '**.md'
+      - 'scripts/ci/check_links.py'
+      - '.github/workflows/link-check.yml'
+  pull_request:
+    paths:
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Markdown 相对链接完整性
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check links
+        run: python3 scripts/ci/check_links.py
