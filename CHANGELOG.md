@@ -8,7 +8,8 @@
 ### Added
 - v3 前端 E2E 离线化：`tests/mock-server.mjs`（静态 dist + `/api/v3` fixture），92 用例无需后端全绿；9 个过时用例对齐 v3.1 UI；新增 CI 工作流 `e2e.yml`
 - **v1 冒烟离线 CI 化**：`v1/tests/mock-server.mjs` + `e2e-v1.yml`，pytest-playwright **11 passed / 1 skipped**（零后端/零密钥）；5 个过时用例对齐 v1.6 四区块展开式表单
-- GitHub Issue / PR 模板（Bug / 功能 / Demo 快捷入口 / 自检清单）
+- **后端 API 离线冒烟接入 CI**：v1/v3 `tests/test_api_smoke.py`（TestClient + 临时 SQLite + 显式清空密钥 env；v1 7 用例 / v3 9 用例全绿）+ `api-tests.yml` / `api-tests-v1.yml`。注：后端启动会从 docs/novel 文件备份恢复数据，断言只锁定结构与状态码不锁数量
+- **Dependabot**：actions / npm×2 / pip×2 周更，minor+patch 归组
 - CHANGELOG.md（本文件）与 README.en.md 英文版
 
 ## [release-2026.10.18] - 2026-10-18

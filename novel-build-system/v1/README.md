@@ -54,6 +54,9 @@ cd frontend && npm run build && cd ..
 node tests/mock-server.mjs &
 pip install pytest playwright pytest-playwright && playwright install chromium
 python -m pytest tests/test_e2e.py -q   # ➔ 11 passed, 1 skipped
+
+# 后端 API 冒烟（TestClient + 临时 SQLite，同样零密钥）：11 passed（v1 7 + 说明见下）
+cd backend && python -m pytest tests/ -q   # ➔ 7 passed；CI: .github/workflows/api-tests-v1.yml
 ```
 
 ## 技术栈

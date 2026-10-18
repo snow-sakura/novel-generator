@@ -1,0 +1,33 @@
+name: API Tests (V1 Backend)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'novel-build-system/v1/backend/**'
+      - '.github/workflows/api-tests-v1.yml'
+  pull_request:
+    paths:
+      - 'novel-build-system/v1/backend/**'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: pytest TestClient 冒烟（离线）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: novel-build-system/v1/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: novel-build-system/v1/backend/requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - name: Run API smoke tests (temp SQLite, no LLM keys)
+        run: python -m pytest tests/ -q

@@ -94,6 +94,9 @@ OPENCODE_MODEL=deepseek-v4-flash-free
 # E2E 92 用例（Playwright）——离线运行：tests/mock-server.mjs 托管 dist + /api/v3 mock，无需后端/密钥
 cd frontend && npm run build && npx playwright test
 # CI 自动执行：.github/workflows/e2e.yml（push/PR 触发，失败上传 report 制品）
+
+# backend API 冒烟（TestClient + 临时 SQLite，零密钥）：9 passed；CI: .github/workflows/api-tests.yml
+cd backend && python -m pytest tests/ -q
 ```
 
 | 文档 | 说明 |

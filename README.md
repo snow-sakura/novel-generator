@@ -14,6 +14,8 @@
 [![Security Scan](https://github.com/snow-sakura/novel-generator/actions/workflows/security-scan.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/security-scan.yml)
 [![E2E V3](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e.yml)
 [![E2E V1](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e-v1.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/e2e-v1.yml)
+[![API V3](https://github.com/snow-sakura/novel-generator/actions/workflows/api-tests.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/api-tests.yml)
+[![API V1](https://github.com/snow-sakura/novel-generator/actions/workflows/api-tests-v1.yml/badge.svg)](https://github.com/snow-sakura/novel-generator/actions/workflows/api-tests-v1.yml)
 
 ---
 
